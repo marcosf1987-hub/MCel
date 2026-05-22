@@ -1,43 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import {
+  signUpWithEmail,
+  signInWithEmail,
+  getGoogleSignInUrl,
+} from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm({ returnUrl }: { returnUrl: string }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const supabase = createClient();
+  const [message, setMessage] = useState<string | null>(null);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
 
-    if (isSignUp) {
-      const { error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
-        },
-      });
-      if (err) setError(err.message);
-      else setError("Revisá tu email para confirmar la cuenta.");
-    } else {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) setError(err.message);
-      else {
-        router.push(returnUrl);
-        router.refresh();
+    try {
+      if (isSignUp) {
+        const result = await signUpWithEmail(email, password, returnUrl);
+        if (!result.ok) setError(result.error);
+        else setMessage(result.message);
+      } else {
+        const result = await signInWithEmail(email, password, returnUrl);
+        if (result?.ok === false) setError(result.error);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error de conexión";
+      if (msg.includes("JSON") || msg.includes("<!DOCTYPE")) {
+        setError(
+          "No se pudo conectar con Supabase. Revisá las variables de entorno en Vercel y hacé Redeploy después de guardarlas."
+        );
+      } else {
+        setError(msg);
       }
     }
     setLoading(false);
@@ -45,14 +48,20 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
-      },
-    });
-    if (err) {
-      setError(err.message);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await getGoogleSignInUrl(returnUrl);
+      if (!result.ok) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      window.location.href = result.url;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error de conexión";
+      setError(msg);
       setLoading(false);
     }
   };
@@ -100,7 +109,16 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             minLength={6}
           />
         </div>
-        {error && <p className="text-sm text-[var(--color-destructive)]">{error}</p>}
+        {error && (
+          <p className="text-sm text-[var(--color-destructive)]" role="alert">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="text-sm text-[var(--color-primary)]" role="status">
+            {message}
+          </p>
+        )}
         <Button type="submit" className="w-full" disabled={loading}>
           {isSignUp ? "Registrarse" : "Iniciar sesión"}
         </Button>
@@ -109,7 +127,11 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
       <button
         type="button"
         className="w-full text-center text-sm text-[var(--color-primary)] hover:underline"
-        onClick={() => setIsSignUp(!isSignUp)}
+        onClick={() => {
+          setIsSignUp(!isSignUp);
+          setError(null);
+          setMessage(null);
+        }}
       >
         {isSignUp ? "¿Ya tenés cuenta? Iniciá sesión" : "¿No tenés cuenta? Registrate"}
       </button>

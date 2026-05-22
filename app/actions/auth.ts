@@ -1,0 +1,71 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
+
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  returnUrl: string
+): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  const env = getSupabasePublicEnv();
+  if (!env.ok) return { ok: false, error: env.error };
+
+  const supabase = await createClient();
+  const siteUrl = getSiteUrl();
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
+    },
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  return {
+    ok: true,
+    message:
+      "Revisá tu email para confirmar la cuenta. Si no llega, revisá spam o desactivá la confirmación en Supabase → Authentication → Providers → Email.",
+  };
+}
+
+export async function signInWithEmail(
+  email: string,
+  password: string,
+  returnUrl: string
+): Promise<{ ok: false; error: string } | void> {
+  const env = getSupabasePublicEnv();
+  if (!env.ok) return { ok: false, error: env.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) return { ok: false, error: error.message };
+
+  redirect(returnUrl.startsWith("/") ? returnUrl : "/");
+}
+
+export async function getGoogleSignInUrl(
+  returnUrl: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const env = getSupabasePublicEnv();
+  if (!env.ok) return { ok: false, error: env.error };
+
+  const supabase = await createClient();
+  const siteUrl = getSiteUrl();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
+    },
+  });
+
+  if (error) return { ok: false, error: error.message };
+  if (!data.url) return { ok: false, error: "No se pudo iniciar sesión con Google." };
+
+  return { ok: true, url: data.url };
+}

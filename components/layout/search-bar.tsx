@@ -26,10 +26,16 @@ export function SearchBar() {
       return;
     }
     debounceRef.current = setTimeout(async () => {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      const data = (await res.json()) as { results: SearchResult[] };
-      setResults(data.results ?? []);
-      setOpen(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const text = await res.text();
+        if (!text.startsWith("{")) return;
+        const data = JSON.parse(text) as { results: SearchResult[] };
+        setResults(data.results ?? []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      }
     }, 300);
   }, []);
 
