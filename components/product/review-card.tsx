@@ -4,8 +4,11 @@ import { useState } from "react";
 import { TierBadge } from "@/components/ui/badge";
 import { StarRating } from "@/components/product/star-rating";
 import { Button } from "@/components/ui/button";
-import { GLUTEN_LABELS } from "@/lib/catalog";
-import type { GlutenCertification, UserTier } from "@/types/database";
+import {
+  GLUTEN_LABELS,
+  type GlutenCertification,
+  type UserTier,
+} from "@/types/database";
 
 const PREVIEW_LEN = 200;
 

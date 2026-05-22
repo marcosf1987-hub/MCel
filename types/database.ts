@@ -7,6 +7,14 @@ export type GlutenCertification =
   | "no_certificado"
   | "desconocido";
 
+export const GLUTEN_LABELS: Record<GlutenCertification, string> = {
+  sin_tacc: "SIN TACC certificado",
+  sin_gluten: "Sin gluten",
+  con_trazas: "Puede contener trazas",
+  no_certificado: "Sin certificación",
+  desconocido: "Desconocido",
+};
+
 export interface Profile {
   id: string;
   username: string | null;

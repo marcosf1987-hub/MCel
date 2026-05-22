@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils";
-import type { GlutenCertification } from "@/types/database";
 
 export async function getOrCreateBrand(name: string) {
   const supabase = await createClient();
@@ -108,11 +107,3 @@ export async function uploadProductImage(
   if (dbError) throw dbError;
   return publicUrl;
 }
-
-export const GLUTEN_LABELS: Record<GlutenCertification, string> = {
-  sin_tacc: "SIN TACC certificado",
-  sin_gluten: "Sin gluten",
-  con_trazas: "Puede contener trazas",
-  no_certificado: "Sin certificación",
-  desconocido: "Desconocido",
-};

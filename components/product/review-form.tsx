@@ -14,8 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitReview } from "@/app/actions/products";
-import { GLUTEN_LABELS } from "@/lib/catalog";
-import type { GlutenCertification } from "@/types/database";
+import { GLUTEN_LABELS, type GlutenCertification } from "@/types/database";
 
 export function ReviewForm({
   productId,

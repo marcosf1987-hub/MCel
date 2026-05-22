@@ -6,7 +6,6 @@ import { StarRating } from "@/components/product/star-rating";
 import { ReviewCard, type ReviewCardData } from "@/components/product/review-card";
 import { ReportButton } from "@/components/product/report-button";
 import { Button } from "@/components/ui/button";
-import { GLUTEN_LABELS } from "@/lib/catalog";
 
 export async function generateMetadata({
   params,
