@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
-import type { CategoriesNavData } from "@/lib/categories-cache";
-import { categoryDisplayName } from "@/lib/categories-cache";
+import type { CategoriesNavData } from "@/lib/categories-types";
+import { categoryDisplayName } from "@/lib/categories-types";
 
 export function CategoryMegaMenu({ data }: { data: CategoriesNavData }) {
   const [open, setOpen] = useState(false);

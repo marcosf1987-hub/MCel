@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getCategoriesNavData, categoryDisplayName } from "@/lib/categories-cache";
+import { getCategoriesNavData } from "@/lib/categories-cache";
+import { categoryDisplayName } from "@/lib/categories-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Compass } from "lucide-react";
 

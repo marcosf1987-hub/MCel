@@ -1,19 +1,9 @@
 import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
+import type { CategoriesNavData, CategoryWithCount } from "@/lib/categories-types";
 
-export type CategoryWithCount = {
-  id: string;
-  name: string;
-  name_es: string | null;
-  slug: string;
-  product_count: number;
-};
-
-export type CategoriesNavData = {
-  categories: CategoryWithCount[];
-  totalProducts: number;
-};
+export type { CategoriesNavData, CategoryWithCount } from "@/lib/categories-types";
 
 async function fetchCategoriesNavData(): Promise<CategoriesNavData> {
   const env = getSupabasePublicEnv();
@@ -58,7 +48,3 @@ export const getCategoriesNavData = unstable_cache(
   ["categories-nav-data"],
   { revalidate: 3600, tags: ["categories-counts"] }
 );
-
-export function categoryDisplayName(cat: CategoryWithCount) {
-  return cat.name_es ?? cat.name;
-}
