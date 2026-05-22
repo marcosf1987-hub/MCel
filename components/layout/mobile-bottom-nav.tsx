@@ -2,16 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, PlusCircle, Heart, User } from "lucide-react";
+import { Home, Compass, PlusCircle, Heart, User, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  accent?: boolean;
+};
+
+const items: NavItem[] = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/explorar", label: "Explorar", icon: Compass },
   { href: "/productos/nuevo", label: "Cargar", icon: PlusCircle, accent: true },
   { href: "/cuenta/favoritos", label: "Favoritos", icon: Heart },
   { href: "/cuenta/preferencias", label: "Cuenta", icon: User },
-] as const;
+];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
