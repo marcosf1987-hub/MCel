@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ReviewsList } from "@/components/product/reviews-list";
 import type { ReviewCardData } from "@/components/product/review-card";
+import { getRelation } from "@/lib/utils";
 
 export const metadata = { title: "Todas las evaluaciones" };
 
@@ -38,18 +39,24 @@ export default async function ProductReviewsPage({
     )
     .eq("product_id", product.id);
 
-  const cards: ReviewCardData[] = (reviews ?? []).map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    opinion: r.opinion,
-    general_description: r.general_description,
-    taste: r.taste,
-    price: r.price,
-    gluten_certification: r.gluten_certification,
-    created_at: r.created_at,
-    display_name: (r.profiles as { display_name: string | null })?.display_name ?? null,
-    tier: (r.profiles as { tier: ReviewCardData["tier"] })?.tier ?? "none",
-  }));
+  const cards: ReviewCardData[] = (reviews ?? []).map((r) => {
+    const profile = getRelation<{
+      display_name: string | null;
+      tier: ReviewCardData["tier"];
+    }>(r.profiles);
+    return {
+      id: r.id,
+      rating: r.rating,
+      opinion: r.opinion,
+      general_description: r.general_description,
+      taste: r.taste,
+      price: r.price,
+      gluten_certification: r.gluten_certification,
+      created_at: r.created_at,
+      display_name: profile?.display_name ?? null,
+      tier: profile?.tier ?? "none",
+    };
+  });
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
 import { Suspense } from "react";
 import { ProductFilters } from "@/components/product/product-filters";
+import { getBrandName } from "@/lib/utils";
 
 export const metadata = { title: "Productos" };
 
@@ -65,7 +66,7 @@ export default async function ProductsPage({
       weighted_rating: p.weighted_rating,
       review_count: p.review_count,
       image_url: images[0]?.url ?? null,
-      brand_name: (p.brands as { name: string }).name,
+      brand_name: getBrandName(p.brands),
     };
   });
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
+import { getBrandName } from "@/lib/utils";
 
 export default async function CategoryPage({
   params,
@@ -38,7 +39,7 @@ export default async function CategoryPage({
       weighted_rating: p.weighted_rating,
       review_count: p.review_count,
       image_url: images[0]?.url ?? null,
-      brand_name: (p.brands as { name: string } | null)?.name,
+      brand_name: getBrandName(p.brands),
     };
   });
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
+import { getBrandName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default async function HomePage() {
@@ -28,7 +29,7 @@ export default async function HomePage() {
       weighted_rating: p.weighted_rating,
       review_count: p.review_count,
       image_url: images[0]?.url ?? null,
-      brand_name: (p.brands as { name: string } | null)?.name,
+      brand_name: getBrandName(p.brands),
     };
   });
 

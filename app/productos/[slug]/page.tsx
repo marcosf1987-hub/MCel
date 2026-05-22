@@ -6,6 +6,7 @@ import { StarRating } from "@/components/product/star-rating";
 import { ReviewCard, type ReviewCardData } from "@/components/product/review-card";
 import { ReportButton } from "@/components/product/report-button";
 import { Button } from "@/components/ui/button";
+import { getBrand, getRelation } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -75,9 +76,19 @@ export default async function ProductDetailPage({
     };
   }
 
-  const brand = product.brands as { name: string; slug: string };
-  const category = product.categories as { name: string; name_es: string | null; slug: string };
-  const subcategory = product.subcategories as { name: string; name_es: string | null; slug: string };
+  const brand = getBrand(product.brands);
+  const category = getRelation<{
+    name: string;
+    name_es: string | null;
+    slug: string;
+  }>(product.categories);
+  const subcategory = getRelation<{
+    name: string;
+    name_es: string | null;
+    slug: string;
+  }>(product.subcategories);
+
+  if (!brand || !category || !subcategory) notFound();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
