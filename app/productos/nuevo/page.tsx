@@ -16,8 +16,8 @@ export default async function NewProductPage() {
     <div className="mx-auto max-w-xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Cargar nuevo producto</h1>
       <p className="mb-6 text-sm text-[var(--color-muted-foreground)]">
-        Escaneá el código de barras para obtener datos automáticos o cargalos manualmente
-        si el producto no está en Open Food Facts.
+        Escaneá el código de barras para obtener datos automáticos, si no podés cargalos
+        manualmente.
       </p>
       <NewProductForm />
     </div>

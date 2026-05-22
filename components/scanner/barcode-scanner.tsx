@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, ImageIcon, Keyboard } from "lucide-react";
+import { Keyboard, ScanBarcode } from "lucide-react";
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -12,162 +12,24 @@ interface BarcodeScannerProps {
   onStatus?: (type: "loading" | "success" | "error" | "info", message: string) => void;
 }
 
-function isSecureContext(): boolean {
-  if (typeof window === "undefined") return true;
-  return window.isSecureContext;
-}
-
 export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerProps) {
   const uid = useId().replace(/:/g, "");
   const readerId = `barcode-reader-${uid}`;
-  const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
-  const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
 
-  const stopScanner = useCallback(async () => {
-    const scanner = scannerRef.current;
-    if (scanner) {
-      try {
-        if (scanner.isScanning) {
-          await scanner.stop();
-        }
-        scanner.clear();
-      } catch {
-        /* ignore */
-      }
-      scannerRef.current = null;
-    }
-    setScanning(false);
-  }, []);
-
   const handleDecoded = useCallback(
-    async (decoded: string) => {
-      await stopScanner();
+    (decoded: string) => {
       const code = decoded.replace(/\D/g, "");
       const finalCode = code.length >= 8 ? code : decoded;
       onStatus?.("success", `Código leído: ${finalCode}`);
       onScanRef.current(finalCode);
     },
-    [stopScanner, onStatus]
+    [onStatus]
   );
-
-  const pickBackCamera = useCallback(async (): Promise<string | { facingMode: string }> => {
-    const { Html5Qrcode } = await import("html5-qrcode");
-    try {
-      const cameras = await Html5Qrcode.getCameras();
-      if (cameras.length === 0) {
-        return { facingMode: "environment" };
-      }
-      const back = cameras.find((c) =>
-        /back|rear|trasera|environment|wide/i.test(c.label)
-      );
-      return (back ?? cameras[cameras.length - 1]).id;
-    } catch {
-      return { facingMode: "environment" };
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!scanning) return;
-
-    let cancelled = false;
-
-    const start = async () => {
-      setError(null);
-      setHint("Solicitando acceso a la cámara…");
-      onStatus?.("loading", "Abriendo cámara…");
-
-      if (!isSecureContext()) {
-        setError(
-          "La cámara solo funciona con HTTPS. Abrí el sitio con https:// (Vercel) o ingresá el código manualmente."
-        );
-        setScanning(false);
-        return;
-      }
-
-      await new Promise((r) => setTimeout(r, 150));
-      if (cancelled) return;
-
-      try {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import(
-          "html5-qrcode"
-        );
-
-        const formats = [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-        ];
-
-        const scanner = new Html5Qrcode(readerId, {
-          formatsToSupport: formats,
-          verbose: false,
-        });
-        scannerRef.current = scanner;
-
-        const cameraId = await pickBackCamera();
-
-        await scanner.start(
-          cameraId,
-          {
-            fps: 10,
-            aspectRatio: 1.777778,
-            qrbox: (viewWidth, viewHeight) => {
-              const w = Math.min(viewWidth * 0.9, 320);
-              const h = Math.min(viewHeight * 0.45, 160);
-              return { width: Math.floor(w), height: Math.floor(h) };
-            },
-            disableFlip: false,
-          },
-          (text) => {
-            void handleDecoded(text);
-          },
-          () => {}
-        );
-
-        if (!cancelled) {
-          setHint("Apuntá al código de barras del producto");
-          onStatus?.("info", "Cámara lista. Apuntá al código de barras.");
-        }
-      } catch (err) {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("Scanner error:", msg);
-        const errMsg =
-          msg.includes("NotAllowed") || msg.includes("Permission")
-            ? "Permiso de cámara denegado. Activá la cámara en Ajustes del navegador o usá «Foto del código» abajo."
-            : msg.includes("NotFound") || msg.includes("device")
-              ? "No se encontró cámara. Usá «Foto del código» o ingresá el número manualmente."
-              : "No se pudo abrir la cámara. Probá «Foto del código» o el ingreso manual.";
-        setError(errMsg);
-        onStatus?.("error", errMsg);
-        setScanning(false);
-        scannerRef.current = null;
-      }
-    };
-
-    void start();
-
-    return () => {
-      cancelled = true;
-      void stopScanner();
-    };
-  }, [scanning, readerId, pickBackCamera, handleDecoded, stopScanner]);
-
-  const startScanner = () => {
-    if (disabled) return;
-    setError(null);
-    setHint(null);
-    setScanning(true);
-  };
 
   const scanFromPhoto = async (file: File) => {
     setError(null);
@@ -192,7 +54,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
       const result = await scanner.scanFile(file, true);
       scanner.clear();
       setHint(null);
-      await handleDecoded(result);
+      handleDecoded(result);
     } catch {
       setHint(null);
       const errMsg =
@@ -204,58 +66,37 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
   return (
     <div className="space-y-4">
-      {/* Siempre en DOM con tamaño cuando escanea (evita cámara en div oculto de 0px) */}
-      <div
-        className={
-          scanning
-            ? "relative min-h-[280px] w-full overflow-hidden rounded-2xl border-2 border-[var(--color-accent)] bg-black"
-            : "sr-only h-0 w-0 overflow-hidden"
-        }
-        aria-hidden={!scanning}
+      <div id={readerId} className="sr-only h-px w-px overflow-hidden" aria-hidden />
+
+      <Button
+        type="button"
+        variant="accent"
+        size="lg"
+        disabled={disabled}
+        className="h-12 w-full gap-2 text-base"
+        asChild
       >
-        <div id={readerId} className={scanning ? "min-h-[280px] w-full [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover" : "h-px w-px"} />
-        {hint && scanning && !error && (
-          <p className="absolute bottom-0 left-0 right-0 bg-black/70 px-3 py-2 text-center text-xs text-white">
-            {hint}
-          </p>
-        )}
-      </div>
+        <label className="cursor-pointer">
+          <ScanBarcode className="h-6 w-6" />
+          Escanear código de barra
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            disabled={disabled}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void scanFromPhoto(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </Button>
 
-      <div className="flex flex-wrap gap-2">
-        {!scanning ? (
-          <Button type="button" onClick={startScanner} disabled={disabled} className="gap-2">
-            <Camera className="h-4 w-4" />
-            Abrir cámara
-          </Button>
-        ) : (
-          <Button type="button" variant="outline" onClick={() => void stopScanner()}>
-            Cerrar cámara
-          </Button>
-        )}
-
-        <Button type="button" variant="secondary" disabled={disabled} className="gap-2" asChild>
-          <label className="cursor-pointer">
-            <ImageIcon className="h-4 w-4" />
-            Foto del código
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              disabled={disabled}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void scanFromPhoto(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-        </Button>
-      </div>
-
-      {!isSecureContext() && typeof window !== "undefined" && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          En el celular, la cámara en vivo requiere HTTPS. Usá la URL de Vercel o «Foto del código».
+      {hint && (
+        <p className="text-center text-sm text-[var(--color-muted-foreground)]">
+          {hint}
         </p>
       )}
 
