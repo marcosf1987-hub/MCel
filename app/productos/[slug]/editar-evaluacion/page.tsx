@@ -58,7 +58,7 @@ export default async function EditReviewPage({
               rating: review.rating,
               generalDescription: review.general_description,
               taste: review.taste ?? "",
-              price: String(review.price),
+              priceRange: review.price_range,
               opinion: review.opinion,
               glutenCertification: review.gluten_certification,
             }}

@@ -7,6 +7,22 @@ export type GlutenCertification =
   | "no_certificado"
   | "desconocido";
 
+export type PriceRange = "1" | "2" | "3" | "4";
+
+export const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
+  "1": "$",
+  "2": "$$",
+  "3": "$$$",
+  "4": "$$$$",
+};
+
+export const PRICE_RANGE_OPTIONS: { value: PriceRange; label: string }[] = [
+  { value: "1", label: "$ — Económico" },
+  { value: "2", label: "$$ — Accesible" },
+  { value: "3", label: "$$$ — Medio" },
+  { value: "4", label: "$$$$ — Premium" },
+];
+
 export const GLUTEN_LABELS: Record<GlutenCertification, string> = {
   sin_tacc: "SIN TACC certificado",
   sin_gluten: "Sin gluten",
@@ -95,7 +111,7 @@ export interface Review {
   opinion: string;
   general_description: string;
   taste: string | null;
-  price: number;
+  price_range: PriceRange;
   gluten_certification: GlutenCertification;
   created_at: string;
   updated_at: string;

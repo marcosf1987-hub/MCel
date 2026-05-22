@@ -151,9 +151,9 @@ export async function submitReview(formData: FormData): Promise<
       formData.get("generalDescription") ?? ""
     ).trim();
     const taste = String(formData.get("taste") ?? "").trim() || null;
-    const price = Number(formData.get("price"));
+    const priceRange = String(formData.get("priceRange") ?? "");
     const glutenCert = String(formData.get("glutenCertification") ?? "desconocido");
-    const imageFile = formData.get("image") as File | null;
+    const validRanges = ["1", "2", "3", "4"];
 
     if (!rating || rating < 1 || rating > 5) {
       return { ok: false, error: "Seleccioná una puntuación del 1 al 5." };
@@ -161,11 +161,8 @@ export async function submitReview(formData: FormData): Promise<
     if (!opinion || !generalDescription) {
       return { ok: false, error: "Completá la descripción y tu opinión." };
     }
-    if (Number.isNaN(price) || price < 0) {
-      return { ok: false, error: "Ingresá un precio válido." };
-    }
-    if (!imageFile || imageFile.size === 0) {
-      return { ok: false, error: "Subí una foto del producto." };
+    if (!validRanges.includes(priceRange)) {
+      return { ok: false, error: "Seleccioná un rango de precio." };
     }
 
     const { error } = await supabase.from("reviews").insert({
@@ -175,7 +172,7 @@ export async function submitReview(formData: FormData): Promise<
       opinion,
       general_description: generalDescription,
       taste,
-      price,
+      price_range: priceRange,
       gluten_certification: glutenCert,
     });
 
@@ -184,17 +181,6 @@ export async function submitReview(formData: FormData): Promise<
         return { ok: false, error: "Ya evaluaste este producto." };
       }
       return { ok: false, error: error.message };
-    }
-
-    try {
-      await uploadProductImage(productId, user.id, imageFile);
-    } catch (uploadErr) {
-      const msg =
-        uploadErr instanceof Error ? uploadErr.message : "Error al subir imagen";
-      return {
-        ok: false,
-        error: `Evaluación guardada pero falló la foto: ${msg}`,
-      };
     }
 
     const siteUrl =

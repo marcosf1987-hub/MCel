@@ -6,7 +6,9 @@ import { StarRating } from "@/components/product/star-rating";
 import { Button } from "@/components/ui/button";
 import {
   GLUTEN_LABELS,
+  PRICE_RANGE_LABELS,
   type GlutenCertification,
+  type PriceRange,
   type UserTier,
 } from "@/types/database";
 
@@ -18,7 +20,7 @@ export interface ReviewCardData {
   opinion: string;
   general_description: string;
   taste: string | null;
-  price: number;
+  price_range: PriceRange;
   gluten_certification: GlutenCertification;
   created_at: string;
   display_name: string | null;
@@ -58,7 +60,7 @@ export function ReviewCard({ review }: { review: ReviewCardData }) {
       )}
       <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--color-muted-foreground)]">
         {review.taste && <span>Sabor: {review.taste}</span>}
-        <span>Precio: ${Number(review.price).toLocaleString("es-AR")}</span>
+        <span>Rango de precio: {PRICE_RANGE_LABELS[review.price_range]}</span>
         <span>{GLUTEN_LABELS[review.gluten_certification]}</span>
       </div>
     </article>

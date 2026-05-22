@@ -32,7 +32,7 @@ export default async function ProductReviewsPage({
     .from("reviews")
     .select(
       `
-      id, rating, opinion, general_description, taste, price,
+      id, rating, opinion, general_description, taste, price_range,
       gluten_certification, created_at,
       profiles(display_name, tier)
     `
@@ -50,7 +50,7 @@ export default async function ProductReviewsPage({
       opinion: r.opinion,
       general_description: r.general_description,
       taste: r.taste,
-      price: r.price,
+      price_range: r.price_range,
       gluten_certification: r.gluten_certification,
       created_at: r.created_at,
       display_name: profile?.display_name ?? null,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import type { GlutenCertification } from "@/types/database";
+import type { GlutenCertification, PriceRange } from "@/types/database";
 
 const VALID_CERTS: GlutenCertification[] = [
   "sin_tacc",
@@ -10,6 +10,8 @@ const VALID_CERTS: GlutenCertification[] = [
   "no_certificado",
   "desconocido",
 ];
+
+const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
 
 /** GET = diagnóstico */
 export async function GET(request: NextRequest) {
@@ -54,7 +56,7 @@ interface ReviewPayload {
   opinion: string;
   generalDescription: string;
   taste?: string;
-  price: number;
+  priceRange: string;
   glutenCertification: string;
   skipImage?: boolean;
 }
@@ -87,26 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contentType = request.headers.get("content-type") ?? "";
-    let payload: ReviewPayload;
-
-    if (contentType.includes("application/json")) {
-      payload = (await request.json()) as ReviewPayload;
-    } else {
-      // FormData legacy (sin archivo grande)
-      const formData = await request.formData();
-      payload = {
-        productId: String(formData.get("productId") ?? ""),
-        productSlug: String(formData.get("productSlug") ?? ""),
-        rating: Number(formData.get("rating")),
-        opinion: String(formData.get("opinion") ?? "").trim(),
-        generalDescription: String(formData.get("generalDescription") ?? "").trim(),
-        taste: String(formData.get("taste") ?? "").trim(),
-        price: Number(formData.get("price")),
-        glutenCertification: String(formData.get("glutenCertification") ?? "desconocido"),
-        skipImage: formData.get("skipImage") === "true",
-      };
-    }
+    const payload = (await request.json()) as ReviewPayload;
 
     const {
       productId,
@@ -115,11 +98,11 @@ export async function POST(request: NextRequest) {
       opinion,
       generalDescription,
       taste,
-      price,
     } = payload;
 
     let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
     const skipImage = payload.skipImage === true;
+    let priceRange = payload.priceRange as PriceRange;
 
     if (!productId || !productSlug) {
       return json({ ok: false, error: "Producto no identificado." }, 400);
@@ -130,8 +113,8 @@ export async function POST(request: NextRequest) {
     if (!opinion || !generalDescription) {
       return json({ ok: false, error: "Completá la descripción y tu opinión." }, 400);
     }
-    if (Number.isNaN(price) || price < 0) {
-      return json({ ok: false, error: "Ingresá un precio válido." }, 400);
+    if (!VALID_PRICE_RANGES.includes(priceRange)) {
+      return json({ ok: false, error: "Seleccioná un rango de precio." }, 400);
     }
     if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
 
@@ -166,7 +149,7 @@ export async function POST(request: NextRequest) {
       opinion,
       general_description: generalDescription,
       taste: taste || null,
-      price,
+      price_range: priceRange,
       gluten_certification: glutenCert,
     });
 

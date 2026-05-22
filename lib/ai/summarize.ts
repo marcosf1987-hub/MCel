@@ -1,7 +1,9 @@
+import { PRICE_RANGE_LABELS, type PriceRange } from "@/types/database";
+
 export interface ReviewSummaryInput {
   general_description: string;
   taste: string | null;
-  price: number;
+  price_range: PriceRange;
 }
 
 export async function summarizeReviews(
@@ -19,7 +21,7 @@ export async function summarizeReviews(
   const payload = reviews
     .map(
       (r, i) =>
-        `Evaluación ${i + 1}: Descripción: ${r.general_description}. Sabor: ${r.taste ?? "no indicado"}. Precio: $${r.price}.`
+        `Evaluación ${i + 1}: Descripción: ${r.general_description}. Sabor: ${r.taste ?? "no indicado"}. Rango de precio: ${PRICE_RANGE_LABELS[r.price_range]}.`
     )
     .join("\n");
 
@@ -36,7 +38,7 @@ export async function summarizeReviews(
           {
             role: "system",
             content:
-              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en descripción general, sabor y relación precio/calidad. Sé conciso y objetivo. No des consejo médico.",
+              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en descripción general, sabor y percepción de precio ($ a $$$$). Sé conciso y objetivo. No des consejo médico.",
           },
           { role: "user", content: payload },
         ],
@@ -57,8 +59,12 @@ export async function summarizeReviews(
 }
 
 function buildFallbackSummary(reviews: ReviewSummaryInput[]): string {
-  const avgPrice =
-    reviews.reduce((s, r) => s + r.price, 0) / reviews.length;
+  const rangeCounts: Record<string, number> = {};
+  for (const r of reviews) {
+    const label = PRICE_RANGE_LABELS[r.price_range];
+    rangeCounts[label] = (rangeCounts[label] ?? 0) + 1;
+  }
+  const commonRange = Object.entries(rangeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const tastes = reviews
     .map((r) => r.taste)
     .filter(Boolean)
@@ -66,5 +72,9 @@ function buildFallbackSummary(reviews: ReviewSummaryInput[]): string {
     .join("; ");
   return `Basado en ${reviews.length} evaluaciones de la comunidad: los usuarios destacan aspectos variados del producto. ${
     tastes ? `Sobre el sabor mencionan: ${tastes}. ` : ""
-  }El precio promedio reportado es de $${avgPrice.toFixed(0)}.`;
+  }${
+    commonRange
+      ? `El rango de precio más reportado es ${commonRange}.`
+      : ""
+  }`;
 }

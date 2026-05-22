@@ -69,7 +69,7 @@ export default async function ProductDetailPage({
       opinion: r.opinion,
       general_description: r.general_description,
       taste: r.taste,
-      price: r.price,
+      price_range: r.price_range,
       gluten_certification: r.gluten_certification,
       created_at: r.created_at,
       display_name: r.display_name,
@@ -189,7 +189,7 @@ export default async function ProductDetailPage({
           </h2>
           <p className="mt-2 text-sm leading-relaxed">{product.ai_summary}</p>
           <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
-            Generado a partir de las evaluaciones sobre descripción, sabor y precio.
+            Generado a partir de las evaluaciones sobre descripción, sabor y rango de precio.
           </p>
         </section>
       )}

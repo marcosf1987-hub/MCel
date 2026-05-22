@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
-import { createProduct } from "@/app/actions/products";
+import { compressImage } from "@/lib/compress-image";
+import { uploadProductImageFromBrowser } from "@/lib/upload-client";
 import type { OffProductData } from "@/lib/off/parse";
 
 export function NewProductForm() {
@@ -101,32 +102,89 @@ export function NewProductForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!offImageUrl && !imageFile) {
+      setStatus("error", "Subí una foto del producto o usá un código con imagen en Open Food Facts.");
+      return;
+    }
+
     setLoading(true);
     setStatus("loading", "Guardando producto…");
 
     try {
-      const formData = new FormData(e.currentTarget);
-      formData.set("barcode", barcode);
-      formData.set("brand", brand);
-      formData.set("name", name);
-      formData.set("category", category);
-      formData.set("subcategory", subcategory);
-      formData.set("offImageUrl", offImageUrl);
-      if (imageFile) formData.set("image", imageFile);
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          barcode,
+          brand,
+          name,
+          category,
+          subcategory,
+          offImageUrl: offImageUrl || undefined,
+        }),
+      });
 
-      const result = await createProduct(formData);
+      const text = await res.text();
+      let data: {
+        ok?: boolean;
+        error?: string;
+        slug?: string;
+        productId?: string;
+        alreadyExists?: boolean;
+        needsLogin?: boolean;
+      };
 
-      if (!result.ok) {
-        if (result.needsLogin) {
-          setStatus("error", result.error);
-          setTimeout(() => router.push("/login?returnUrl=/productos/nuevo"), 1500);
-          return;
-        }
-        setStatus("error", result.error);
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setStatus(
+          "error",
+          `Error del servidor (código ${res.status}). Si subiste una foto muy grande, probá de nuevo: ya comprimimos automáticamente.`
+        );
         return;
       }
 
-      const slug = result.data!.slug;
+      if (!res.ok || !data.ok) {
+        if (data.needsLogin) {
+          setStatus("error", data.error ?? "Sesión expirada.");
+          setTimeout(() => router.push("/login?returnUrl=/productos/nuevo"), 1500);
+          return;
+        }
+        setStatus("error", data.error ?? `Error (${res.status})`);
+        return;
+      }
+
+      const slug = data.slug!;
+      const productId = data.productId!;
+
+      if (data.alreadyExists) {
+        setStatus("success", "Este producto ya existe. Abriendo evaluación…");
+        setTimeout(() => {
+          router.push(`/productos/${slug}/evaluar`);
+          router.refresh();
+        }, 600);
+        return;
+      }
+
+      if (imageFile) {
+        setStatus("loading", "Comprimiendo y subiendo foto…");
+        const compressed = await compressImage(imageFile);
+        const uploadResult = await uploadProductImageFromBrowser(productId, compressed);
+        if ("error" in uploadResult) {
+          setStatus(
+            "info",
+            `Producto creado. ${uploadResult.error} Podés subir la foto en la evaluación.`
+          );
+          setTimeout(() => {
+            router.push(`/productos/${slug}/evaluar`);
+            router.refresh();
+          }, 2000);
+          return;
+        }
+      }
+
       setStatus("success", "¡Producto creado! Abriendo formulario de evaluación…");
       setTimeout(() => {
         router.push(`/productos/${slug}/evaluar`);
@@ -232,7 +290,7 @@ export function NewProductForm() {
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                    Obligatoria si no hay imagen automática.
+                    Obligatoria si no hay imagen automática. Se comprime sola antes de subir.
                   </p>
                 )}
               </div>

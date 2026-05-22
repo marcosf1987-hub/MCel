@@ -15,7 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GLUTEN_LABELS, type GlutenCertification } from "@/types/database";
+import {
+  GLUTEN_LABELS,
+  PRICE_RANGE_OPTIONS,
+  type GlutenCertification,
+  type PriceRange,
+} from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
 import { Loader2, Send, Trash2 } from "lucide-react";
 
@@ -23,7 +28,7 @@ type ReviewInitialValues = {
   rating: number;
   generalDescription: string;
   taste: string;
-  price: string;
+  priceRange: PriceRange;
   opinion: string;
   glutenCertification: GlutenCertification;
 };
@@ -62,7 +67,9 @@ export function ReviewForm({
     initialValues?.generalDescription ?? ""
   );
   const [taste, setTaste] = useState(initialValues?.taste ?? "");
-  const [price, setPrice] = useState(initialValues?.price ?? "");
+  const [priceRange, setPriceRange] = useState<PriceRange>(
+    initialValues?.priceRange ?? "2"
+  );
   const [opinion, setOpinion] = useState(initialValues?.opinion ?? "");
 
   const setStatus = (type: StatusType, message: string) => {
@@ -118,9 +125,8 @@ export function ReviewForm({
       return;
     }
 
-    const priceNum = Number(price);
-    if (price === "" || Number.isNaN(priceNum) || priceNum < 0) {
-      setStatus("error", "Ingresá un precio válido en pesos.");
+    if (!["1", "2", "3", "4"].includes(priceRange)) {
+      setStatus("error", "Seleccioná un rango de precio.");
       return;
     }
 
@@ -149,7 +155,7 @@ export function ReviewForm({
         rating,
         generalDescription: generalDescription.trim(),
         taste: taste.trim(),
-        price: priceNum,
+        priceRange,
         opinion: opinion.trim(),
         glutenCertification: glutenCert,
         skipImage: isEdit || (hasExistingImages && !file),
@@ -268,17 +274,26 @@ export function ReviewForm({
       </div>
 
       <div>
-        <Label htmlFor="price">Precio (ARS) *</Label>
-        <Input
-          id="price"
-          type="number"
-          min="0"
-          step="0.01"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
+        <Label>Rango de precio *</Label>
+        <Select
+          value={priceRange}
+          onValueChange={(v) => {
+            setPriceRange(v as PriceRange);
+            setStatus("info", `Rango: ${PRICE_RANGE_OPTIONS.find((o) => o.value === v)?.label ?? v}`);
+          }}
           disabled={loading}
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Elegí un rango" />
+          </SelectTrigger>
+          <SelectContent>
+            {PRICE_RANGE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {!isEdit && (

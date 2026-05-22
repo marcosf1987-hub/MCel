@@ -21,6 +21,7 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/002_fix_auth_profile.sql` (registro de usuarios)
    - `supabase/migrations/003_storage_bucket.sql` (fotos)
    - `supabase/migrations/004_product_collaborations.sql` (altas de producto cuentan como colaboración)
+   - `supabase/migrations/005_price_range.sql` (rango de precio $–$$$$ en evaluaciones)
 
 > Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 
