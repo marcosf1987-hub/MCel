@@ -25,6 +25,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/** La app usa Supabase en cada vista; evita prerender en build sin variables de entorno. */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {

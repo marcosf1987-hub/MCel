@@ -1,24 +1,28 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { Wheat } from "lucide-react";
 
 export async function Header() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const env = getSupabasePublicEnv();
+  let user = null;
+  let profile: { display_name: string | null; tier: string } | null = null;
 
-  let profile = null;
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("display_name, tier")
-      .eq("id", user.id)
-      .single();
-    profile = data;
+  if (env.ok) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+    if (user) {
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name, tier")
+        .eq("id", user.id)
+        .single();
+      profile = p;
+    }
   }
 
   return (
