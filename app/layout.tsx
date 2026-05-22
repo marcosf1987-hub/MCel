@@ -3,6 +3,7 @@ import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -16,7 +17,10 @@ const inter = Inter({
   display: "swap",
 });
 
+const APP_NAME = "Celíacos AR";
+
 export const metadata: Metadata = {
+  applicationName: APP_NAME,
   title: {
     default: "Celíacos AR — Productos sin gluten evaluados por la comunidad",
     template: "%s | Celíacos AR",
@@ -24,11 +28,23 @@ export const metadata: Metadata = {
   description:
     "Descubrí, evaluá y puntuá productos aptos para celíacos. Opiniones reales de la comunidad en Argentina.",
   manifest: "/manifest.json",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Celíacos AR",
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "es_AR",
-    siteName: "Celíacos AR",
+    siteName: APP_NAME,
   },
 };
 
@@ -52,6 +68,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <InstallPrompt />
       </body>
     </html>
   );

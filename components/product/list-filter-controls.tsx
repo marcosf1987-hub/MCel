@@ -73,6 +73,13 @@ export function RatingFilterSelect({
   );
 }
 
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "default", label: "Más evaluados" },
+  { value: "rating", label: "Mejor puntuación" },
+  { value: "name", label: "Nombre A-Z" },
+  { value: "reviews", label: "Cant. evaluaciones" },
+];
+
 export function SortFilterSelect({
   value,
   onChange,
@@ -82,16 +89,23 @@ export function SortFilterSelect({
   onChange: (value: string) => void;
   className?: string;
 }) {
+  const resolved = !value || value === "default" ? "default" : value;
+  const label =
+    resolved === "default"
+      ? "Ordenar por"
+      : SORT_OPTIONS.find((o) => o.value === resolved)?.label ?? "Ordenar por";
+
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select value={resolved} onValueChange={onChange}>
       <SelectTrigger className={className ?? "w-[180px]"}>
-        <SelectValue placeholder="Ordenar" />
+        <SelectValue>{label}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="default">Más evaluados</SelectItem>
-        <SelectItem value="rating">Mejor puntuación</SelectItem>
-        <SelectItem value="name">Nombre A-Z</SelectItem>
-        <SelectItem value="reviews">Cant. evaluaciones</SelectItem>
+        {SORT_OPTIONS.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

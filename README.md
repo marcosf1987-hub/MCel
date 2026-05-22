@@ -52,7 +52,11 @@ Abrí [http://localhost:3000](http://localhost:3000)
 - Ficha pública con última reseña; todas las reseñas requieren login
 - Buscador y menú por marca / categoría / subcategoría
 - Resumen IA de evaluaciones (con fallback sin API key)
-- PWA, reportes, disclaimer médico, filtro SIN TACC
+- PWA instalable (manifest, service worker, offline), reportes, disclaimer médico, filtro SIN TACC
+
+## PWA
+
+Tras `npm install`, el build genera el service worker y los iconos PNG. Ver [VERCEL-PWA.md](VERCEL-PWA.md).
 
 ## Deploy
 
