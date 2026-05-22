@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import { getCategoriesNavData } from "@/lib/categories-cache";
+import type { CategoriesNavData } from "@/lib/categories-types";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
@@ -27,7 +28,12 @@ export async function Header() {
     }
   }
 
-  const categoriesData = await getCategoriesNavData();
+  let categoriesData: CategoriesNavData = { categories: [], totalProducts: 0 };
+  try {
+    categoriesData = await getCategoriesNavData();
+  } catch (e) {
+    console.error("Header categories:", e);
+  }
 
   return (
     <>
