@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
     const skipImage = payload.skipImage === true;
-    let priceRange = payload.priceRange as PriceRange;
+    const priceRange = payload.priceRange as PriceRange;
 
     if (!productId || !productSlug) {
       return json({ ok: false, error: "Producto no identificado." }, 400);

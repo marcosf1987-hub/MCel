@@ -1,25 +1,46 @@
 -- Rango de precio ($ $$ $$$ $$$$) en lugar de monto en ARS
+-- Si falló a medias, podés re-ejecutar este archivo completo.
 
-CREATE TYPE price_range AS ENUM ('1', '2', '3', '4');
+DO $$ BEGIN
+  CREATE TYPE price_range AS ENUM ('1', '2', '3', '4');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS price_range price_range;
 
-UPDATE reviews
-SET price_range = CASE
-  WHEN price IS NULL THEN '2'::price_range
-  WHEN price < 1500 THEN '1'::price_range
-  WHEN price < 4000 THEN '2'::price_range
-  WHEN price < 10000 THEN '3'::price_range
-  ELSE '4'::price_range
-END
-WHERE price_range IS NULL;
+-- Solo migrar desde price si la columna vieja aún existe
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'reviews'
+      AND column_name = 'price'
+  ) THEN
+    UPDATE reviews
+    SET price_range = CASE
+      WHEN price IS NULL THEN '2'::price_range
+      WHEN price < 1500 THEN '1'::price_range
+      WHEN price < 4000 THEN '2'::price_range
+      WHEN price < 10000 THEN '3'::price_range
+      ELSE '4'::price_range
+    END
+    WHERE price_range IS NULL;
+
+    ALTER TABLE reviews DROP COLUMN price;
+  END IF;
+END $$;
+
+UPDATE reviews SET price_range = '2'::price_range WHERE price_range IS NULL;
 
 ALTER TABLE reviews ALTER COLUMN price_range SET NOT NULL;
 ALTER TABLE reviews ALTER COLUMN price_range SET DEFAULT '2';
 
-ALTER TABLE reviews DROP COLUMN IF EXISTS price;
+-- Cambiar tipo de retorno exige DROP antes de CREATE
+DROP FUNCTION IF EXISTS get_latest_review(UUID);
 
-CREATE OR REPLACE FUNCTION get_latest_review(p_product_id UUID)
+CREATE FUNCTION get_latest_review(p_product_id UUID)
 RETURNS TABLE (
   id UUID,
   rating INT,
