@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import type { GlutenCertification } from "@/types/database";
 
@@ -12,7 +11,7 @@ const VALID_CERTS: GlutenCertification[] = [
   "desconocido",
 ];
 
-/** GET = diagnóstico: ¿estás logueado? ¿existe la API? */
+/** GET = diagnóstico */
 export async function GET(request: NextRequest) {
   try {
     const env = getSupabasePublicEnv();
@@ -48,40 +47,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function uploadImageAdmin(
-  productId: string,
-  userId: string,
-  file: File
-): Promise<string> {
-  const admin = createAdminClient();
-  const ext = file.name.split(".").pop() || "jpg";
-  const path = `${userId}/${productId}/${Date.now()}.${ext}`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const { error: uploadError } = await admin.storage
-    .from("product-images")
-    .upload(path, buffer, {
-      contentType: file.type || "image/jpeg",
-      upsert: false,
-    });
-
-  if (uploadError) throw uploadError;
-
-  const {
-    data: { publicUrl },
-  } = admin.storage.from("product-images").getPublicUrl(path);
-
-  const { error: dbError } = await admin.from("product_images").insert({
-    product_id: productId,
-    user_id: userId,
-    url: publicUrl,
-    is_official: false,
-    sort_order: 99,
-  });
-
-  if (dbError) throw dbError;
-  return publicUrl;
+interface ReviewPayload {
+  productId: string;
+  productSlug: string;
+  rating: number;
+  opinion: string;
+  generalDescription: string;
+  taste?: string;
+  price: number;
+  glutenCertification: string;
+  skipImage?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -103,30 +78,48 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return json(
-        { ok: false, error: "Sesión no detectada. Cerrá sesión y volvé a entrar.", needsLogin: true },
+        {
+          ok: false,
+          error: "Sesión no detectada. Cerrá sesión y volvé a entrar.",
+          needsLogin: true,
+        },
         401
       );
     }
 
-    let formData: FormData;
-    try {
-      formData = await request.formData();
-    } catch {
-      return json({ ok: false, error: "No se pudo leer el formulario enviado." }, 400);
+    const contentType = request.headers.get("content-type") ?? "";
+    let payload: ReviewPayload;
+
+    if (contentType.includes("application/json")) {
+      payload = (await request.json()) as ReviewPayload;
+    } else {
+      // FormData legacy (sin archivo grande)
+      const formData = await request.formData();
+      payload = {
+        productId: String(formData.get("productId") ?? ""),
+        productSlug: String(formData.get("productSlug") ?? ""),
+        rating: Number(formData.get("rating")),
+        opinion: String(formData.get("opinion") ?? "").trim(),
+        generalDescription: String(formData.get("generalDescription") ?? "").trim(),
+        taste: String(formData.get("taste") ?? "").trim(),
+        price: Number(formData.get("price")),
+        glutenCertification: String(formData.get("glutenCertification") ?? "desconocido"),
+        skipImage: formData.get("skipImage") === "true",
+      };
     }
 
-    const productId = String(formData.get("productId") ?? "");
-    const productSlug = String(formData.get("productSlug") ?? "");
-    const rating = Number(formData.get("rating"));
-    const opinion = String(formData.get("opinion") ?? "").trim();
-    const generalDescription = String(formData.get("generalDescription") ?? "").trim();
-    const taste = String(formData.get("taste") ?? "").trim() || null;
-    const price = Number(formData.get("price"));
-    let glutenCert = String(
-      formData.get("glutenCertification") ?? "desconocido"
-    ) as GlutenCertification;
-    const imageFile = formData.get("image");
-    const skipImage = formData.get("skipImage") === "true";
+    const {
+      productId,
+      productSlug,
+      rating,
+      opinion,
+      generalDescription,
+      taste,
+      price,
+    } = payload;
+
+    let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
+    const skipImage = payload.skipImage === true;
 
     if (!productId || !productSlug) {
       return json({ ok: false, error: "Producto no identificado." }, 400);
@@ -142,9 +135,17 @@ export async function POST(request: NextRequest) {
     }
     if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
 
-    const hasFile = imageFile instanceof File && imageFile.size > 0;
-    if (!hasFile && !skipImage) {
-      return json({ ok: false, error: "Subí una foto del producto." }, 400);
+    if (!skipImage) {
+      const { count } = await supabase
+        .from("product_images")
+        .select("*", { count: "exact", head: true })
+        .eq("product_id", productId);
+      if ((count ?? 0) === 0) {
+        return json({
+          ok: false,
+          error: "Subí una foto del producto (la imagen debe subirse antes de publicar).",
+        }, 400);
+      }
     }
 
     const { data: existingReview } = await supabase
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
       rating,
       opinion,
       general_description: generalDescription,
-      taste,
+      taste: taste || null,
       price,
       gluten_certification: glutenCert,
     });
@@ -172,24 +173,6 @@ export async function POST(request: NextRequest) {
     if (reviewError) {
       console.error("Review insert:", reviewError);
       return json({ ok: false, error: reviewError.message }, 500);
-    }
-
-    let imageWarning: string | null = null;
-
-    if (hasFile && imageFile instanceof File) {
-      try {
-        if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-          await uploadImageAdmin(productId, user.id, imageFile);
-        } else {
-          const { uploadProductImage } = await import("@/lib/catalog");
-          await uploadProductImage(productId, user.id, imageFile);
-        }
-      } catch (uploadErr) {
-        const msg =
-          uploadErr instanceof Error ? uploadErr.message : "Error de storage";
-        imageWarning = `Evaluación guardada. Foto no subida: ${msg}. Creá el bucket product-images en Supabase.`;
-        console.error("Upload:", uploadErr);
-      }
     }
 
     const siteUrl =
@@ -203,7 +186,6 @@ export async function POST(request: NextRequest) {
     const result = NextResponse.json({
       ok: true,
       slug: productSlug,
-      warning: imageWarning,
     });
     response.cookies.getAll().forEach((c) => {
       result.cookies.set(c.name, c.value);

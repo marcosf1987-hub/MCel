@@ -9,19 +9,19 @@
 
 ## 2. Ejecutar las migraciones SQL (tablas)
 
-1. Menú izquierdo → **SQL Editor**.
-2. Clic en **New query**.
-3. Abrí en tu PC el archivo y copiá **todo** el contenido:
-   - Primero: `supabase/migrations/001_initial_schema.sql`
-   - Clic **Run**. Debe decir Success.
-4. Nueva query, copiá todo:
-   - `supabase/migrations/002_fix_auth_profile.sql`
-   - **Run**.
-5. Nueva query, copiá todo:
-   - `supabase/migrations/003_storage_bucket.sql`
-   - **Run**.
+### Si al ejecutar `001_initial_schema.sql` sale:
+`ERROR: type "user_tier" already exists`
 
-> **Importante:** copiá el **texto SQL**, no la ruta `c:\Users\...`
+**Eso está bien** — significa que ese archivo **ya se ejecutó antes**. No lo vuelvas a correr.
+
+Solo ejecutá lo que falte:
+
+1. Menú **SQL Editor** → **New query**
+2. Copiá y **Run** el contenido de:
+   - `supabase/migrations/002_fix_auth_profile.sql` (registro de usuarios)
+   - `supabase/migrations/003_storage_bucket.sql` (fotos)
+
+> Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 
 ---
 

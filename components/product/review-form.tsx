@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GLUTEN_LABELS, type GlutenCertification } from "@/types/database";
+import { uploadProductImageFromBrowser } from "@/lib/upload-client";
 import { Loader2, Send } from "lucide-react";
 
 export function ReviewForm({
@@ -80,29 +81,37 @@ export function ReviewForm({
     }
 
     setLoading(true);
-    setStatus("loading", "Enviando evaluación al servidor…");
 
     try {
-      const body = new FormData();
-      body.set("productId", productId);
-      body.set("productSlug", productSlug);
-      body.set("rating", String(rating));
-      body.set("generalDescription", generalDescription.trim());
-      body.set("taste", taste.trim());
-      body.set("price", String(priceNum));
-      body.set("opinion", opinion.trim());
-      body.set("glutenCertification", glutenCert);
-      if (!file && hasExistingImages) {
-        body.set("skipImage", "true");
-      }
+      let skipImage = hasExistingImages && !file;
+
       if (file) {
-        body.set("image", file);
+        setStatus("loading", "Comprimiendo y subiendo foto…");
+        const uploadResult = await uploadProductImageFromBrowser(productId, file);
+        if ("error" in uploadResult) {
+          setStatus("error", uploadResult.error);
+          return;
+        }
+        setStatus("info", "Foto subida correctamente.");
       }
+
+      setStatus("loading", "Guardando evaluación…");
 
       const res = await fetch("/api/reviews", {
         method: "POST",
-        body,
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({
+          productId,
+          productSlug,
+          rating,
+          generalDescription: generalDescription.trim(),
+          taste: taste.trim(),
+          price: priceNum,
+          opinion: opinion.trim(),
+          glutenCertification: glutenCert,
+          skipImage,
+        }),
       });
 
       const text = await res.text();
@@ -135,15 +144,6 @@ export function ReviewForm({
           return;
         }
         setStatus("error", data.error ?? `Error del servidor (${res.status})`);
-        return;
-      }
-
-      if (data.warning) {
-        setStatus("info", data.warning);
-        setTimeout(() => {
-          router.push(`/productos/${data.slug ?? productSlug}`);
-          router.refresh();
-        }, 2500);
         return;
       }
 
@@ -246,9 +246,12 @@ export function ReviewForm({
         />
         {hasExistingImages && (
           <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            El producto ya tiene imagen. Podés subir la tuya o continuar sin foto nueva.
+            El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva.
           </p>
         )}
+        <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+          Las fotos se comprimen automáticamente para evitar errores de tamaño.
+        </p>
         {imageName && (
           <p className="mt-1 text-xs font-medium text-[var(--color-brown)]">✓ {imageName}</p>
         )}
