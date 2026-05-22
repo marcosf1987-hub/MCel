@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   getOrCreateBrand,
@@ -11,128 +10,205 @@ import {
 } from "@/lib/catalog";
 import { slugify } from "@/lib/utils";
 
-export async function createProduct(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?returnUrl=/productos/nuevo");
+export type ActionResult<T = void> =
+  | { ok: true; data?: T }
+  | { ok: false; error: string; needsLogin?: boolean };
 
-  const barcode = String(formData.get("barcode") ?? "").trim();
-  const brandName = String(formData.get("brand") ?? "").trim();
-  const productName = String(formData.get("name") ?? "").trim();
-  const categoryName = String(formData.get("category") ?? "").trim();
-  const subcategoryName = String(formData.get("subcategory") ?? "").trim();
-  const offImageUrl = String(formData.get("offImageUrl") ?? "").trim();
+export async function createProduct(formData: FormData): Promise<
+  ActionResult<{ slug: string }>
+> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!barcode || !brandName || !productName || !categoryName) {
-    return { error: "Completá marca, categoría, subcategoría y nombre del producto." };
+    if (!user) {
+      return { ok: false, error: "Tenés que iniciar sesión.", needsLogin: true };
+    }
+
+    const barcode = String(formData.get("barcode") ?? "").trim();
+    const brandName = String(formData.get("brand") ?? "").trim();
+    const productName = String(formData.get("name") ?? "").trim();
+    const categoryName = String(formData.get("category") ?? "").trim();
+    const subcategoryName = String(formData.get("subcategory") ?? "").trim();
+    const offImageUrl = String(formData.get("offImageUrl") ?? "").trim();
+    const imageFile = formData.get("image") as File | null;
+    const hasFile = imageFile && imageFile.size > 0;
+
+    if (!barcode) {
+      return { ok: false, error: "Falta el código de barras." };
+    }
+    if (!brandName || !productName || !categoryName) {
+      return {
+        ok: false,
+        error: "Completá marca, nombre, categoría y subcategoría.",
+      };
+    }
+    if (!hasFile && !offImageUrl) {
+      return {
+        ok: false,
+        error: "Subí una foto del producto o escaneá uno que tenga imagen en Open Food Facts.",
+      };
+    }
+
+    const existing = await findProductByBarcode(barcode);
+    if (existing) {
+      return { ok: true, data: { slug: existing.slug } };
+    }
+
+    const brandId = await getOrCreateBrand(brandName);
+    const categoryId = await getOrCreateCategory(categoryName);
+    const subcategoryId = await getOrCreateSubcategory(
+      categoryId,
+      subcategoryName || "General"
+    );
+
+    let slug = slugify(`${brandName}-${productName}`);
+    const { data: slugConflict } = await supabase
+      .from("products")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (slugConflict) slug = `${slug}-${barcode.slice(-6)}`;
+
+    const { data: product, error } = await supabase
+      .from("products")
+      .insert({
+        barcode,
+        brand_id: brandId,
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
+        name: productName,
+        slug,
+        created_by: user.id,
+      })
+      .select("id, slug")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        return {
+          ok: false,
+          error: "Este código de barras ya está registrado. Buscá el producto para evaluarlo.",
+        };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    if (offImageUrl) {
+      const { error: imgErr } = await supabase.from("product_images").insert({
+        product_id: product.id,
+        user_id: null,
+        url: offImageUrl,
+        is_official: true,
+        sort_order: 0,
+      });
+      if (imgErr) {
+        console.error("OFF image insert:", imgErr);
+      }
+    }
+
+    if (hasFile && imageFile) {
+      try {
+        await uploadProductImage(product.id, user.id, imageFile);
+      } catch (uploadErr) {
+        const msg =
+          uploadErr instanceof Error ? uploadErr.message : "Error al subir imagen";
+        return {
+          ok: false,
+          error: `Producto creado pero falló la imagen: ${msg}. Podés agregarla en la evaluación.`,
+        };
+      }
+    }
+
+    return { ok: true, data: { slug: product.slug } };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error inesperado";
+    console.error("createProduct:", e);
+    return { ok: false, error: msg };
   }
-
-  const existing = await findProductByBarcode(barcode);
-  if (existing) {
-    redirect(`/productos/${existing.slug}/evaluar`);
-  }
-
-  const brandId = await getOrCreateBrand(brandName);
-  const categoryId = await getOrCreateCategory(categoryName);
-  const subcategoryId = await getOrCreateSubcategory(
-    categoryId,
-    subcategoryName || "General"
-  );
-
-  let slug = slugify(`${brandName}-${productName}`);
-  const { data: slugConflict } = await supabase
-    .from("products")
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (slugConflict) slug = `${slug}-${barcode.slice(-6)}`;
-
-  const { data: product, error } = await supabase
-    .from("products")
-    .insert({
-      barcode,
-      brand_id: brandId,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      name: productName,
-      slug,
-      created_by: user.id,
-    })
-    .select("id, slug")
-    .single();
-
-  if (error) return { error: error.message };
-
-  if (offImageUrl) {
-    await supabase.from("product_images").insert({
-      product_id: product.id,
-      user_id: null,
-      url: offImageUrl,
-      is_official: true,
-      sort_order: 0,
-    });
-  }
-
-  const imageFile = formData.get("image") as File | null;
-  if (imageFile && imageFile.size > 0) {
-    await uploadProductImage(product.id, user.id, imageFile);
-  }
-
-  redirect(`/productos/${product.slug}/evaluar`);
 }
 
-export async function submitReview(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+export async function submitReview(formData: FormData): Promise<
+  ActionResult<{ slug: string }>
+> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const productId = String(formData.get("productId"));
-  const productSlug = String(formData.get("productSlug"));
-  const rating = Number(formData.get("rating"));
-  const opinion = String(formData.get("opinion") ?? "").trim();
-  const generalDescription = String(formData.get("generalDescription") ?? "").trim();
-  const taste = String(formData.get("taste") ?? "").trim() || null;
-  const price = Number(formData.get("price"));
-  const glutenCert = String(formData.get("glutenCertification") ?? "desconocido");
-
-  if (!rating || rating < 1 || rating > 5) {
-    return { error: "Seleccioná una puntuación del 1 al 5." };
-  }
-  if (!opinion || !generalDescription || !price || price < 0) {
-    return { error: "Completá descripción, opinión y precio." };
-  }
-
-  const { error } = await supabase.from("reviews").insert({
-    product_id: productId,
-    user_id: user.id,
-    rating,
-    opinion,
-    general_description: generalDescription,
-    taste,
-    price,
-    gluten_certification: glutenCert,
-  });
-
-  if (error) {
-    if (error.code === "23505") {
-      return { error: "Ya evaluaste este producto." };
+    if (!user) {
+      return { ok: false, error: "Tenés que iniciar sesión.", needsLogin: true };
     }
-    return { error: error.message };
+
+    const productId = String(formData.get("productId"));
+    const productSlug = String(formData.get("productSlug"));
+    const rating = Number(formData.get("rating"));
+    const opinion = String(formData.get("opinion") ?? "").trim();
+    const generalDescription = String(
+      formData.get("generalDescription") ?? ""
+    ).trim();
+    const taste = String(formData.get("taste") ?? "").trim() || null;
+    const price = Number(formData.get("price"));
+    const glutenCert = String(formData.get("glutenCertification") ?? "desconocido");
+    const imageFile = formData.get("image") as File | null;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return { ok: false, error: "Seleccioná una puntuación del 1 al 5." };
+    }
+    if (!opinion || !generalDescription) {
+      return { ok: false, error: "Completá la descripción y tu opinión." };
+    }
+    if (Number.isNaN(price) || price < 0) {
+      return { ok: false, error: "Ingresá un precio válido." };
+    }
+    if (!imageFile || imageFile.size === 0) {
+      return { ok: false, error: "Subí una foto del producto." };
+    }
+
+    const { error } = await supabase.from("reviews").insert({
+      product_id: productId,
+      user_id: user.id,
+      rating,
+      opinion,
+      general_description: generalDescription,
+      taste,
+      price,
+      gluten_certification: glutenCert,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        return { ok: false, error: "Ya evaluaste este producto." };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    try {
+      await uploadProductImage(productId, user.id, imageFile);
+    } catch (uploadErr) {
+      const msg =
+        uploadErr instanceof Error ? uploadErr.message : "Error al subir imagen";
+      return {
+        ok: false,
+        error: `Evaluación guardada pero falló la foto: ${msg}`,
+      };
+    }
+
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+    fetch(`${siteUrl}/api/products/${productId}/summary`, {
+      method: "POST",
+    }).catch(() => {});
+
+    return { ok: true, data: { slug: productSlug } };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error inesperado";
+    console.error("submitReview:", e);
+    return { ok: false, error: msg };
   }
-
-  const imageFile = formData.get("image") as File | null;
-  if (imageFile && imageFile.size > 0) {
-    await uploadProductImage(productId, user.id, imageFile);
-  }
-
-  fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/products/${productId}/summary`,
-    { method: "POST" }
-  ).catch(() => {});
-
-  redirect(`/productos/${productSlug}`);
 }

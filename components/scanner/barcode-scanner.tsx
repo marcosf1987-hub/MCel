@@ -9,6 +9,7 @@ import { Camera, ImageIcon, Keyboard } from "lucide-react";
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
   disabled?: boolean;
+  onStatus?: (type: "loading" | "success" | "error" | "info", message: string) => void;
 }
 
 function isSecureContext(): boolean {
@@ -16,7 +17,7 @@ function isSecureContext(): boolean {
   return window.isSecureContext;
 }
 
-export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
+export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerProps) {
   const uid = useId().replace(/:/g, "");
   const readerId = `barcode-reader-${uid}`;
   const [scanning, setScanning] = useState(false);
@@ -47,13 +48,11 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
     async (decoded: string) => {
       await stopScanner();
       const code = decoded.replace(/\D/g, "");
-      if (code.length >= 8) {
-        onScanRef.current(code);
-      } else {
-        onScanRef.current(decoded);
-      }
+      const finalCode = code.length >= 8 ? code : decoded;
+      onStatus?.("success", `Código leído: ${finalCode}`);
+      onScanRef.current(finalCode);
     },
-    [stopScanner]
+    [stopScanner, onStatus]
   );
 
   const pickBackCamera = useCallback(async (): Promise<string | { facingMode: string }> => {
@@ -80,6 +79,7 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
     const start = async () => {
       setError(null);
       setHint("Solicitando acceso a la cámara…");
+      onStatus?.("loading", "Abriendo cámara…");
 
       if (!isSecureContext()) {
         setError(
@@ -135,18 +135,20 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
 
         if (!cancelled) {
           setHint("Apuntá al código de barras del producto");
+          onStatus?.("info", "Cámara lista. Apuntá al código de barras.");
         }
       } catch (err) {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : String(err);
         console.error("Scanner error:", msg);
-        setError(
+        const errMsg =
           msg.includes("NotAllowed") || msg.includes("Permission")
             ? "Permiso de cámara denegado. Activá la cámara en Ajustes del navegador o usá «Foto del código» abajo."
             : msg.includes("NotFound") || msg.includes("device")
               ? "No se encontró cámara. Usá «Foto del código» o ingresá el número manualmente."
-              : "No se pudo abrir la cámara. Probá «Foto del código» o el ingreso manual."
-        );
+              : "No se pudo abrir la cámara. Probá «Foto del código» o el ingreso manual.";
+        setError(errMsg);
+        onStatus?.("error", errMsg);
         setScanning(false);
         scannerRef.current = null;
       }
@@ -170,6 +172,7 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
   const scanFromPhoto = async (file: File) => {
     setError(null);
     setHint("Leyendo código de la imagen…");
+    onStatus?.("loading", "Analizando foto del código…");
     try {
       const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import(
         "html5-qrcode"
@@ -192,9 +195,10 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
       await handleDecoded(result);
     } catch {
       setHint(null);
-      setError(
-        "No se detectó un código en la foto. Intentá con mejor luz y enfoque, o ingresá el número manualmente."
-      );
+      const errMsg =
+        "No se detectó un código en la foto. Intentá con mejor luz y enfoque, o ingresá el número manualmente.";
+      setError(errMsg);
+      onStatus?.("error", errMsg);
     }
   };
 
@@ -280,7 +284,11 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
             type="button"
             variant="default"
             disabled={!manualCode.trim() || disabled}
-            onClick={() => onScan(manualCode.trim())}
+            onClick={() => {
+              const code = manualCode.trim();
+              onStatus?.("loading", `Buscando código ${code}…`);
+              onScan(code);
+            }}
           >
             Buscar
           </Button>
