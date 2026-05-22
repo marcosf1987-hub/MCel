@@ -37,17 +37,26 @@ export default async function EvaluateProductPage({
     redirect(`/productos/${slug}`);
   }
 
+  const { count: imageCount } = await supabase
+    .from("product_images")
+    .select("*", { count: "exact", head: true })
+    .eq("product_id", product.id);
+
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
+    <div className="mx-auto max-w-lg px-4 py-8 pb-24">
       <Card>
         <CardHeader>
           <CardTitle>Evaluar: {product.name}</CardTitle>
+          <p className="text-sm text-[var(--color-muted-foreground)]">
+            Completá todos los campos marcados con * y tocá Publicar al final.
+          </p>
         </CardHeader>
         <CardContent>
           <ReviewForm
             productId={product.id}
             productSlug={product.slug}
             barcode={product.barcode}
+            hasExistingImages={(imageCount ?? 0) > 0}
           />
         </CardContent>
       </Card>

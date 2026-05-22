@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StarInput } from "@/components/product/star-rating";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { submitReview } from "@/app/actions/products";
 import { GLUTEN_LABELS, type GlutenCertification } from "@/types/database";
+import { Loader2, Send } from "lucide-react";
 
 export function ReviewForm({
   productId,
   productSlug,
   barcode,
+  hasExistingImages = false,
 }: {
   productId: string;
   productSlug: string;
   barcode: string;
+  hasExistingImages?: boolean;
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [rating, setRating] = useState(0);
   const [statusType, setStatusType] = useState<StatusType>("idle");
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -35,12 +39,17 @@ export function ReviewForm({
   const [glutenCert, setGlutenCert] = useState<GlutenCertification>("desconocido");
   const [imageName, setImageName] = useState<string | null>(null);
 
+  const [generalDescription, setGeneralDescription] = useState("");
+  const [taste, setTaste] = useState("");
+  const [price, setPrice] = useState("");
+  const [opinion, setOpinion] = useState("");
+
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
     setStatusMsg(message);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (rating < 1) {
@@ -48,45 +57,116 @@ export function ReviewForm({
       return;
     }
 
+    if (!generalDescription.trim()) {
+      setStatus("error", "Escribí la descripción general del producto.");
+      return;
+    }
+
+    if (!opinion.trim()) {
+      setStatus("error", "Escribí tu opinión / evaluación.");
+      return;
+    }
+
+    const priceNum = Number(price);
+    if (price === "" || Number.isNaN(priceNum) || priceNum < 0) {
+      setStatus("error", "Ingresá un precio válido en pesos.");
+      return;
+    }
+
+    const file = fileInputRef.current?.files?.[0];
+    if (!file && !hasExistingImages) {
+      setStatus("error", "Subí una foto del producto.");
+      return;
+    }
+
     setLoading(true);
-    setStatus("loading", "Publicando tu evaluación…");
+    setStatus("loading", "Enviando evaluación al servidor…");
 
     try {
-      const formData = new FormData(e.currentTarget);
-      formData.set("productId", productId);
-      formData.set("productSlug", productSlug);
-      formData.set("rating", String(rating));
-      formData.set("glutenCertification", glutenCert);
+      const body = new FormData();
+      body.set("productId", productId);
+      body.set("productSlug", productSlug);
+      body.set("rating", String(rating));
+      body.set("generalDescription", generalDescription.trim());
+      body.set("taste", taste.trim());
+      body.set("price", String(priceNum));
+      body.set("opinion", opinion.trim());
+      body.set("glutenCertification", glutenCert);
+      if (!file && hasExistingImages) {
+        body.set("skipImage", "true");
+      }
+      if (file) {
+        body.set("image", file);
+      }
 
-      const result = await submitReview(formData);
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        body,
+      });
 
-      if (!result.ok) {
-        if (result.needsLogin) {
-          setStatus("error", result.error);
-          setTimeout(
-            () => router.push(`/login?returnUrl=/productos/${productSlug}/evaluar`),
-            1500
-          );
-          return;
-        }
-        setStatus("error", result.error);
+      const text = await res.text();
+      let data: {
+        ok?: boolean;
+        error?: string;
+        slug?: string;
+        warning?: string | null;
+        needsLogin?: boolean;
+      };
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setStatus(
+          "error",
+          "El servidor respondió de forma incorrecta. ¿Estás logueado? Probá recargar la página."
+        );
         return;
       }
 
-      setStatus("success", "¡Evaluación publicada! Redirigiendo a la ficha…");
+      if (!res.ok || !data.ok) {
+        if (data.needsLogin) {
+          setStatus("error", data.error ?? "Sesión expirada.");
+          setTimeout(
+            () => router.push(`/login?returnUrl=/productos/${productSlug}/evaluar`),
+            2000
+          );
+          return;
+        }
+        setStatus("error", data.error ?? `Error del servidor (${res.status})`);
+        return;
+      }
+
+      if (data.warning) {
+        setStatus("info", data.warning);
+        setTimeout(() => {
+          router.push(`/productos/${data.slug ?? productSlug}`);
+          router.refresh();
+        }, 2500);
+        return;
+      }
+
+      setStatus("success", "¡Evaluación publicada correctamente! Abriendo la ficha…");
       setTimeout(() => {
-        router.push(`/productos/${result.data!.slug}`);
+        router.push(`/productos/${data.slug ?? productSlug}`);
         router.refresh();
-      }, 700);
+      }, 1200);
     } catch (err) {
-      setStatus("error", err instanceof Error ? err.message : "Error inesperado");
+      console.error("Review submit:", err);
+      setStatus(
+        "error",
+        err instanceof Error ? err.message : "No se pudo conectar. Revisá tu internet."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      encType="multipart/form-data"
+      className="space-y-4"
+    >
       <StatusBanner type={statusType} message={statusMsg} />
 
       <div>
@@ -100,7 +180,7 @@ export function ReviewForm({
           value={rating}
           onChange={(v) => {
             setRating(v);
-            setStatus("info", `Puntuación seleccionada: ${v} estrellas`);
+            setStatus("info", `Puntuación: ${v} de 5 estrellas`);
           }}
         />
       </div>
@@ -109,45 +189,80 @@ export function ReviewForm({
         <Label htmlFor="generalDescription">Descripción general *</Label>
         <Textarea
           id="generalDescription"
-          name="generalDescription"
+          value={generalDescription}
+          onChange={(e) => setGeneralDescription(e.target.value)}
           required
           placeholder="Textura, presentación, para qué ocasión..."
           rows={3}
+          disabled={loading}
         />
       </div>
 
       <div>
         <Label htmlFor="taste">Sabor</Label>
-        <Input id="taste" name="taste" placeholder="¿Cómo sabe?" />
+        <Input
+          id="taste"
+          value={taste}
+          onChange={(e) => setTaste(e.target.value)}
+          placeholder="¿Cómo sabe?"
+          disabled={loading}
+        />
       </div>
 
       <div>
         <Label htmlFor="price">Precio (ARS) *</Label>
-        <Input id="price" name="price" type="number" min="0" step="0.01" required />
+        <Input
+          id="price"
+          type="number"
+          min="0"
+          step="0.01"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          required
+          disabled={loading}
+        />
       </div>
 
       <div>
-        <Label htmlFor="image">Imagen del producto *</Label>
+        <Label htmlFor="image">
+          Foto del producto {!hasExistingImages && "*"}
+        </Label>
         <Input
+          ref={fileInputRef}
           id="image"
-          name="image"
           type="file"
           accept="image/*"
-          required
+          capture="environment"
+          disabled={loading}
           onChange={(e) => {
             const f = e.target.files?.[0];
             setImageName(f?.name ?? null);
-            if (f) setStatus("info", `Foto lista para subir: ${f.name}`);
+            if (f) {
+              setStatus("info", `Foto seleccionada: ${f.name} (${Math.round(f.size / 1024)} KB)`);
+            }
           }}
         />
+        {hasExistingImages && (
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+            El producto ya tiene imagen. Podés subir la tuya o continuar sin foto nueva.
+          </p>
+        )}
         {imageName && (
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{imageName}</p>
+          <p className="mt-1 text-xs font-medium text-[var(--color-brown)]">✓ {imageName}</p>
         )}
       </div>
 
       <div>
         <Label>Certificación gluten</Label>
-        <Select value={glutenCert} onValueChange={(v) => setGlutenCert(v as GlutenCertification)}>
+        <input type="hidden" name="glutenCertification" value={glutenCert} readOnly />
+        <Select
+          value={glutenCert}
+          onValueChange={(v) => {
+            setGlutenCert(v as GlutenCertification);
+            setStatus("info", `Certificación: ${GLUTEN_LABELS[v as GlutenCertification]}`);
+          }}
+          disabled={loading}
+        >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -165,16 +280,38 @@ export function ReviewForm({
         <Label htmlFor="opinion">Tu evaluación / opinión *</Label>
         <Textarea
           id="opinion"
-          name="opinion"
+          value={opinion}
+          onChange={(e) => setOpinion(e.target.value)}
           required
           placeholder="Contá tu experiencia completa con el producto..."
           rows={4}
+          disabled={loading}
         />
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full" size="lg">
-        {loading ? "Publicando…" : "Publicar evaluación"}
-      </Button>
+      <div className="sticky bottom-4 z-10 space-y-3 rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg">
+        {loading && (
+          <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
+        )}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full gap-2"
+          size="lg"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Enviando evaluación…
+            </>
+          ) : (
+            <>
+              <Send className="h-5 w-5" />
+              Publicar evaluación
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }
