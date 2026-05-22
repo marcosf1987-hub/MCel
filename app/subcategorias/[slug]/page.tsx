@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductCardGrid } from "@/components/product/product-card-grid";
+import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName, getRelation } from "@/lib/utils";
 
 export default async function SubcategoryPage({
@@ -10,6 +11,7 @@ export default async function SubcategoryPage({
 }) {
   const { slug } = await params;
   const supabase = await createClient();
+  const { isLoggedIn, favoriteIds } = await getProductCardAuthContext(supabase);
 
   const { data: subcategory } = await supabase
     .from("subcategories")
@@ -53,10 +55,12 @@ export default async function SubcategoryPage({
         </p>
       )}
       <h1 className="text-2xl font-bold">{subcategory.name_es ?? subcategory.name}</h1>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((p) => (
-          <ProductCard key={p.id} product={p} />
-        ))}
+      <div className="mt-6">
+        <ProductCardGrid
+          products={cards}
+          isLoggedIn={isLoggedIn}
+          favoriteIds={favoriteIds}
+        />
       </div>
     </div>
   );

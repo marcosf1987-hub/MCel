@@ -18,7 +18,7 @@ export function ProductCard({
   product,
   isLoggedIn = false,
   isFavorited = false,
-  showFavorite = false,
+  showFavorite = true,
 }: {
   product: ProductCardData;
   isLoggedIn?: boolean;

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { ProductListToolbar } from "@/components/product/product-list-toolbar";
 import {
   fetchFilteredProducts,
@@ -135,17 +135,7 @@ export default async function FavoritesPage({
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              isLoggedIn
-              isFavorited
-              showFavorite
-            />
-          ))}
-        </div>
+        <ProductCardGrid products={cards} isLoggedIn favoriteIds={new Set(productIds)} />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { applyCatalogFilters } from "@/lib/apply-product-filters";
 
 export type ProductListParams = {
   q?: string;
@@ -6,6 +7,7 @@ export type ProductListParams = {
   categoria?: string;
   subcategoria?: string;
   cert?: string;
+  rating?: string;
   minRating?: string;
   sort?: string;
 };
@@ -53,10 +55,6 @@ export async function fetchFilteredProducts(
   if (params.marca) query = query.eq("brands.slug", params.marca);
   if (params.categoria) query = query.eq("categories.slug", params.categoria);
   if (params.subcategoria) query = query.eq("subcategories.slug", params.subcategoria);
-  if (params.minRating) {
-    query = query.gte("weighted_rating", Number(params.minRating));
-  }
-
   const sort = params.sort ?? "default";
   if (sort === "name") {
     query = query.order("name", { ascending: true });
@@ -71,18 +69,15 @@ export async function fetchFilteredProducts(
   const limit = productIds === null ? 48 : Math.min(productIds.length, 200);
   const { data: products } = await query.limit(limit);
 
-  let filtered = products ?? [];
+  const ratingParam = params.rating ?? params.minRating;
+  const filtered = await applyCatalogFilters(
+    supabase,
+    (products ?? []) as ProductRowForCard[],
+    params.cert,
+    ratingParam
+  );
 
-  if (params.cert === "sin_tacc") {
-    const { data: reviewProducts } = await supabase
-      .from("reviews")
-      .select("product_id")
-      .eq("gluten_certification", "sin_tacc");
-    const ids = new Set((reviewProducts ?? []).map((r) => r.product_id));
-    filtered = filtered.filter((p) => ids.has(p.id));
-  }
-
-  return filtered as ProductRowForCard[];
+  return filtered;
 }
 
 export function mapProductToCard(

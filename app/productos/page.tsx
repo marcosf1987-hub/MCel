@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { ProductCard } from "@/components/product/product-card";
 import { Suspense } from "react";
 import { ProductFilters } from "@/components/product/product-filters";
+import { ProductCardGrid } from "@/components/product/product-card-grid";
+import { applyCatalogFilters } from "@/lib/apply-product-filters";
+import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName } from "@/lib/utils";
 
 export const metadata = { title: "Productos" };
@@ -15,11 +17,13 @@ export default async function ProductsPage({
     categoria?: string;
     subcategoria?: string;
     cert?: string;
+    rating?: string;
     minRating?: string;
   }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
+  const { isLoggedIn, favoriteIds } = await getProductCardAuthContext(supabase);
 
   let query = supabase
     .from("products")
@@ -37,24 +41,16 @@ export default async function ProductsPage({
   if (params.marca) query = query.eq("brands.slug", params.marca);
   if (params.categoria) query = query.eq("categories.slug", params.categoria);
   if (params.subcategoria) query = query.eq("subcategories.slug", params.subcategoria);
-  if (params.minRating) {
-    query = query.gte("weighted_rating", Number(params.minRating));
-  }
-
   const { data: products } = await query
     .order("review_count", { ascending: false })
     .limit(48);
 
-  let filtered = products ?? [];
-
-  if (params.cert === "sin_tacc") {
-    const { data: reviewProducts } = await supabase
-      .from("reviews")
-      .select("product_id")
-      .eq("gluten_certification", "sin_tacc");
-    const ids = new Set((reviewProducts ?? []).map((r) => r.product_id));
-    filtered = filtered.filter((p) => ids.has(p.id));
-  }
+  const filtered = await applyCatalogFilters(
+    supabase,
+    products ?? [],
+    params.cert,
+    params.rating ?? params.minRating
+  );
 
   const cards = filtered.map((p) => {
     const images = (p.product_images as { url: string; sort_order: number }[]) ?? [];
@@ -84,11 +80,11 @@ export default async function ProductsPage({
       {cards.length === 0 ? (
         <p className="text-[var(--color-muted-foreground)]">No se encontraron productos.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
+        <ProductCardGrid
+          products={cards}
+          isLoggedIn={isLoggedIn}
+          favoriteIds={favoriteIds}
+        />
       )}
     </div>
   );

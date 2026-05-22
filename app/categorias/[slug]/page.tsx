@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductCardGrid } from "@/components/product/product-card-grid";
+import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName } from "@/lib/utils";
 
 export default async function CategoryPage({
@@ -11,6 +12,7 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
   const supabase = await createClient();
+  const { isLoggedIn, favoriteIds } = await getProductCardAuthContext(supabase);
 
   const { data: category } = await supabase
     .from("categories")
@@ -57,11 +59,11 @@ export default async function CategoryPage({
           </Link>
         ))}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((p) => (
-          <ProductCard key={p.id} product={p} />
-        ))}
-      </div>
+      <ProductCardGrid
+        products={cards}
+        isLoggedIn={isLoggedIn}
+        favoriteIds={favoriteIds}
+      />
     </div>
   );
 }

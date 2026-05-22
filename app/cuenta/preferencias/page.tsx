@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesForm } from "@/components/auth/preferences-form";
 import { TierProgressJourney } from "@/components/account/tier-progress-journey";
-import {
-  CollaborationsSection,
-  type CollaborationItem,
-} from "@/components/account/collaborations-section";
+import { CollaborationsSection } from "@/components/account/collaborations-section";
+import type { CollaborationItem } from "@/components/account/collaborations-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getBrandName } from "@/lib/utils";
@@ -36,21 +35,10 @@ export default async function PreferencesPage() {
     .select(
       `
       id, rating, opinion, gluten_certification, created_at,
-      products (id, slug, name, brands (name))
+      products (id, slug, name, review_count, weighted_rating, brands (name))
     `
     )
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  const { data: createdProducts } = await supabase
-    .from("products")
-    .select(
-      `
-      id, slug, name, created_at,
-      brands (name)
-    `
-    )
-    .eq("created_by", user.id)
     .order("created_at", { ascending: false });
 
   const collaborations: CollaborationItem[] = [];
@@ -62,7 +50,6 @@ export default async function PreferencesPage() {
       (product as { brands?: { name: string } | { name: string }[] }).brands
     );
     collaborations.push({
-      kind: "review",
       id: r.id,
       date: r.created_at,
       productId: product.id,
@@ -72,23 +59,13 @@ export default async function PreferencesPage() {
       rating: r.rating,
       opinion: r.opinion,
       glutenCertification: r.gluten_certification as GlutenCertification,
-    });
-  }
-
-  for (const p of createdProducts ?? []) {
-    collaborations.push({
-      kind: "product",
-      id: p.id,
-      date: p.created_at,
-      productId: p.id,
-      productSlug: p.slug,
-      productName: p.name,
-      brandName: getBrandName(p.brands),
+      productReviewCount: product.review_count ?? 0,
+      productWeightedRating: product.weighted_rating,
     });
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-[var(--color-brown)]">Mi cuenta</h1>
         <Button asChild variant="accent" size="sm" className="gap-2">
@@ -117,11 +94,13 @@ export default async function PreferencesPage() {
         <CardHeader>
           <CardTitle>Mis colaboraciones</CardTitle>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            Evaluaciones y productos que diste de alta en la comunidad.
+            Tus evaluaciones publicadas en la comunidad.
           </p>
         </CardHeader>
         <CardContent>
-          <CollaborationsSection items={collaborations} />
+          <Suspense fallback={<p className="text-sm text-[var(--color-muted-foreground)]">Cargando…</p>}>
+            <CollaborationsSection items={collaborations} />
+          </Suspense>
         </CardContent>
       </Card>
     </div>
