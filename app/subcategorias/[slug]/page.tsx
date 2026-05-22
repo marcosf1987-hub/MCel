@@ -4,21 +4,17 @@ import { ProductCard } from "@/components/product/product-card";
 
 export default async function SubcategoryPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ cat?: string }>;
 }) {
   const { slug } = await params;
-  const { cat } = await searchParams;
   const supabase = await createClient();
 
-  let subQuery = supabase
+  const { data: subcategory } = await supabase
     .from("subcategories")
     .select("id, name, name_es, category_id, categories(name, name_es, slug)")
-    .eq("slug", slug);
-
-  const { data: subcategory } = await subQuery.single();
+    .eq("slug", slug)
+    .single();
   if (!subcategory) notFound();
 
   const { data: products } = await supabase

@@ -44,7 +44,7 @@ export function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps) {
         () => {}
       );
       setScanning(true);
-    } catch (e) {
+    } catch {
       setError(
         "No se pudo acceder a la cámara. Ingresá el código manualmente o revisá los permisos."
       );
