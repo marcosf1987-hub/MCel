@@ -83,7 +83,7 @@ export function ReviewForm({
     setLoading(true);
 
     try {
-      let skipImage = hasExistingImages && !file;
+      const skipImage = hasExistingImages && !file;
 
       if (file) {
         setStatus("loading", "Comprimiendo y subiendo foto…");
