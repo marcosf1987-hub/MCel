@@ -66,7 +66,9 @@ export default function RootLayout({
     <html lang="es-AR" className={`${montserrat.variable} ${inter.variable}`}>
       <body className="flex min-h-screen flex-col antialiased font-[family-name:var(--font-body)]">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+          {children}
+        </main>
         <Footer />
         <InstallPrompt />
       </body>

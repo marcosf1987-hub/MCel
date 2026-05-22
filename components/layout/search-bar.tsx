@@ -11,7 +11,7 @@ interface SearchResult {
   href: string;
 }
 
-export function SearchBar() {
+export function SearchBar({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -50,10 +50,18 @@ export function SearchBar() {
   return (
     <div className="relative w-full">
       <form onSubmit={handleSubmit} className="relative">
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral)]" />
+        <Search
+          className={`absolute top-1/2 -translate-y-1/2 text-[var(--color-neutral)] ${
+            compact ? "left-2.5 h-3.5 w-3.5" : "left-4 h-4 w-4"
+          }`}
+        />
         <Input
-          className="rounded-full border-[var(--color-border)] bg-[var(--color-secondary)] pl-11 focus:bg-white"
-          placeholder="Buscar marca, categoría o producto..."
+          className={`rounded-full border-[var(--color-border)] bg-[var(--color-secondary)] focus:bg-white ${
+            compact ? "h-9 pl-8 text-sm" : "pl-11"
+          }`}
+          placeholder={
+            compact ? "Buscar…" : "Buscar marca, categoría o producto..."
+          }
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

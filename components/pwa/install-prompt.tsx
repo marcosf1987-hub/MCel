@@ -54,7 +54,7 @@ export function InstallPrompt() {
     <div
       role="region"
       aria-label="Instalar aplicación"
-      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg sm:left-auto sm:right-4"
+      className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg md:bottom-4 sm:left-auto sm:right-4"
     >
       <div className="flex gap-3">
         <div className="flex-1">

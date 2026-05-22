@@ -1,0 +1,64 @@
+import { unstable_cache } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { getSupabasePublicEnv } from "@/lib/supabase/env";
+
+export type CategoryWithCount = {
+  id: string;
+  name: string;
+  name_es: string | null;
+  slug: string;
+  product_count: number;
+};
+
+export type CategoriesNavData = {
+  categories: CategoryWithCount[];
+  totalProducts: number;
+};
+
+async function fetchCategoriesNavData(): Promise<CategoriesNavData> {
+  const env = getSupabasePublicEnv();
+  if (!env.ok) {
+    return { categories: [], totalProducts: 0 };
+  }
+
+  const supabase = await createClient();
+
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id, name, name_es, slug")
+    .order("name");
+
+  const { data: productRows } = await supabase
+    .from("products")
+    .select("category_id");
+
+  const counts = new Map<string, number>();
+  for (const row of productRows ?? []) {
+    counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
+  }
+
+  const withCounts: CategoryWithCount[] = (categories ?? [])
+    .map((c) => ({
+      ...c,
+      product_count: counts.get(c.id) ?? 0,
+    }))
+    .sort((a, b) =>
+      (a.name_es ?? a.name).localeCompare(b.name_es ?? b.name, "es")
+    );
+
+  return {
+    categories: withCounts,
+    totalProducts: productRows?.length ?? 0,
+  };
+}
+
+/** Categorías con conteo de productos; se revalida cada 1 hora. */
+export const getCategoriesNavData = unstable_cache(
+  fetchCategoriesNavData,
+  ["categories-nav-data"],
+  { revalidate: 3600, tags: ["categories-counts"] }
+);
+
+export function categoryDisplayName(cat: CategoryWithCount) {
+  return cat.name_es ?? cat.name;
+}
