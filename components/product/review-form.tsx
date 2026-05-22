@@ -17,37 +17,87 @@ import {
 } from "@/components/ui/select";
 import { GLUTEN_LABELS, type GlutenCertification } from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Trash2 } from "lucide-react";
+
+type ReviewInitialValues = {
+  rating: number;
+  generalDescription: string;
+  taste: string;
+  price: string;
+  opinion: string;
+  glutenCertification: GlutenCertification;
+};
 
 export function ReviewForm({
   productId,
   productSlug,
   barcode,
   hasExistingImages = false,
+  mode = "create",
+  reviewId,
+  initialValues,
 }: {
   productId: string;
   productSlug: string;
   barcode: string;
   hasExistingImages?: boolean;
+  mode?: "create" | "edit";
+  reviewId?: string;
+  initialValues?: ReviewInitialValues;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEdit = mode === "edit";
 
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialValues?.rating ?? 0);
   const [statusType, setStatusType] = useState<StatusType>("idle");
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [glutenCert, setGlutenCert] = useState<GlutenCertification>("desconocido");
+  const [glutenCert, setGlutenCert] = useState<GlutenCertification>(
+    initialValues?.glutenCertification ?? "desconocido"
+  );
   const [imageName, setImageName] = useState<string | null>(null);
 
-  const [generalDescription, setGeneralDescription] = useState("");
-  const [taste, setTaste] = useState("");
-  const [price, setPrice] = useState("");
-  const [opinion, setOpinion] = useState("");
+  const [generalDescription, setGeneralDescription] = useState(
+    initialValues?.generalDescription ?? ""
+  );
+  const [taste, setTaste] = useState(initialValues?.taste ?? "");
+  const [price, setPrice] = useState(initialValues?.price ?? "");
+  const [opinion, setOpinion] = useState(initialValues?.opinion ?? "");
 
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
     setStatusMsg(message);
+  };
+
+  const handleDelete = async () => {
+    if (!reviewId) return;
+    if (
+      !window.confirm("¿Eliminar tu evaluación? Esta acción no se puede deshacer.")
+    ) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatus("error", data.error ?? "No se pudo eliminar");
+        return;
+      }
+      setStatus("success", "Evaluación eliminada.");
+      setTimeout(() => {
+        router.push(`/productos/${productSlug}`);
+        router.refresh();
+      }, 800);
+    } catch (err) {
+      setStatus("error", err instanceof Error ? err.message : "Error de conexión");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +125,7 @@ export function ReviewForm({
     }
 
     const file = fileInputRef.current?.files?.[0];
-    if (!file && !hasExistingImages) {
+    if (!isEdit && !file && !hasExistingImages) {
       setStatus("error", "Subí una foto del producto.");
       return;
     }
@@ -83,8 +133,6 @@ export function ReviewForm({
     setLoading(true);
 
     try {
-      const skipImage = hasExistingImages && !file;
-
       if (file) {
         setStatus("loading", "Comprimiendo y subiendo foto…");
         const uploadResult = await uploadProductImageFromBrowser(productId, file);
@@ -95,23 +143,28 @@ export function ReviewForm({
         setStatus("info", "Foto subida correctamente.");
       }
 
-      setStatus("loading", "Guardando evaluación…");
+      const payload = {
+        productId,
+        productSlug,
+        rating,
+        generalDescription: generalDescription.trim(),
+        taste: taste.trim(),
+        price: priceNum,
+        opinion: opinion.trim(),
+        glutenCertification: glutenCert,
+        skipImage: isEdit || (hasExistingImages && !file),
+      };
 
-      const res = await fetch("/api/reviews", {
-        method: "POST",
+      setStatus("loading", isEdit ? "Guardando cambios…" : "Guardando evaluación…");
+
+      const url = isEdit && reviewId ? `/api/reviews/${reviewId}` : "/api/reviews";
+      const method = isEdit ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          productId,
-          productSlug,
-          rating,
-          generalDescription: generalDescription.trim(),
-          taste: taste.trim(),
-          price: priceNum,
-          opinion: opinion.trim(),
-          glutenCertification: glutenCert,
-          skipImage,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const text = await res.text();
@@ -119,7 +172,6 @@ export function ReviewForm({
         ok?: boolean;
         error?: string;
         slug?: string;
-        warning?: string | null;
         needsLogin?: boolean;
       };
 
@@ -129,7 +181,7 @@ export function ReviewForm({
         const preview = text.slice(0, 120).replace(/\s+/g, " ");
         setStatus(
           "error",
-          `Error del servidor (código ${res.status}). La API no respondió bien. Probá abrir /api/reviews en el navegador o contactá soporte. Detalle: ${preview}`
+          `Error del servidor (código ${res.status}). Detalle: ${preview}`
         );
         return;
       }
@@ -138,7 +190,10 @@ export function ReviewForm({
         if (data.needsLogin) {
           setStatus("error", data.error ?? "Sesión expirada.");
           setTimeout(
-            () => router.push(`/login?returnUrl=/productos/${productSlug}/evaluar`),
+            () =>
+              router.push(
+                `/login?returnUrl=/productos/${productSlug}/${isEdit ? "editar-evaluacion" : "evaluar"}`
+              ),
             2000
           );
           return;
@@ -147,7 +202,12 @@ export function ReviewForm({
         return;
       }
 
-      setStatus("success", "¡Evaluación publicada correctamente! Abriendo la ficha…");
+      setStatus(
+        "success",
+        isEdit
+          ? "¡Cambios guardados! Abriendo la ficha…"
+          : "¡Evaluación publicada correctamente! Abriendo la ficha…"
+      );
       setTimeout(() => {
         router.push(`/productos/${data.slug ?? productSlug}`);
         router.refresh();
@@ -164,11 +224,7 @@ export function ReviewForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      encType="multipart/form-data"
-      className="space-y-4"
-    >
+    <form onSubmit={handleSubmit} className="space-y-4">
       <StatusBanner type={statusType} message={statusMsg} />
 
       <div>
@@ -225,41 +281,62 @@ export function ReviewForm({
         />
       </div>
 
-      <div>
-        <Label htmlFor="image">
-          Foto del producto {!hasExistingImages && "*"}
-        </Label>
-        <Input
-          ref={fileInputRef}
-          id="image"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={loading}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            setImageName(f?.name ?? null);
-            if (f) {
-              setStatus("info", `Foto seleccionada: ${f.name} (${Math.round(f.size / 1024)} KB)`);
-            }
-          }}
-        />
-        {hasExistingImages && (
+      {!isEdit && (
+        <div>
+          <Label htmlFor="image">
+            Foto del producto {!hasExistingImages && "*"}
+          </Label>
+          <Input
+            ref={fileInputRef}
+            id="image"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={loading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              setImageName(f?.name ?? null);
+              if (f) {
+                setStatus(
+                  "info",
+                  `Foto seleccionada: ${f.name} (${Math.round(f.size / 1024)} KB)`
+                );
+              }
+            }}
+          />
+          {hasExistingImages && (
+            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+              El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva.
+            </p>
+          )}
           <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva.
+            Las fotos se comprimen automáticamente para evitar errores de tamaño.
           </p>
-        )}
-        <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-          Las fotos se comprimen automáticamente para evitar errores de tamaño.
-        </p>
-        {imageName && (
-          <p className="mt-1 text-xs font-medium text-[var(--color-brown)]">✓ {imageName}</p>
-        )}
-      </div>
+          {imageName && (
+            <p className="mt-1 text-xs font-medium text-[var(--color-brown)]">✓ {imageName}</p>
+          )}
+        </div>
+      )}
+
+      {isEdit && (
+        <div>
+          <Label htmlFor="image">Nueva foto (opcional)</Label>
+          <Input
+            ref={fileInputRef}
+            id="image"
+            type="file"
+            accept="image/*"
+            disabled={loading}
+            onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+          />
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+            Si subís una foto nueva, se agrega a las imágenes del producto.
+          </p>
+        </div>
+      )}
 
       <div>
         <Label>Certificación gluten</Label>
-        <input type="hidden" name="glutenCertification" value={glutenCert} readOnly />
         <Select
           value={glutenCert}
           onValueChange={(v) => {
@@ -298,24 +375,31 @@ export function ReviewForm({
         {loading && (
           <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
         )}
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full gap-2"
-          size="lg"
-        >
+        <Button type="submit" disabled={loading} className="w-full gap-2" size="lg">
           {loading ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Enviando evaluación…
+              {isEdit ? "Guardando…" : "Enviando evaluación…"}
             </>
           ) : (
             <>
               <Send className="h-5 w-5" />
-              Publicar evaluación
+              {isEdit ? "Guardar cambios" : "Publicar evaluación"}
             </>
           )}
         </Button>
+        {isEdit && reviewId && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2 text-red-600 hover:text-red-700"
+            disabled={loading}
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar mi evaluación
+          </Button>
+        )}
       </div>
     </form>
   );

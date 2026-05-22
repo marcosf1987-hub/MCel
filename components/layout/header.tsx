@@ -50,6 +50,9 @@ export async function Header() {
                 <Link href="/productos/nuevo">+ Producto</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
+                <Link href="/cuenta/favoritos">Mis favoritos</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
                 <Link href="/cuenta/preferencias">
                   {profile?.display_name ?? "Mi cuenta"}
                 </Link>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { StarRating } from "@/components/product/star-rating";
+import { FavoriteButton } from "@/components/product/favorite-button";
 
 export interface ProductCardData {
   id: string;
@@ -13,11 +14,31 @@ export interface ProductCardData {
   brand_name?: string;
 }
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+export function ProductCard({
+  product,
+  isLoggedIn = false,
+  isFavorited = false,
+  showFavorite = false,
+}: {
+  product: ProductCardData;
+  isLoggedIn?: boolean;
+  isFavorited?: boolean;
+  showFavorite?: boolean;
+}) {
   return (
-    <Link href={`/productos/${product.slug}`}>
-      <Card className="h-full overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
+    <Link href={`/productos/${product.slug}`} className="block h-full">
+      <Card className="relative h-full overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
         <div className="relative aspect-square overflow-hidden bg-[var(--color-brand-cream)]">
+          {showFavorite && (
+            <div className="absolute right-2 top-2 z-10">
+              <FavoriteButton
+                productId={product.id}
+                initialFavorited={isFavorited}
+                isLoggedIn={isLoggedIn}
+                size="sm"
+              />
+            </div>
+          )}
           {product.image_url ? (
             <Image
               src={product.image_url}

@@ -20,6 +20,7 @@ Solo ejecutá lo que falte:
 2. Copiá y **Run** el contenido de:
    - `supabase/migrations/002_fix_auth_profile.sql` (registro de usuarios)
    - `supabase/migrations/003_storage_bucket.sql` (fotos)
+   - `supabase/migrations/004_product_collaborations.sql` (altas de producto cuentan como colaboración)
 
 > Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 

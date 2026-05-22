@@ -5,6 +5,7 @@ import { ProductCarousel } from "@/components/product/product-carousel";
 import { StarRating } from "@/components/product/star-rating";
 import { ReviewCard, type ReviewCardData } from "@/components/product/review-card";
 import { ReportButton } from "@/components/product/report-button";
+import { FavoriteButton } from "@/components/product/favorite-button";
 import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
 
@@ -90,10 +91,41 @@ export default async function ProductDetailPage({
 
   if (!brand || !category || !subcategory) notFound();
 
+  let isFavorited = false;
+  if (user) {
+    const { data: fav } = await supabase
+      .from("favorites")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("product_id", product.id)
+      .maybeSingle();
+    isFavorited = Boolean(fav);
+  }
+
+  let userReviewId: string | null = null;
+  if (user) {
+    const { data: myReview } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("product_id", product.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    userReviewId = myReview?.id ?? null;
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-2">
-        <ProductCarousel images={images} />
+        <div className="relative">
+          <div className="absolute right-3 top-3 z-10">
+            <FavoriteButton
+              productId={product.id}
+              initialFavorited={isFavorited}
+              isLoggedIn={Boolean(user)}
+            />
+          </div>
+          <ProductCarousel images={images} />
+        </div>
 
         <div>
           <p className="text-sm text-[var(--color-muted-foreground)]">
@@ -127,9 +159,17 @@ export default async function ProductDetailPage({
 
           <div className="mt-6 flex flex-wrap gap-2">
             {user ? (
-              <Button asChild>
-                <Link href={`/productos/${slug}/evaluar`}>Evaluar producto</Link>
-              </Button>
+              userReviewId ? (
+                <Button asChild variant="outline">
+                  <Link href={`/productos/${slug}/editar-evaluacion`}>
+                    Editar mi evaluación
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link href={`/productos/${slug}/evaluar`}>Evaluar producto</Link>
+                </Button>
+              )
             ) : (
               <Button asChild>
                 <Link href={`/login?returnUrl=/productos/${slug}/evaluar`}>
