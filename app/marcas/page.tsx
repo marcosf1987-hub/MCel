@@ -25,7 +25,7 @@ export default async function BrandsPage() {
           .sort()
           .map((letter) => (
             <section key={letter}>
-              <h2 className="mb-3 text-lg font-semibold text-[var(--color-primary)]">
+              <h2 className="mb-3 font-[family-name:var(--font-headline)] text-lg font-bold text-[var(--color-accent)]">
                 {letter}
               </h2>
               <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-4">
@@ -33,7 +33,7 @@ export default async function BrandsPage() {
                   <Link
                     key={b.slug}
                     href={`/marcas/${b.slug}`}
-                    className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-[var(--color-muted)]"
+                    className="rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-brown)] hover:bg-[var(--color-brand-cream)] hover:border-[var(--color-brand-light)]"
                   >
                     {b.name}
                   </Link>

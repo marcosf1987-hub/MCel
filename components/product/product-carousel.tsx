@@ -76,7 +76,7 @@ export function ProductCarousel({ images }: { images: { url: string; id: string 
               <span
                 key={i}
                 className={`h-2 w-2 rounded-full ${
-                  i === selectedIndex ? "bg-[var(--color-primary)]" : "bg-gray-300"
+                  i === selectedIndex ? "bg-[var(--color-accent)]" : "bg-gray-300"
                 }`}
               />
             ))}

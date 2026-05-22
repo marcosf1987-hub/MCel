@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
 
 export async function GET(request: Request) {
@@ -22,11 +23,14 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(
         `${siteUrl}/login?error=${encodeURIComponent(error.message)}`
       );
+    }
+    if (data.user) {
+      await ensureProfile(data.user.id, data.user.email, data.user.user_metadata);
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "auth_error";

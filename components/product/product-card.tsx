@@ -16,14 +16,14 @@ export interface ProductCardData {
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
     <Link href={`/productos/${product.slug}`}>
-      <Card className="h-full transition-shadow hover:shadow-md">
-        <div className="relative aspect-square overflow-hidden rounded-t-lg bg-[var(--color-muted)]">
+      <Card className="h-full overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
+        <div className="relative aspect-square overflow-hidden bg-[var(--color-brand-cream)]">
           {product.image_url ? (
             <Image
               src={product.image_url}
               alt={product.name}
               fill
-              className="object-contain p-2"
+              className="object-contain p-3"
               sizes="200px"
               unoptimized={product.image_url.includes("openfoodfacts")}
             />
@@ -35,12 +35,16 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </div>
         <CardContent className="p-4">
           {product.brand_name && (
-            <p className="text-xs text-[var(--color-muted-foreground)]">{product.brand_name}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-accent)]">
+              {product.brand_name}
+            </p>
           )}
-          <h3 className="font-medium line-clamp-2">{product.name}</h3>
+          <h3 className="font-[family-name:var(--font-headline)] font-semibold line-clamp-2 text-[var(--color-brown)]">
+            {product.name}
+          </h3>
           <div className="mt-2">
             <StarRating value={product.weighted_rating} size="sm" />
-            <p className="text-xs text-[var(--color-muted-foreground)] mt-1">
+            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
               {product.review_count} evaluación{product.review_count !== 1 ? "es" : ""}
             </p>
           </div>

@@ -26,11 +26,16 @@ export async function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/90 backdrop-blur-md shadow-sm">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-[var(--color-primary)]">
-            <Wheat className="h-6 w-6" />
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-[family-name:var(--font-headline)] text-lg font-bold text-[var(--color-brown)]"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)] text-white shadow-sm">
+              <Wheat className="h-5 w-5" />
+            </span>
             <span>Celíacos AR</span>
           </Link>
           <MegaMenu />
@@ -41,7 +46,7 @@ export async function Header() {
         <nav className="flex items-center gap-2">
           {user ? (
             <>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="accent" size="sm">
                 <Link href="/productos/nuevo">+ Producto</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">

@@ -143,8 +143,10 @@ export default async function ProductDetailPage({
       </div>
 
       {product.ai_summary && (
-        <section className="mt-8 rounded-lg border bg-[var(--color-accent)] p-6">
-          <h2 className="font-semibold text-[var(--color-primary)]">Resumen de la comunidad</h2>
+        <section className="mt-8 rounded-2xl border border-[var(--color-brand-light)] bg-[var(--color-brand-cream)] p-6">
+          <h2 className="font-[family-name:var(--font-headline)] font-semibold text-[var(--color-brown)]">
+            Resumen de la comunidad
+          </h2>
           <p className="mt-2 text-sm leading-relaxed">{product.ai_summary}</p>
           <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
             Generado a partir de las evaluaciones sobre descripción, sabor y precio.

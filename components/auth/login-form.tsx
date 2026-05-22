@@ -115,7 +115,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           </p>
         )}
         {message && (
-          <p className="text-sm text-[var(--color-primary)]" role="status">
+          <p className="text-sm text-[var(--color-brown)]" role="status">
             {message}
           </p>
         )}
@@ -126,7 +126,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
 
       <button
         type="button"
-        className="w-full text-center text-sm text-[var(--color-primary)] hover:underline"
+        className="w-full text-center text-sm font-medium text-[var(--color-accent)] hover:underline"
         onClick={() => {
           setIsSignUp(!isSignUp);
           setError(null);

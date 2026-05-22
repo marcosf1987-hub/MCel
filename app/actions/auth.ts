@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
 
 export async function signUpWithEmail(
@@ -41,9 +42,13 @@ export async function signInWithEmail(
   if (!env.ok) return { ok: false, error: env.error };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { ok: false, error: error.message };
+
+  if (data.user) {
+    await ensureProfile(data.user.id, data.user.email, data.user.user_metadata);
+  }
 
   redirect(returnUrl.startsWith("/") ? returnUrl : "/");
 }

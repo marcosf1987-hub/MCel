@@ -1,23 +1,40 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #faf9f7;
-  --color-foreground: #1a1a1a;
-  --color-primary: #2d6a4f;
+  /* Paleta del design system */
+  --color-brand: #f9a826;
+  --color-brand-light: #fde68a;
+  --color-brand-cream: #fffbeb;
+  --color-neutral: #4b5563;
+  --color-brown: #42210b;
+  --color-brown-hover: #5c2f12;
+  --color-navy: #1e293b;
+
+  --color-background: #eef1f6;
+  --color-foreground: #42210b;
+  --color-primary: #42210b;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #e8f5e9;
-  --color-secondary-foreground: #1b4332;
-  --color-muted: #f0eeeb;
-  --color-muted-foreground: #5c5c5c;
-  --color-accent: #d8f3dc;
-  --color-accent-foreground: #1b4332;
-  --color-destructive: #c1121f;
-  --color-border: #e0ddd8;
+  --color-secondary: #e8ecf4;
+  --color-secondary-foreground: #4b5563;
+  --color-muted: #fffbeb;
+  --color-muted-foreground: #4b5563;
+  --color-accent: #f9a826;
+  --color-accent-foreground: #42210b;
+  --color-accent-soft: #fde68a;
+  --color-destructive: #dc2626;
+  --color-border: #e5e7eb;
   --color-card: #ffffff;
-  --color-card-foreground: #1a1a1a;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --color-card-foreground: #42210b;
+  --color-ring: #f9a826;
+
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --font-headline: var(--font-montserrat), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
 }
 
 * {
@@ -27,5 +44,16 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  color: var(--color-brown);
 }

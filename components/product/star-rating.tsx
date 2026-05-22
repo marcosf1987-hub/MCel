@@ -27,7 +27,7 @@ export function StarRating({
               className={cn(
                 sizeClass,
                 filled || partial
-                  ? "fill-amber-400 text-amber-400"
+                  ? "fill-[var(--color-accent)] text-[var(--color-accent)]"
                   : "text-gray-300"
               )}
             />
@@ -35,7 +35,7 @@ export function StarRating({
         })}
       </div>
       {showValue && value !== null && (
-        <span className="text-sm font-medium text-[var(--color-muted-foreground)]">
+        <span className="text-sm font-medium text-[var(--color-neutral)]">
           {value.toFixed(1)}
         </span>
       )}
@@ -57,13 +57,15 @@ export function StarInput({
           key={n}
           type="button"
           onClick={() => onChange(n)}
-          className="rounded p-0.5 hover:scale-110 transition-transform"
+          className="rounded-full p-1 transition-transform hover:scale-110"
           aria-label={`${n} estrellas`}
         >
           <Star
             className={cn(
-              "h-8 w-8",
-              n <= value ? "fill-amber-400 text-amber-400" : "text-gray-300"
+              "h-9 w-9",
+              n <= value
+                ? "fill-[var(--color-accent)] text-[var(--color-accent)]"
+                : "text-gray-300"
             )}
           />
         </button>

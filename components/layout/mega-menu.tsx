@@ -23,23 +23,25 @@ export async function MegaMenu() {
   }
 
   return (
-    <nav className="hidden md:flex items-center gap-4 text-sm">
-      <Link href="/productos" className="hover:text-[var(--color-primary)]">
+    <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-[var(--color-neutral)]">
+      <Link href="/productos" className="hover:text-[var(--color-accent)] transition-colors">
         Productos
       </Link>
-      <Link href="/marcas" className="hover:text-[var(--color-primary)]">
+      <Link href="/marcas" className="hover:text-[var(--color-accent)] transition-colors">
         Marcas
       </Link>
       <div className="group relative">
-        <span className="cursor-pointer hover:text-[var(--color-primary)]">Categorías</span>
+        <span className="cursor-pointer hover:text-[var(--color-accent)] transition-colors">
+          Categorías
+        </span>
         {categories.length > 0 && (
-          <div className="invisible absolute left-0 top-full z-50 min-w-[320px] rounded-lg border bg-white p-4 shadow-lg group-hover:visible">
+          <div className="invisible absolute left-0 top-full z-50 mt-2 min-w-[320px] rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-xl group-hover:visible">
             <div className="grid gap-4 sm:grid-cols-2">
               {categories.map((cat) => (
                 <div key={cat.id}>
                   <Link
                     href={`/categorias/${cat.slug}`}
-                    className="font-medium text-[var(--color-primary)] hover:underline"
+                    className="font-[family-name:var(--font-headline)] font-semibold text-[var(--color-brown)] hover:text-[var(--color-accent)]"
                   >
                     {cat.name_es ?? cat.name}
                   </Link>
@@ -48,7 +50,7 @@ export async function MegaMenu() {
                       <li key={sub.id}>
                         <Link
                           href={`/subcategorias/${sub.slug}?cat=${cat.slug}`}
-                          className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                          className="text-xs text-[var(--color-neutral)] hover:text-[var(--color-accent)]"
                         >
                           {sub.name_es ?? sub.name}
                         </Link>

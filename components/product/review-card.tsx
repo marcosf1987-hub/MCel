@@ -33,7 +33,7 @@ export function ReviewCard({ review }: { review: ReviewCardData }) {
     expanded || !needsExpand ? fullText : fullText.slice(0, PREVIEW_LEN) + "…";
 
   return (
-    <article className="rounded-lg border border-[var(--color-border)] bg-white p-4">
+    <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="font-medium">{review.display_name ?? "Usuario"}</span>
@@ -49,7 +49,7 @@ export function ReviewCard({ review }: { review: ReviewCardData }) {
         <Button
           variant="ghost"
           size="sm"
-          className="mt-1 h-auto p-0 text-[var(--color-primary)]"
+          className="mt-1 h-auto p-0 text-[var(--color-accent)] font-medium"
           onClick={() => setExpanded(!expanded)}
           type="button"
         >

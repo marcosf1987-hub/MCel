@@ -15,7 +15,9 @@ Plataforma comunitaria para descubrir, evaluar y puntuar productos aptos para pe
 ### 1. Supabase
 
 1. Creá un proyecto en [supabase.com](https://supabase.com)
-2. Ejecutá el SQL de [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql) en el SQL Editor
+2. Ejecutá en el SQL Editor, en orden:
+   - [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql)
+   - [`supabase/migrations/002_fix_auth_profile.sql`](supabase/migrations/002_fix_auth_profile.sql) (corrige error al registrarse)
 3. En **Authentication → Providers**, habilitá Google y Email
 4. Añadí la URL de callback: `http://localhost:3000/auth/callback`
 

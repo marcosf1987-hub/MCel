@@ -5,17 +5,17 @@ import type { UserTier } from "@/types/database";
 import { TIER_LABELS } from "@/types/database";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+  "inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold",
   {
     variants: {
       variant: {
-        default: "bg-[var(--color-primary)] text-white",
-        secondary: "bg-[var(--color-secondary)] text-[var(--color-secondary-foreground)]",
-        outline: "border border-[var(--color-border)]",
+        default: "bg-[var(--color-accent)] text-[var(--color-brown)]",
+        secondary: "bg-[var(--color-brand-light)] text-[var(--color-brown)]",
+        outline: "border-2 border-[var(--color-border)] text-[var(--color-neutral)]",
         bronze: "bg-amber-700 text-white",
-        silver: "bg-slate-400 text-white",
-        gold: "bg-yellow-500 text-amber-950",
-        none: "bg-gray-200 text-gray-700",
+        silver: "bg-[var(--color-neutral)] text-white",
+        gold: "bg-[var(--color-accent)] text-[var(--color-brown)]",
+        none: "bg-[var(--color-secondary)] text-[var(--color-neutral)]",
       },
     },
     defaultVariants: { variant: "default" },
@@ -25,7 +25,14 @@ const badgeVariants = cva(
 export function TierBadge({ tier, className }: { tier: UserTier; className?: string }) {
   const variant = tier === "none" ? "none" : tier;
   return (
-    <span className={cn(badgeVariants({ variant: variant as VariantProps<typeof badgeVariants>["variant"] }), className)}>
+    <span
+      className={cn(
+        badgeVariants({
+          variant: variant as VariantProps<typeof badgeVariants>["variant"],
+        }),
+        className
+      )}
+    >
       {TIER_LABELS[tier]}
     </span>
   );

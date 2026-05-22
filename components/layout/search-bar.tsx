@@ -50,9 +50,9 @@ export function SearchBar() {
   return (
     <div className="relative w-full">
       <form onSubmit={handleSubmit} className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral)]" />
         <Input
-          className="pl-9"
+          className="rounded-full border-[var(--color-border)] bg-[var(--color-secondary)] pl-11 focus:bg-white"
           placeholder="Buscar marca, categoría o producto..."
           value={query}
           onChange={(e) => {
@@ -63,20 +63,20 @@ export function SearchBar() {
         />
       </form>
       {open && results.length > 0 && (
-        <ul className="absolute top-full z-50 mt-1 w-full rounded-md border bg-white shadow-lg">
+        <ul className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-lg">
           {results.map((r, i) => (
             <li key={i}>
               <button
                 type="button"
-                className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-muted)]"
+                className="w-full px-4 py-3 text-left text-sm hover:bg-[var(--color-brand-cream)]"
                 onMouseDown={() => {
                   router.push(r.href);
                   setOpen(false);
                 }}
               >
-                <span className="text-xs text-[var(--color-muted-foreground)]">{r.type}</span>
+                <span className="text-xs font-medium text-[var(--color-accent)]">{r.type}</span>
                 <br />
-                {r.label}
+                <span className="text-[var(--color-brown)]">{r.label}</span>
               </button>
             </li>
           ))}

@@ -4,8 +4,8 @@
   "description": "Productos sin gluten evaluados por la comunidad celíaca",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf9f7",
-  "theme_color": "#2d6a4f",
+  "background_color": "#FFFBEB",
+  "theme_color": "#F9A826",
   "lang": "es-AR",
   "orientation": "portrait-primary",
   "icons": [
