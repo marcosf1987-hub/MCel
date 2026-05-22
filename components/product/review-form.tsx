@@ -102,6 +102,7 @@ export function ReviewForm({
       const res = await fetch("/api/reviews", {
         method: "POST",
         body,
+        credentials: "include",
       });
 
       const text = await res.text();
@@ -116,9 +117,10 @@ export function ReviewForm({
       try {
         data = JSON.parse(text);
       } catch {
+        const preview = text.slice(0, 120).replace(/\s+/g, " ");
         setStatus(
           "error",
-          "El servidor respondió de forma incorrecta. ¿Estás logueado? Probá recargar la página."
+          `Error del servidor (código ${res.status}). La API no respondió bien. Probá abrir /api/reviews en el navegador o contactá soporte. Detalle: ${preview}`
         );
         return;
       }
