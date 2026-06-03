@@ -63,7 +63,7 @@ export async function Header() {
                 className="shrink-0 h-9 w-9"
                 aria-label="Mis favoritos"
               >
-                <Link href="/cuenta/favoritos">
+                <Link href="/cuenta/listas/mis-favoritos">
                   <Heart className="h-5 w-5" />
                 </Link>
               </Button>
@@ -108,7 +108,7 @@ export async function Header() {
             {user ? (
               <>
                 <Button asChild variant="ghost" size="sm">
-                  <Link href="/cuenta/favoritos" className="gap-1.5">
+                  <Link href="/cuenta/listas/mis-favoritos" className="gap-1.5">
                     <Heart className="h-4 w-4" />
                     Mis favoritos
                   </Link>

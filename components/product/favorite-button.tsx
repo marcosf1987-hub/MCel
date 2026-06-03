@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function FavoriteButton({
@@ -38,34 +37,24 @@ export function FavoriteButton({
     if (loading) return;
     setLoading(true);
 
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      window.alert("Iniciá sesión para guardar en Favoritos");
-      setLoading(false);
-      return;
-    }
-
     try {
-      if (favorited) {
-        const { error } = await supabase
-          .from("favorites")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("product_id", productId);
-        if (error) throw error;
-        setFavorited(false);
-      } else {
-        const { error } = await supabase.from("favorites").insert({
-          user_id: user.id,
-          product_id: productId,
-        });
-        if (error) throw error;
-        setFavorited(true);
+      const res = await fetch("/api/lists/favorites/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        favorited?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? "No se pudo actualizar favoritos");
       }
+
+      setFavorited(Boolean(data.favorited));
       router.refresh();
     } catch (err) {
       console.error("Favorite toggle:", err);

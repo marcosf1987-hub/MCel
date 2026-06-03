@@ -7,6 +7,8 @@ import { ReviewCard, type ReviewCardData } from "@/components/product/review-car
 import { ReportButton } from "@/components/product/report-button";
 import { FavoriteButton } from "@/components/product/favorite-button";
 import { ShareWhatsAppButton } from "@/components/product/share-whatsapp-button";
+import { AddToListButton } from "@/components/lists/add-to-list-button";
+import { isProductFavorited } from "@/lib/favorites-server";
 import { getSiteUrl } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
@@ -95,16 +97,9 @@ export default async function ProductDetailPage({
 
   const shareUrl = `${getSiteUrl()}/productos/${slug}`;
 
-  let isFavorited = false;
-  if (user) {
-    const { data: fav } = await supabase
-      .from("favorites")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("product_id", product.id)
-      .maybeSingle();
-    isFavorited = Boolean(fav);
-  }
+  const isFavorited = user
+    ? await isProductFavorited(supabase, user.id, product.id)
+    : false;
 
   let userReviewId: string | null = null;
   if (user) {
@@ -181,6 +176,7 @@ export default async function ProductDetailPage({
                 </Link>
               </Button>
             )}
+            <AddToListButton productId={product.id} isLoggedIn={Boolean(user)} />
             <ShareWhatsAppButton
               productName={product.name}
               productUrl={shareUrl}

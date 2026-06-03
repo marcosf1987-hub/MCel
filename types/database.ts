@@ -118,16 +118,48 @@ export interface Review {
   profile?: Profile;
 }
 
+export type ListVisibility = "public" | "unlisted" | "private";
+
+export interface ProductList {
+  id: string;
+  user_id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  visibility: ListVisibility;
+  is_system: boolean;
+  vote_count: number;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<Profile, "username" | "display_name">;
+}
+
+export interface ProductListItem {
+  id: string;
+  list_id: string;
+  product_id: string;
+  sort_order: number;
+  note: string | null;
+  created_at: string;
+}
+
+export interface ListVote {
+  list_id: string;
+  user_id: string;
+  created_at: string;
+}
+
 export interface Report {
   id: string;
   reporter_id: string;
-  target_type: "product" | "review";
+  target_type: "product" | "review" | "list";
   target_id: string;
   reason: string;
   status: "pending" | "resolved" | "dismissed";
   created_at: string;
 }
 
+/** @deprecated Usar lista sistema mis-favoritos */
 export interface Favorite {
   id: string;
   user_id: string;

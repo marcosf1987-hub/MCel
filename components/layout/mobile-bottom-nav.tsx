@@ -16,7 +16,7 @@ const items: NavItem[] = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/explorar", label: "Explorar", icon: Compass },
   { href: "/productos/nuevo", label: "Cargar", icon: PlusCircle, accent: true },
-  { href: "/cuenta/favoritos", label: "Favoritos", icon: Heart },
+  { href: "/cuenta/listas/mis-favoritos", label: "Favoritos", icon: Heart },
   { href: "/cuenta/preferencias", label: "Cuenta", icon: User },
 ];
 

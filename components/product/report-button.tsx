@@ -8,7 +8,7 @@ export function ReportButton({
   targetType,
   targetId,
 }: {
-  targetType: "product" | "review";
+  targetType: "product" | "review" | "list";
   targetId: string;
 }) {
   const [open, setOpen] = useState(false);

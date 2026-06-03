@@ -69,7 +69,7 @@ export default async function PreferencesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-[var(--color-brown)]">Mi cuenta</h1>
         <Button asChild variant="accent" size="sm" className="gap-2">
-          <Link href="/cuenta/favoritos">
+          <Link href="/cuenta/listas/mis-favoritos">
             <Heart className="h-4 w-4 fill-current" />
             Mis favoritos
           </Link>

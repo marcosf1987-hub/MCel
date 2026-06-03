@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUserPublicLists } from "@/lib/lists-server";
 import { TierBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -27,6 +29,8 @@ export default async function ProfilePage({
     .select("*", { count: "exact", head: true })
     .eq("user_id", profile.id);
 
+  const publicLists = await getUserPublicLists(supabase, profile.id);
+
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
@@ -48,6 +52,33 @@ export default async function ProfilePage({
           </p>
         </CardContent>
       </Card>
+
+      {profile.username && publicLists.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">Listas públicas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {publicLists.map((list) => (
+                <li key={list.id}>
+                  <Link
+                    href={`/listas/${profile.username}/${list.slug}`}
+                    className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-[var(--color-brand-cream)]"
+                  >
+                    <span className="font-medium text-[var(--color-brown)]">
+                      {list.title}
+                    </span>
+                    <span className="text-xs text-[var(--color-muted-foreground)]">
+                      {list.vote_count} {list.vote_count === 1 ? "voto" : "votos"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
