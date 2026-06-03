@@ -6,6 +6,7 @@ import {
   getOrCreateCategory,
   getOrCreateSubcategory,
 } from "@/lib/catalog";
+import { insertOffProductImage } from "@/lib/product-images";
 import { slugify } from "@/lib/utils";
 
 interface CreateProductPayload {
@@ -113,13 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (offImageUrl) {
-      await supabase.from("product_images").insert({
-        product_id: product.id,
-        user_id: null,
-        url: offImageUrl,
-        is_official: true,
-        sort_order: 0,
-      });
+      await insertOffProductImage(supabase, product.id, offImageUrl);
     }
 
     const result = NextResponse.json({

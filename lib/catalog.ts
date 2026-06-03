@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { insertCommunityProductImage } from "@/lib/product-images";
 import { slugify } from "@/lib/utils";
 
 export async function getOrCreateBrand(name: string) {
@@ -79,8 +80,7 @@ export async function findProductByBarcode(barcode: string) {
 export async function uploadProductImage(
   productId: string,
   userId: string,
-  file: File,
-  isOfficial = false
+  file: File
 ) {
   const supabase = await createClient();
   const ext = file.name.split(".").pop() || "jpg";
@@ -96,14 +96,6 @@ export async function uploadProductImage(
     data: { publicUrl },
   } = supabase.storage.from("product-images").getPublicUrl(path);
 
-  const { error: dbError } = await supabase.from("product_images").insert({
-    product_id: productId,
-    user_id: userId,
-    url: publicUrl,
-    is_official: isOfficial,
-    sort_order: isOfficial ? 0 : 99,
-  });
-
-  if (dbError) throw dbError;
+  await insertCommunityProductImage(supabase, productId, userId, publicUrl);
   return publicUrl;
 }

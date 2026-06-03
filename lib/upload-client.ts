@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
+import { insertCommunityProductImage } from "@/lib/product-images";
 
 /** Sube foto directo a Supabase (evita límite 4.5MB de Vercel). */
 export async function uploadProductImageFromBrowser(
@@ -37,16 +38,14 @@ export async function uploadProductImageFromBrowser(
       data: { publicUrl },
     } = supabase.storage.from("product-images").getPublicUrl(path);
 
-    const { error: dbError } = await supabase.from("product_images").insert({
-      product_id: productId,
-      user_id: user.id,
-      url: publicUrl,
-      is_official: false,
-      sort_order: 99,
-    });
-
-    if (dbError) {
-      return { error: `Foto subida pero error al guardar: ${dbError.message}` };
+    try {
+      await insertCommunityProductImage(supabase, productId, user.id, publicUrl);
+    } catch (dbError) {
+      const msg =
+        dbError instanceof Error ? dbError.message : "Error al guardar la imagen";
+      return {
+        error: `Foto subida pero error al guardar: ${msg}. Si persiste, ejecutá la migración 006 en Supabase.`,
+      };
     }
 
     return { url: publicUrl };

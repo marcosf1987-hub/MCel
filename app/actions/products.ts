@@ -8,6 +8,7 @@ import {
   findProductByBarcode,
   uploadProductImage,
 } from "@/lib/catalog";
+import { insertOffProductImage } from "@/lib/product-images";
 import { slugify } from "@/lib/utils";
 
 export type ActionResult<T = void> =
@@ -97,14 +98,9 @@ export async function createProduct(formData: FormData): Promise<
     }
 
     if (offImageUrl) {
-      const { error: imgErr } = await supabase.from("product_images").insert({
-        product_id: product.id,
-        user_id: null,
-        url: offImageUrl,
-        is_official: true,
-        sort_order: 0,
-      });
-      if (imgErr) {
+      try {
+        await insertOffProductImage(supabase, product.id, offImageUrl);
+      } catch (imgErr) {
         console.error("OFF image insert:", imgErr);
       }
     }
