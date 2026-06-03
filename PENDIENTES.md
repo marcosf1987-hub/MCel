@@ -1,9 +1,8 @@
 # Pendientes — MCel
 
-## Listas sociales (Fase 2+)
+## Listas sociales (Fase 3+)
 
 - [ ] **Voto negativo** en listas (además del voto positivo actual).
-- [ ] Guardar lista de otro usuario en “Mi biblioteca”.
 - [ ] Seguir usuarios y feed de listas.
 - [ ] Listas colaborativas (varios editores).
 - [ ] Comentarios en listas.

@@ -129,9 +129,16 @@ export interface ProductList {
   visibility: ListVisibility;
   is_system: boolean;
   vote_count: number;
+  save_count: number;
   created_at: string;
   updated_at: string;
   profile?: Pick<Profile, "username" | "display_name">;
+}
+
+export interface ListSave {
+  list_id: string;
+  user_id: string;
+  created_at: string;
 }
 
 export interface ProductListItem {

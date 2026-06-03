@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrCreateFavoritesList, LIST_VISIBILITY_LABELS } from "@/lib/lists";
 import { ListsDbSetupBanner } from "@/components/lists/lists-db-setup-banner";
-import { ListMusic, Plus } from "lucide-react";
+import { Bookmark, ListMusic, Plus } from "lucide-react";
 import type { ListVisibility } from "@/types/database";
 
 export const metadata = { title: "Mis listas" };
@@ -53,8 +53,21 @@ export default async function MyListsPage() {
         </Button>
       </div>
 
-      <p className="mb-6 text-sm text-[var(--color-muted-foreground)]">
+      <p className="mb-4 text-sm text-[var(--color-muted-foreground)]">
         Armá colecciones de productos, compartilas y recibí votos de la comunidad.
+      </p>
+      <p className="mb-6">
+        <Link
+          href="/cuenta/listas/guardadas"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          <Bookmark className="h-4 w-4" />
+          Listas guardadas de otros usuarios
+        </Link>
+        {" · "}
+        <Link href="/explorar/listas" className="text-sm text-[var(--color-muted-foreground)] hover:underline">
+          Explorar listas públicas
+        </Link>
       </p>
 
       <ul className="space-y-3">

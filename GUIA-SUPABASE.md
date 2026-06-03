@@ -24,6 +24,7 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/005_price_range.sql` (rango de precio $–$$$$ en evaluaciones)
    - `supabase/migrations/006_product_images_sort_update.sql` (reordenar fotos: comunidad portada, OFF al final si ya hay imágenes)
    - `supabase/migrations/007_product_lists.sql` (listas de productos, votos, migración de favoritos)
+   - `supabase/migrations/008_list_saves.sql` (guardar listas de otros usuarios, Fase 2)
 
 > Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 

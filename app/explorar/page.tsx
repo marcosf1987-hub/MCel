@@ -62,12 +62,18 @@ export default async function ExplorePage() {
                 </li>
               ))}
             </ul>
-            <div className="border-t border-[var(--color-border)] px-4 py-3">
+            <div className="border-t border-[var(--color-border)] px-4 py-3 flex flex-wrap gap-4">
               <Link
-                href="/cuenta/listas/nueva"
+                href="/explorar/listas"
                 className="text-sm font-medium text-[var(--color-accent)] hover:underline"
               >
-                Crear tu lista →
+                Ver todas las listas →
+              </Link>
+              <Link
+                href="/cuenta/listas/nueva"
+                className="text-sm font-medium text-[var(--color-muted-foreground)] hover:underline"
+              >
+                Crear tu lista
               </Link>
             </div>
           </CardContent>
