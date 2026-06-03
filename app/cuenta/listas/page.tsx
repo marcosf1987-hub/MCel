@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LIST_VISIBILITY_LABELS, FAVORITES_LIST_SLUG } from "@/lib/lists";
+import { LIST_VISIBILITY_LABELS } from "@/lib/lists";
 import { ListMusic, Plus } from "lucide-react";
 import type { ListVisibility } from "@/types/database";
 

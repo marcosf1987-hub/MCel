@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ListPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function AddToListButton({
         setInLists(new Set(data.containingListIds ?? []));
       }
     })();
-  }, [open, isLoggedIn]);
+  }, [open, isLoggedIn, productId]);
 
   const toggleProduct = async (listId: string, add: boolean) => {
     setLoading(true);
@@ -115,12 +116,13 @@ export function AddToListButton({
                 );
               })}
             </ul>
-            <a
+            <Link
               href="/cuenta/listas/nueva"
               className="mt-1 block rounded-lg px-2 py-2 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-brand-cream)]"
+              onClick={() => setOpen(false)}
             >
               + Nueva lista
-            </a>
+            </Link>
           </div>
         </>
       )}

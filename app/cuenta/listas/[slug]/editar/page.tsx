@@ -5,8 +5,6 @@ import { ListForm } from "@/components/lists/list-form";
 import { ListItemsEditor } from "@/components/lists/list-items-editor";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FAVORITES_LIST_SLUG } from "@/lib/lists";
-
 export const metadata = { title: "Editar lista" };
 
 export default async function EditListPage({
