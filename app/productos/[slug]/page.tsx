@@ -6,6 +6,8 @@ import { StarRating } from "@/components/product/star-rating";
 import { ReviewCard, type ReviewCardData } from "@/components/product/review-card";
 import { ReportButton } from "@/components/product/report-button";
 import { FavoriteButton } from "@/components/product/favorite-button";
+import { ShareWhatsAppButton } from "@/components/product/share-whatsapp-button";
+import { getSiteUrl } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
 
@@ -90,6 +92,8 @@ export default async function ProductDetailPage({
   }>(product.subcategories);
 
   if (!brand || !category || !subcategory) notFound();
+
+  const shareUrl = `${getSiteUrl()}/productos/${slug}`;
 
   let isFavorited = false;
   if (user) {
@@ -177,6 +181,11 @@ export default async function ProductDetailPage({
                 </Link>
               </Button>
             )}
+            <ShareWhatsAppButton
+              productName={product.name}
+              productUrl={shareUrl}
+              rating={product.weighted_rating}
+            />
             <ReportButton targetType="product" targetId={product.id} />
           </div>
         </div>
