@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Inter } from "next/font/google";
+import { DM_Sans, Libre_Caslon_Text } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 
-const montserrat = Montserrat({
+const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
-  variable: "--font-montserrat",
+  variable: "--font-libre-caslon",
+  weight: ["400", "700"],
   display: "swap",
 });
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F9A826",
+  themeColor: "#ED6C52",
   width: "device-width",
   initialScale: 1,
 };
@@ -63,7 +64,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es-AR" className={`${montserrat.variable} ${inter.variable}`}>
+    <html
+      lang="es-AR"
+      className={`${libreCaslon.variable} ${dmSans.variable}`}
+    >
       <body className="flex min-h-screen flex-col antialiased font-[family-name:var(--font-body)]">
         <Header />
         <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">

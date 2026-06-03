@@ -16,7 +16,8 @@ export function StatusBanner({
 
   const styles = {
     loading: "border-[var(--color-brand-light)] bg-[var(--color-brand-cream)] text-[var(--color-brown)]",
-    success: "border-green-300 bg-green-50 text-green-900",
+    success:
+      "border-[var(--color-secondary-brand)]/40 bg-[var(--color-secondary-brand)]/10 text-[var(--color-neutral)]",
     error: "border-red-300 bg-red-50 text-red-900",
     info: "border-[var(--color-border)] bg-[var(--color-secondary)] text-[var(--color-neutral)]",
   };

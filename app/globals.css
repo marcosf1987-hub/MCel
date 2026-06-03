@@ -1,31 +1,44 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Paleta del design system */
-  --color-brand: #f9a826;
-  --color-brand-light: #fde68a;
-  --color-brand-cream: #fffbeb;
-  --color-neutral: #4b5563;
-  --color-brown: #42210b;
-  --color-brown-hover: #5c2f12;
-  --color-navy: #1e293b;
-
-  --color-background: #eef1f6;
-  --color-foreground: #42210b;
-  --color-primary: #42210b;
+  /* Manual de marca MCel */
+  --color-primary: #ed6c52;
+  --color-primary-hover: #d85a42;
+  --color-primary-dark: #c54b3a;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #e8ecf4;
-  --color-secondary-foreground: #4b5563;
-  --color-muted: #fffbeb;
-  --color-muted-foreground: #4b5563;
-  --color-accent: #f9a826;
-  --color-accent-foreground: #42210b;
-  --color-accent-soft: #fde68a;
+
+  --color-secondary-brand: #6fbf75;
+  --color-secondary-brand-hover: #5aab60;
+  --color-secondary: #ebebeb;
+  --color-secondary-foreground: #303030;
+
+  --color-tertiary: #fef9f1;
+  --color-neutral: #303030;
+  --color-neutral-muted: #5a5a5a;
+
+  --color-background: #f0f0f0;
+  --color-foreground: #303030;
+  --color-muted: #fef9f1;
+  --color-muted-foreground: #5a5a5a;
+
+  /* Alias legacy (misma paleta) */
+  --color-brand: #ed6c52;
+  --color-brand-light: #fad9d2;
+  --color-brand-cream: #fef9f1;
+  --color-brown: #303030;
+  --color-brown-hover: #1f1f1f;
+  --color-navy: #303030;
+
+  --color-accent: #ed6c52;
+  --color-accent-foreground: #ffffff;
+  --color-accent-soft: #fad9d2;
+
   --color-destructive: #dc2626;
-  --color-border: #e5e7eb;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e0e0e0;
   --color-card: #ffffff;
-  --color-card-foreground: #42210b;
-  --color-ring: #f9a826;
+  --color-card-foreground: #303030;
+  --color-ring: #ed6c52;
 
   --radius-sm: 0.75rem;
   --radius-md: 1rem;
@@ -33,8 +46,9 @@
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
 
-  --font-headline: var(--font-montserrat), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-headline: var(--font-libre-caslon), Georgia, serif;
+  --font-body: var(--font-dm-sans), system-ui, sans-serif;
+  --font-label: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 * {
@@ -55,5 +69,5 @@ h5,
 h6 {
   font-family: var(--font-headline);
   font-weight: 700;
-  color: var(--color-brown);
+  color: var(--color-foreground);
 }

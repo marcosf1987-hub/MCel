@@ -60,13 +60,20 @@ export function MobileBottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                  "flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors",
                   active
-                    ? "text-[var(--color-accent)]"
+                    ? "text-[var(--color-primary)]"
                     : "text-[var(--color-muted-foreground)]"
                 )}
               >
-                <Icon className={cn("h-5 w-5", active && "fill-[var(--color-accent)]/20")} />
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                    active && "bg-[var(--color-primary)] text-white"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
                 {label}
               </Link>
             </li>
