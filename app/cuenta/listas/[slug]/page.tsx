@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { getUserListBySlug } from "@/lib/lists-server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,7 @@ import { getSiteUrl } from "@/lib/supabase/env";
 import type { ListVisibility } from "@/types/database";
 import type { ProductListParams } from "@/lib/product-list-filters";
 import { Button } from "@/components/ui/button";
+import { ListsDbSetupBanner } from "@/components/lists/lists-db-setup-banner";
 import { Heart, Pencil } from "lucide-react";
 
 export async function generateMetadata({
@@ -38,12 +40,17 @@ export default async function MyListDetailPage({
 
   if (!user) redirect(`/login?returnUrl=/cuenta/listas/${slug}`);
 
-  const { data: list } = await supabase
-    .from("product_lists")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("slug", slug)
-    .maybeSingle();
+  let list;
+  try {
+    list = await getUserListBySlug(supabase, user.id, slug);
+  } catch (e) {
+    console.error("getUserListBySlug:", e);
+    const msg = e instanceof Error ? e.message : "";
+    if (msg.includes("product_lists") || msg.includes("schema cache")) {
+      return <ListsDbSetupBanner />;
+    }
+    throw e;
+  }
 
   if (!list) notFound();
 

@@ -5,8 +5,39 @@ import {
   type ProductListParams,
 } from "@/lib/product-list-filters";
 import { getBrandName } from "@/lib/utils";
-import { canViewList } from "@/lib/lists";
+import { canViewList, FAVORITES_LIST_SLUG, getOrCreateFavoritesList } from "@/lib/lists";
 import type { ListVisibility, ProductList } from "@/types/database";
+
+/** Lista del usuario por slug; crea «Mis favoritos» si aún no existe. */
+export async function getUserListBySlug(
+  supabase: SupabaseClient,
+  userId: string,
+  slug: string
+) {
+  const { data: list, error } = await supabase
+    .from("product_lists")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (list) return list;
+
+  if (slug === FAVORITES_LIST_SLUG) {
+    await getOrCreateFavoritesList(supabase, userId);
+    const { data: created, error: againError } = await supabase
+      .from("product_lists")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("slug", slug)
+      .maybeSingle();
+    if (againError) throw againError;
+    return created;
+  }
+
+  return null;
+}
 
 export async function getListByUsernameSlug(
   supabase: SupabaseClient,

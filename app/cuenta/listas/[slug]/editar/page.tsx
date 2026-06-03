@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUserListBySlug } from "@/lib/lists-server";
 import { ListForm } from "@/components/lists/list-form";
 import { ListItemsEditor } from "@/components/lists/list-items-editor";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
@@ -20,13 +21,7 @@ export default async function EditListPage({
 
   if (!user) redirect(`/login?returnUrl=/cuenta/listas/${slug}/editar`);
 
-  const { data: list } = await supabase
-    .from("product_lists")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("slug", slug)
-    .maybeSingle();
-
+  const list = await getUserListBySlug(supabase, user.id, slug);
   if (!list) notFound();
 
   const { data: items } = await supabase

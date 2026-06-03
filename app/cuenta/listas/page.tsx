@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LIST_VISIBILITY_LABELS } from "@/lib/lists";
+import { getOrCreateFavoritesList, LIST_VISIBILITY_LABELS } from "@/lib/lists";
+import { ListsDbSetupBanner } from "@/components/lists/lists-db-setup-banner";
 import { ListMusic, Plus } from "lucide-react";
 import type { ListVisibility } from "@/types/database";
 
@@ -17,12 +18,25 @@ export default async function MyListsPage() {
 
   if (!user) redirect("/login?returnUrl=/cuenta/listas");
 
-  const { data: lists } = await supabase
-    .from("product_lists")
-    .select("id, title, slug, description, visibility, is_system, vote_count, updated_at")
-    .eq("user_id", user.id)
-    .order("is_system", { ascending: false })
-    .order("updated_at", { ascending: false });
+  let lists;
+  try {
+    await getOrCreateFavoritesList(supabase, user.id);
+    const { data, error } = await supabase
+      .from("product_lists")
+      .select("id, title, slug, description, visibility, is_system, vote_count, updated_at")
+      .eq("user_id", user.id)
+      .order("is_system", { ascending: false })
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    lists = data;
+  } catch (e) {
+    console.error("MyListsPage:", e);
+    const msg = e instanceof Error ? e.message : "";
+    if (msg.includes("product_lists") || msg.includes("schema cache")) {
+      return <ListsDbSetupBanner />;
+    }
+    throw e;
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">

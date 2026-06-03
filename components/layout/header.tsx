@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { Wheat, Heart, User } from "lucide-react";
+import { Wheat, Heart, User, ListMusic } from "lucide-react";
 
 export async function Header() {
   const env = getSupabasePublicEnv();
@@ -108,9 +108,15 @@ export async function Header() {
             {user ? (
               <>
                 <Button asChild variant="ghost" size="sm">
+                  <Link href="/cuenta/listas" className="gap-1.5">
+                    <ListMusic className="h-4 w-4" />
+                    Mis listas
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="sm">
                   <Link href="/cuenta/listas/mis-favoritos" className="gap-1.5">
                     <Heart className="h-4 w-4" />
-                    Mis favoritos
+                    Favoritos
                   </Link>
                 </Button>
                 <Button asChild variant="ghost" size="sm">

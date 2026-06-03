@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getBrandName } from "@/lib/utils";
 import type { UserTier, GlutenCertification } from "@/types/database";
-import { Heart } from "lucide-react";
+import { Heart, ListMusic, Plus } from "lucide-react";
 
 export const metadata = { title: "Mi cuenta" };
 
@@ -68,12 +68,26 @@ export default async function PreferencesPage() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-[var(--color-brown)]">Mi cuenta</h1>
-        <Button asChild variant="accent" size="sm" className="gap-2">
-          <Link href="/cuenta/listas/mis-favoritos">
-            <Heart className="h-4 w-4 fill-current" />
-            Mis favoritos
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="accent" size="sm" className="gap-2">
+            <Link href="/cuenta/listas/mis-favoritos">
+              <Heart className="h-4 w-4 fill-current" />
+              Favoritos
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/cuenta/listas">
+              <ListMusic className="h-4 w-4" />
+              Mis listas
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/cuenta/listas/nueva">
+              <Plus className="h-4 w-4" />
+              Nueva lista
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <TierProgressJourney
