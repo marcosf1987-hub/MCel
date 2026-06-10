@@ -8,7 +8,8 @@
 
 ## Imágenes de producto
 
-- [ ] **IA — ranking de fotos:** puntuar imágenes en `product_images` (encuadre, fondo limpio, legibilidad del envase) y reordenar `sort_order` de mejor a peor; opcionalmente ocultar fotos OFF por debajo de un umbral; revisión humana en casos dudosos.
+- [x] **IA — ranking de fotos:** batch nocturno (Gemini free + heurísticas), pool candidato de 10, ocultar OFF bajo umbral 40 si hay alternativas.
+- [ ] UI admin para cola `needs_review` y override `manual`.
 
 ## Otras ideas (backlog)
 

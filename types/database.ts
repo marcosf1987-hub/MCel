@@ -93,6 +93,20 @@ export interface Product {
   subcategory?: Subcategory;
 }
 
+export type ImageSource = "community" | "off" | "official";
+export type ImageQualityStatus = "pending" | "scored" | "needs_review" | "manual";
+
+export interface ProductImageQualityDetails {
+  framing?: number;
+  sharpness?: number;
+  clean_background?: number;
+  label_legibility?: number;
+  is_packaged_product?: boolean;
+  issues?: string[];
+  confidence?: number;
+  scorer?: "vision" | "heuristic";
+}
+
 export interface ProductImage {
   id: string;
   product_id: string;
@@ -100,6 +114,12 @@ export interface ProductImage {
   url: string;
   is_official: boolean;
   sort_order: number;
+  image_source: ImageSource;
+  quality_score: number | null;
+  quality_details: ProductImageQualityDetails | null;
+  quality_status: ImageQualityStatus;
+  is_hidden: boolean;
+  scored_at: string | null;
   created_at: string;
 }
 

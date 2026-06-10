@@ -5,6 +5,7 @@ import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { applyCatalogFilters } from "@/lib/apply-product-filters";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName } from "@/lib/utils";
+import { visibleProductImages } from "@/lib/product-images-display";
 
 export const metadata = { title: "Productos" };
 
@@ -33,7 +34,7 @@ export default async function ProductsPage({
       brands!inner(name, slug),
       categories!inner(slug),
       subcategories!inner(slug),
-      product_images(url, sort_order)
+      product_images(url, sort_order, is_hidden)
     `
     );
 
@@ -53,8 +54,9 @@ export default async function ProductsPage({
   );
 
   const cards = filtered.map((p) => {
-    const images = (p.product_images as { url: string; sort_order: number }[]) ?? [];
-    images.sort((a, b) => a.sort_order - b.sort_order);
+    const images = visibleProductImages(
+      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
+    );
     return {
       id: p.id,
       slug: p.slug,

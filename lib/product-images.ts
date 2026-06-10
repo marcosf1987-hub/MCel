@@ -1,7 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ImageSource } from "@/types/database";
 
 export function isOpenFoodFactsUrl(url: string): boolean {
   return /openfoodfacts/i.test(url);
+}
+
+export function inferImageSource(
+  url: string,
+  userId: string | null,
+  isOfficial: boolean
+): ImageSource {
+  if (isOfficial) return "official";
+  if (userId) return "community";
+  if (isOpenFoodFactsUrl(url)) return "off";
+  return "community";
 }
 
 async function countProductImages(
@@ -43,6 +55,8 @@ export async function insertOffProductImage(
     url,
     is_official: false,
     sort_order: sortOrder,
+    image_source: "off",
+    quality_status: "pending",
   });
 
   if (error) throw error;
@@ -88,6 +102,8 @@ export async function insertCommunityProductImage(
     url,
     is_official: false,
     sort_order: 0,
+    image_source: inferImageSource(url, userId, false),
+    quality_status: "pending",
   });
 
   if (error) throw error;

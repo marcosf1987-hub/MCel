@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyCatalogFilters } from "@/lib/apply-product-filters";
+import { visibleProductImages } from "@/lib/product-images-display";
 
 export type ProductListParams = {
   q?: string;
@@ -18,7 +19,7 @@ export type ProductRowForCard = {
   name: string;
   weighted_rating: number | null;
   review_count: number;
-  product_images?: { url: string; sort_order: number }[] | null;
+  product_images?: { url: string; sort_order: number; is_hidden?: boolean }[] | null;
   brands?: { name: string; slug?: string } | { name: string; slug?: string }[] | null;
   categories?: { slug: string } | { slug: string }[] | null;
   subcategories?: { slug: string } | { slug: string }[] | null;
@@ -29,7 +30,7 @@ const PRODUCT_SELECT = `
   brands!inner(name, slug),
   categories!inner(slug),
   subcategories!inner(slug),
-  product_images(url, sort_order)
+  product_images(url, sort_order, is_hidden)
 `;
 
 export async function fetchFilteredProducts(
@@ -84,8 +85,9 @@ export function mapProductToCard(
   p: ProductRowForCard,
   getBrandName: (b: ProductRowForCard["brands"]) => string | undefined
 ) {
-  const images = (p.product_images ?? []) as { url: string; sort_order: number }[];
-  images.sort((a, b) => a.sort_order - b.sort_order);
+  const images = visibleProductImages(
+    (p.product_images ?? []) as { url: string; sort_order: number; is_hidden?: boolean }[]
+  );
   return {
     id: p.id,
     slug: p.slug,

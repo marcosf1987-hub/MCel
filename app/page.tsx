@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName } from "@/lib/utils";
+import { visibleProductImages } from "@/lib/product-images-display";
 import { Button } from "@/components/ui/button";
 
 export default async function HomePage() {
@@ -15,15 +16,16 @@ export default async function HomePage() {
       `
       id, slug, name, weighted_rating, review_count,
       brands(name),
-      product_images(url, sort_order)
+      product_images(url, sort_order, is_hidden)
     `
     )
     .order("weighted_rating", { ascending: false, nullsFirst: false })
     .limit(8);
 
   const cards = (products ?? []).map((p) => {
-    const images = (p.product_images as { url: string; sort_order: number }[]) ?? [];
-    images.sort((a, b) => a.sort_order - b.sort_order);
+    const images = visibleProductImages(
+      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
+    );
     return {
       id: p.id,
       slug: p.slug,

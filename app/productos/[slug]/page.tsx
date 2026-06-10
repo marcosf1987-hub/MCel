@@ -12,6 +12,7 @@ import { isProductFavorited } from "@/lib/favorites-server";
 import { getSiteUrl } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
+import { visibleProductImages } from "@/lib/product-images-display";
 
 export async function generateMetadata({
   params,
@@ -47,7 +48,7 @@ export default async function ProductDetailPage({
       brands(name, slug),
       categories(name, name_es, slug),
       subcategories(name, name_es, slug),
-      product_images(id, url, sort_order)
+      product_images(id, url, sort_order, is_hidden)
     `
     )
     .eq("slug", slug)
@@ -55,8 +56,9 @@ export default async function ProductDetailPage({
 
   if (!product) notFound();
 
-  const images = ((product.product_images as { id: string; url: string; sort_order: number }[]) ?? []).sort(
-    (a, b) => a.sort_order - b.sort_order
+  const images = visibleProductImages(
+    (product.product_images as { id: string; url: string; sort_order: number; is_hidden?: boolean }[]) ??
+      []
   );
 
   let latestReview: ReviewCardData | null = null;

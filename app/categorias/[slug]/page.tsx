@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { getBrandName } from "@/lib/utils";
+import { visibleProductImages } from "@/lib/product-images-display";
 
 export default async function CategoryPage({
   params,
@@ -25,15 +26,16 @@ export default async function CategoryPage({
   const { data: products } = await supabase
     .from("products")
     .select(
-      `id, slug, name, weighted_rating, review_count, brands(name), product_images(url, sort_order)`
+      `id, slug, name, weighted_rating, review_count, brands(name), product_images(url, sort_order, is_hidden)`
     )
     .eq("category_id", category.id);
 
   const subs = category.subcategories as { id: string; name: string; name_es: string | null; slug: string }[];
 
   const cards = (products ?? []).map((p) => {
-    const images = (p.product_images as { url: string; sort_order: number }[]) ?? [];
-    images.sort((a, b) => a.sort_order - b.sort_order);
+    const images = visibleProductImages(
+      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
+    );
     return {
       id: p.id,
       slug: p.slug,

@@ -26,6 +26,7 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/007_product_lists.sql` (listas de productos, votos, migración de favoritos)
    - `supabase/migrations/008_list_saves.sql` (guardar listas de otros usuarios, Fase 2)
    - `supabase/migrations/009_lists_phase3_social.sql` (voto negativo, seguir usuarios, colaboradores, comentarios, Fase 3)
+   - `supabase/migrations/010_product_image_quality.sql` (ranking estético de fotos, ocultar OFF malas)
 
 > Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 

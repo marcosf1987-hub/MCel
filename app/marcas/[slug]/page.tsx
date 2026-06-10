@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
+import { visibleProductImages } from "@/lib/product-images-display";
 
 export default async function BrandPage({
   params,
@@ -23,14 +24,15 @@ export default async function BrandPage({
   const { data: products } = await supabase
     .from("products")
     .select(
-      `id, slug, name, weighted_rating, review_count, product_images(url, sort_order)`
+      `id, slug, name, weighted_rating, review_count, product_images(url, sort_order, is_hidden)`
     )
     .eq("brand_id", brand.id)
     .order("name");
 
   const cards = (products ?? []).map((p) => {
-    const images = (p.product_images as { url: string; sort_order: number }[]) ?? [];
-    images.sort((a, b) => a.sort_order - b.sort_order);
+    const images = visibleProductImages(
+      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
+    );
     return {
       id: p.id,
       slug: p.slug,
