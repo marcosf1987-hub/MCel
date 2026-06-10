@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, Keyboard, ScanBarcode, X } from "lucide-react";
+import { Camera, Keyboard, X } from "lucide-react";
 import type { Html5Qrcode } from "html5-qrcode";
 
 interface BarcodeScannerProps {
@@ -29,7 +29,6 @@ async function loadHtml5Qrcode() {
 export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerProps) {
   const uid = useId().replace(/:/g, "");
   const readerId = `barcode-reader-${uid}`;
-  const fileReaderId = `barcode-file-${uid}`;
   const [manualCode, setManualCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -76,30 +75,6 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
     },
     [onStatus]
   );
-
-  const scanFromPhoto = async (file: File) => {
-    if (cameraActive) await stopCamera();
-    setError(null);
-    setHint("Leyendo código de la imagen…");
-    onStatus?.("loading", "Analizando foto del código…");
-    try {
-      const { Html5Qrcode, formats } = await loadHtml5Qrcode();
-      const scanner = new Html5Qrcode(fileReaderId, {
-        formatsToSupport: formats,
-        verbose: false,
-      });
-      const result = await scanner.scanFile(file, true);
-      await scanner.clear();
-      setHint(null);
-      handleDecoded(result);
-    } catch {
-      setHint(null);
-      const errMsg =
-        "No se detectó un código en la foto. Intentá con mejor luz y enfoque, o ingresá el número manualmente.";
-      setError(errMsg);
-      onStatus?.("error", errMsg);
-    }
-  };
 
   const startLiveScan = async () => {
     if (disabled || cameraActive || startingCamera) return;
@@ -155,8 +130,8 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
       await stopCamera();
       const errMsg =
         err instanceof Error && err.message === "NO_CAMERA"
-          ? "No encontramos cámara en este dispositivo. Usá sacar foto o ingresá el código manualmente."
-          : "No pudimos abrir la cámara. Revisá los permisos o usá sacar foto / código manual.";
+          ? "No encontramos cámara en este dispositivo. Ingresá el código manualmente."
+          : "No pudimos abrir la cámara. Revisá los permisos o ingresá el código manualmente.";
       setError(errMsg);
       onStatus?.("error", errMsg);
     }
@@ -164,12 +139,6 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
   return (
     <div className="space-y-4">
-      <div
-        id={fileReaderId}
-        className="sr-only h-px w-px overflow-hidden"
-        aria-hidden
-      />
-
       {cameraActive ? (
         <div className="space-y-3">
           <div
@@ -193,45 +162,17 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
           </Button>
         </div>
       ) : (
-        <>
-          <Button
-            type="button"
-            variant="accent"
-            size="lg"
-            disabled={disabled || startingCamera}
-            className="h-12 w-full gap-2 text-base"
-            onClick={() => void startLiveScan()}
-          >
-            <Camera className="h-6 w-6" />
-            {startingCamera ? "Abriendo cámara…" : "Escanear en vivo"}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled={disabled}
-            className="h-11 w-full gap-2"
-            asChild
-          >
-            <label className="cursor-pointer">
-              <ScanBarcode className="h-5 w-5" />
-              Sacar foto del código
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="sr-only"
-                disabled={disabled}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void scanFromPhoto(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          </Button>
-        </>
+        <Button
+          type="button"
+          variant="accent"
+          size="lg"
+          disabled={disabled || startingCamera}
+          className="h-12 w-full gap-2 text-base"
+          onClick={() => void startLiveScan()}
+        >
+          <Camera className="h-6 w-6" />
+          {startingCamera ? "Abriendo cámara…" : "Escanear código"}
+        </Button>
       )}
 
       {!cameraActive && hint && (
