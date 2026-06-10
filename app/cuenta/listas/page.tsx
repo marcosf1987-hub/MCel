@@ -20,6 +20,7 @@ export default async function MyListsPage() {
   if (!user) redirect("/login?returnUrl=/cuenta/listas");
 
   let lists;
+  let collaborated: Awaited<ReturnType<typeof getCollaboratedListsSummary>> = [];
   try {
     await getOrCreateFavoritesList(supabase, user.id);
     const { data, error } = await supabase
