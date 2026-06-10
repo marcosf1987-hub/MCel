@@ -61,7 +61,7 @@ export async function scoreImagesVision(
   const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
     {
       text: `Evaluá estas ${images.length} fotos del mismo producto. IDs: ${images
-        .map((i) => i.image_id)
+        .map((i) => i.id)
         .join(", ")}`,
     },
   ];
