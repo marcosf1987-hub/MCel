@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUserListBySlug } from "@/lib/lists-server";
+import { getEditableListBySlug, getListCollaborators } from "@/lib/lists-server";
 import { ListForm } from "@/components/lists/list-form";
 import { ListItemsEditor } from "@/components/lists/list-items-editor";
+import { ListCollaboratorsEditor } from "@/components/lists/list-collaborators-editor";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const metadata = { title: "Editar lista" };
@@ -21,8 +22,18 @@ export default async function EditListPage({
 
   if (!user) redirect(`/login?returnUrl=/cuenta/listas/${slug}/editar`);
 
-  const list = await getUserListBySlug(supabase, user.id, slug);
-  if (!list) notFound();
+  const editable = await getEditableListBySlug(supabase, user.id, slug);
+  if (!editable) notFound();
+  const { list, isOwner } = editable;
+
+  let collaborators: Awaited<ReturnType<typeof getListCollaborators>> = [];
+  if (isOwner && !list.is_system) {
+    try {
+      collaborators = await getListCollaborators(supabase, list.id as string);
+    } catch {
+      collaborators = [];
+    }
+  }
 
   const { data: items } = await supabase
     .from("product_list_items")
@@ -56,35 +67,57 @@ export default async function EditListPage({
         ← {list.title}
       </Link>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de la lista</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ListForm
-            mode="edit"
-            listId={list.id}
-            initial={{
-              title: list.title,
-              description: list.description ?? "",
-              visibility: list.visibility,
-              isSystem: list.is_system,
-            }}
-          />
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Datos de la lista</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ListForm
+              mode="edit"
+              listId={list.id as string}
+              initial={{
+                title: list.title as string,
+                description: (list.description as string | null) ?? "",
+                visibility: list.visibility as "public" | "unlisted" | "private",
+                isSystem: Boolean(list.is_system),
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {!isOwner && (
+        <p className="text-sm text-[var(--color-muted-foreground)]">
+          Colaborás en esta lista: podés editar los productos, no el título ni la visibilidad.
+        </p>
+      )}
+
+      {isOwner && !list.is_system && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Colaboradores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ListCollaboratorsEditor
+              listId={list.id as string}
+              initialCollaborators={collaborators}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Productos en la lista</CardTitle>
         </CardHeader>
         <CardContent>
-          <ListItemsEditor listId={list.id} items={editorItems} />
+          <ListItemsEditor listId={list.id as string} items={editorItems} />
         </CardContent>
       </Card>
 
-      {!list.is_system && (
-        <DeleteListButton listId={list.id} listTitle={list.title} />
+      {isOwner && !list.is_system && (
+        <DeleteListButton listId={list.id as string} listTitle={list.title as string} />
       )}
     </div>
   );

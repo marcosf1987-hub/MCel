@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getBrandName } from "@/lib/utils";
 import type { UserTier, GlutenCertification } from "@/types/database";
-import { Bookmark, Heart, ListMusic, Plus } from "lucide-react";
+import { Bookmark, Heart, ListMusic, Plus, Rss } from "lucide-react";
 
 export const metadata = { title: "Mi cuenta" };
 
@@ -85,6 +85,12 @@ export default async function PreferencesPage() {
             <Link href="/cuenta/listas/guardadas">
               <Bookmark className="h-4 w-4" />
               Guardadas
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/cuenta/feed">
+              <Rss className="h-4 w-4" />
+              Feed
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getUserListBySlug } from "@/lib/lists-server";
+import { getEditableListBySlug } from "@/lib/lists-server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -41,10 +41,13 @@ export default async function MyListDetailPage({
   if (!user) redirect(`/login?returnUrl=/cuenta/listas/${slug}`);
 
   let list;
+  let isOwner = true;
   try {
-    list = await getUserListBySlug(supabase, user.id, slug);
+    const editable = await getEditableListBySlug(supabase, user.id, slug);
+    list = editable?.list ?? null;
+    isOwner = editable?.isOwner ?? true;
   } catch (e) {
-    console.error("getUserListBySlug:", e);
+    console.error("getEditableListBySlug:", e);
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("product_lists") || msg.includes("schema cache")) {
       return <ListsDbSetupBanner />;
@@ -54,18 +57,26 @@ export default async function MyListDetailPage({
 
   if (!list) notFound();
 
+  const listId = list.id as string;
+  const listUserId = list.user_id as string;
+  const listTitle = list.title as string;
+  const listSlug = list.slug as string;
+  const listDescription = list.description as string | null;
+  const listVisibility = list.visibility as import("@/types/database").ListVisibility;
+  const listVoteCount = list.vote_count as number;
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("username")
-    .eq("id", user.id)
+    .eq("id", listUserId)
     .single();
 
-  const { cards } = await getListProductCards(supabase, list.id, filterParams);
+  const { cards } = await getListProductCards(supabase, listId, filterParams);
   const { isLoggedIn, favoriteIds } = await getProductCardAuthContext(supabase);
 
   const sharePath =
-    profile?.username && list.visibility !== "private"
-      ? `/listas/${profile.username}/${list.slug}`
+    profile?.username && listVisibility !== "private"
+      ? `/listas/${profile.username}/${listSlug}`
       : null;
   const shareUrl = sharePath ? `${getSiteUrl()}${sharePath}` : null;
 
@@ -73,18 +84,21 @@ export default async function MyListDetailPage({
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          {list.slug === FAVORITES_LIST_SLUG && (
+          {listSlug === FAVORITES_LIST_SLUG && (
             <Heart className="mb-2 h-7 w-7 fill-red-500 text-red-500" />
           )}
-          <h1 className="text-2xl font-bold text-[var(--color-brown)]">{list.title}</h1>
-          {list.description && (
+          <h1 className="text-2xl font-bold text-[var(--color-brown)]">{listTitle}</h1>
+          {!isOwner && (
+            <p className="mt-1 text-xs text-[var(--color-accent)]">Colaborás en esta lista</p>
+          )}
+          {listDescription && (
             <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-              {list.description}
+              {listDescription}
             </p>
           )}
           <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            {LIST_VISIBILITY_LABELS[list.visibility as ListVisibility]} · {list.vote_count}{" "}
-            {list.vote_count === 1 ? "voto" : "votos"} · {cards.length} productos
+            {LIST_VISIBILITY_LABELS[listVisibility]} · {listVoteCount}{" "}
+            {listVoteCount === 1 ? "voto" : "votos"} · {cards.length} productos
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -117,7 +131,7 @@ export default async function MyListDetailPage({
         />
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-brand-cream)] p-8 text-center text-sm text-[var(--color-muted-foreground)]">
-          {list.slug === FAVORITES_LIST_SLUG
+          {listSlug === FAVORITES_LIST_SLUG
             ? "Guardá productos con el corazón en cualquier ficha."
             : "Agregá productos desde su ficha con «Agregar a lista»."}
         </div>

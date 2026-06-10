@@ -54,32 +54,7 @@ export async function Header() {
             <SearchBar compact />
           </div>
 
-          {user ? (
-            <>
-              <Button
-                asChild
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-9 w-9"
-                aria-label="Mis favoritos"
-              >
-                <Link href="/cuenta/listas/mis-favoritos">
-                  <Heart className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="shrink-0 max-w-[5.5rem] truncate px-2 text-xs font-medium"
-              >
-                <Link href="/cuenta/preferencias">
-                  <User className="mr-1 inline h-4 w-4 shrink-0" />
-                  <span className="truncate">{profile?.display_name ?? "Cuenta"}</span>
-                </Link>
-              </Button>
-            </>
-          ) : (
+          {!user && (
             <Button asChild size="sm" className="shrink-0 text-xs">
               <Link href="/login">Entrar</Link>
             </Button>

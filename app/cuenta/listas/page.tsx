@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrCreateFavoritesList, LIST_VISIBILITY_LABELS } from "@/lib/lists";
+import { getCollaboratedListsSummary } from "@/lib/lists-server";
 import { ListsDbSetupBanner } from "@/components/lists/lists-db-setup-banner";
-import { Bookmark, ListMusic, Plus } from "lucide-react";
+import { Bookmark, ListMusic, Plus, Rss } from "lucide-react";
 import type { ListVisibility } from "@/types/database";
 
 export const metadata = { title: "Mis listas" };
@@ -29,6 +30,12 @@ export default async function MyListsPage() {
       .order("updated_at", { ascending: false });
     if (error) throw error;
     lists = data;
+
+    try {
+      collaborated = await getCollaboratedListsSummary(supabase, user.id);
+    } catch {
+      collaborated = [];
+    }
   } catch (e) {
     console.error("MyListsPage:", e);
     const msg = e instanceof Error ? e.message : "";
@@ -67,6 +74,14 @@ export default async function MyListsPage() {
         {" · "}
         <Link href="/explorar/listas" className="text-sm text-[var(--color-muted-foreground)] hover:underline">
           Explorar listas públicas
+        </Link>
+        {" · "}
+        <Link
+          href="/cuenta/feed"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          <Rss className="h-4 w-4" />
+          Feed
         </Link>
       </p>
 
@@ -107,7 +122,41 @@ export default async function MyListsPage() {
         ))}
       </ul>
 
-      {!lists?.length && (
+      {collaborated.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-[var(--color-brown)]">
+            Listas donde colaboro
+          </h2>
+          <ul className="space-y-3">
+            {collaborated.map((list) => (
+              <li key={list.id}>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      <Link
+                        href={`/cuenta/listas/${list.slug}`}
+                        className="hover:text-[var(--color-primary)]"
+                      >
+                        {list.title}
+                      </Link>
+                    </CardTitle>
+                    <p className="text-xs text-[var(--color-muted-foreground)]">
+                      De {list.ownerDisplayName ?? list.ownerUsername ?? "otro usuario"}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/cuenta/listas/${list.slug}/editar`}>Editar productos</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!lists?.length && !collaborated.length && (
         <p className="text-center text-sm text-[var(--color-muted-foreground)]">
           Todavía no tenés listas.{" "}
           <Link href="/cuenta/listas/nueva" className="font-medium text-[var(--color-primary)]">

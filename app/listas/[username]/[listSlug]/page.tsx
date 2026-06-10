@@ -7,13 +7,14 @@ import { ProductListToolbar } from "@/components/product/product-list-toolbar";
 import {
   getListByUsernameSlug,
   getListProductCards,
+  getUserListVote,
   hasUserSavedList,
-  hasUserVotedList,
 } from "@/lib/lists-server";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { LIST_VISIBILITY_LABELS } from "@/lib/lists";
 import { getSiteUrl } from "@/lib/supabase/env";
 import { ListVoteButton } from "@/components/lists/list-vote-button";
+import { ListComments } from "@/components/lists/list-comments";
 import { SaveListButton } from "@/components/lists/save-list-button";
 import { ShareListButton } from "@/components/lists/share-list-button";
 import { ReportButton } from "@/components/product/report-button";
@@ -61,9 +62,10 @@ export default async function PublicListPage({
 
   const { list, profile } = result;
   const isOwner = user?.id === list.user_id;
-  const voted = user ? await hasUserVotedList(supabase, list.id, user.id) : false;
+  const myVote = user ? await getUserListVote(supabase, list.id, user.id) : null;
   const saved = user ? await hasUserSavedList(supabase, list.id, user.id) : false;
   const saveCount = (list as { save_count?: number }).save_count ?? 0;
+  const downvoteCount = (list as { downvote_count?: number }).downvote_count ?? 0;
 
   const { cards } = await getListProductCards(supabase, list.id, filterParams);
   const { isLoggedIn, favoriteIds } = await getProductCardAuthContext(supabase);
@@ -88,7 +90,8 @@ export default async function PublicListPage({
         <ListVoteButton
           listId={list.id}
           initialVoteCount={list.vote_count}
-          initialVoted={voted}
+          initialDownvoteCount={downvoteCount}
+          initialMyVote={myVote}
           isLoggedIn={Boolean(user)}
           isOwner={isOwner}
         />
@@ -138,6 +141,13 @@ export default async function PublicListPage({
           Esta lista todavía no tiene productos.
         </p>
       )}
+
+      <ListComments
+        listId={list.id}
+        isLoggedIn={Boolean(user)}
+        currentUserId={user?.id ?? null}
+        listOwnerId={list.user_id}
+      />
     </div>
   );
 }

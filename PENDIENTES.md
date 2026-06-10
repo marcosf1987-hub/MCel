@@ -1,11 +1,10 @@
 # Pendientes — MCel
 
-## Listas sociales (Fase 3+)
+## Listas sociales (Fase 4+)
 
-- [ ] **Voto negativo** en listas (además del voto positivo actual).
-- [ ] Seguir usuarios y feed de listas.
-- [ ] Listas colaborativas (varios editores).
-- [ ] Comentarios en listas.
+- [ ] Notificaciones cuando alguien comenta o vota tu lista.
+- [ ] Ordenar feed por relevancia (no solo `updated_at`).
+- [ ] Roles de colaborador (solo lectura vs editor).
 
 ## Imágenes de producto
 

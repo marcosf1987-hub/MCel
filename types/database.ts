@@ -119,6 +119,7 @@ export interface Review {
 }
 
 export type ListVisibility = "public" | "unlisted" | "private";
+export type ListVoteType = "up" | "down";
 
 export interface ProductList {
   id: string;
@@ -129,6 +130,7 @@ export interface ProductList {
   visibility: ListVisibility;
   is_system: boolean;
   vote_count: number;
+  downvote_count: number;
   save_count: number;
   created_at: string;
   updated_at: string;
@@ -153,7 +155,30 @@ export interface ProductListItem {
 export interface ListVote {
   list_id: string;
   user_id: string;
+  vote_type: ListVoteType;
   created_at: string;
+}
+
+export interface UserFollow {
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}
+
+export interface ListCollaborator {
+  list_id: string;
+  user_id: string;
+  invited_by: string;
+  created_at: string;
+}
+
+export interface ListComment {
+  id: string;
+  list_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Report {

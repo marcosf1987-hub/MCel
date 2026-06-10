@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserPublicLists } from "@/lib/lists-server";
+import { isFollowingUser } from "@/lib/social-lists";
+import { FollowUserButton } from "@/components/lists/follow-user-button";
 import { TierBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -31,11 +33,26 @@ export default async function ProfilePage({
 
   const publicLists = await getUserPublicLists(supabase, profile.id);
 
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
+  const isSelf = viewer?.id === profile.id;
+  const following =
+    viewer && !isSelf ? await isFollowingUser(supabase, viewer.id, profile.id) : false;
+
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle>{profile.display_name ?? profile.username}</CardTitle>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <CardTitle>{profile.display_name ?? profile.username}</CardTitle>
+            <FollowUserButton
+              userId={profile.id}
+              initialFollowing={following}
+              isLoggedIn={Boolean(viewer)}
+              isSelf={isSelf}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <TierBadge tier={profile.tier} />
           </div>

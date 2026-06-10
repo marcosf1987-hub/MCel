@@ -6,7 +6,8 @@ import {
 } from "@/lib/product-list-filters";
 import { getBrandName } from "@/lib/utils";
 import { canViewList, FAVORITES_LIST_SLUG, getOrCreateFavoritesList } from "@/lib/lists";
-import type { ListVisibility, ProductList } from "@/types/database";
+import { getUserListVote } from "@/lib/social-lists";
+import type { ListVisibility, ListVoteType, ProductList } from "@/types/database";
 
 /** Lista del usuario por slug; crea «Mis favoritos» si aún no existe. */
 export async function getUserListBySlug(
@@ -61,9 +62,19 @@ export async function getListByUsernameSlug(
     .maybeSingle();
 
   if (!list) return null;
-  if (!canViewList(list as { visibility: ListVisibility; user_id: string }, viewerId)) {
-    return null;
+
+  const listRow = list as { visibility: ListVisibility; user_id: string; id: string };
+  let canView = canViewList(listRow, viewerId);
+  if (!canView && viewerId) {
+    const { data: collab } = await supabase
+      .from("list_collaborators")
+      .select("user_id")
+      .eq("list_id", list.id)
+      .eq("user_id", viewerId)
+      .maybeSingle();
+    canView = Boolean(collab);
   }
+  if (!canView) return null;
 
   return {
     list: { ...list, profile } as ProductList,
@@ -256,12 +267,168 @@ export async function hasUserVotedList(
   listId: string,
   userId: string
 ): Promise<boolean> {
-  const { data } = await supabase
-    .from("list_votes")
-    .select("list_id")
-    .eq("list_id", listId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return Boolean(data);
+  const vote = await getUserListVote(supabase, listId, userId);
+  return vote !== null;
 }
+
+export async function getCollaboratedListBySlug(
+  supabase: SupabaseClient,
+  userId: string,
+  slug: string
+) {
+  const { data: rows, error } = await supabase
+    .from("list_collaborators")
+    .select("product_lists(*)")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  for (const row of rows ?? []) {
+    const pl = Array.isArray(row.product_lists)
+      ? row.product_lists[0]
+      : row.product_lists;
+    if (pl && (pl as { slug: string }).slug === slug) {
+      return pl;
+    }
+  }
+  return null;
+}
+
+export async function getEditableListBySlug(
+  supabase: SupabaseClient,
+  userId: string,
+  slug: string
+): Promise<{ list: Record<string, unknown>; isOwner: boolean } | null> {
+  const own = await getUserListBySlug(supabase, userId, slug);
+  if (own) return { list: own, isOwner: true };
+
+  const collab = await getCollaboratedListBySlug(supabase, userId, slug);
+  if (collab) return { list: collab as Record<string, unknown>, isOwner: false };
+
+  return null;
+}
+
+export async function getListCollaborators(
+  supabase: SupabaseClient,
+  listId: string
+) {
+  const { data, error } = await supabase
+    .from("list_collaborators")
+    .select("user_id, profiles(username, display_name)")
+    .eq("list_id", listId);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      userId: row.user_id as string,
+      username: (p as { username: string | null })?.username ?? null,
+      displayName: (p as { display_name: string | null })?.display_name ?? null,
+    };
+  });
+}
+
+export async function getCollaboratedListsSummary(supabase: SupabaseClient, userId: string) {
+  const { data: rows, error } = await supabase
+    .from("list_collaborators")
+    .select("product_lists(id, title, slug, visibility, vote_count, updated_at, user_id)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const lists = (rows ?? [])
+    .map((row) => {
+      const pl = Array.isArray(row.product_lists)
+        ? row.product_lists[0]
+        : row.product_lists;
+      return pl as {
+        id: string;
+        title: string;
+        slug: string;
+        visibility: string;
+        vote_count: number;
+        updated_at: string;
+        user_id: string;
+      } | null;
+    })
+    .filter(Boolean);
+
+  if (!lists.length) return [];
+
+  const ownerIds = [...new Set(lists.map((l) => l!.user_id))];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, username, display_name")
+    .in("id", ownerIds);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return lists.map((l) => {
+    const owner = profileMap.get(l!.user_id);
+    return {
+      id: l!.id,
+      title: l!.title,
+      slug: l!.slug,
+      visibility: l!.visibility,
+      vote_count: l!.vote_count,
+      updated_at: l!.updated_at,
+      ownerUsername: owner?.username ?? null,
+      ownerDisplayName: owner?.display_name ?? null,
+    };
+  });
+}
+
+export async function getFollowingFeedLists(
+  supabase: SupabaseClient,
+  userId: string,
+  limit = 25
+) {
+  const { data: follows } = await supabase
+    .from("user_follows")
+    .select("following_id")
+    .eq("follower_id", userId);
+
+  const followingIds = (follows ?? []).map((f) => f.following_id);
+  if (!followingIds.length) return [];
+
+  const { data: lists } = await supabase
+    .from("product_lists")
+    .select(
+      "id, title, slug, description, vote_count, downvote_count, save_count, user_id, updated_at, created_at"
+    )
+    .in("user_id", followingIds)
+    .in("visibility", ["public", "unlisted"])
+    .eq("is_system", false)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (!lists?.length) return [];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, username, display_name")
+    .in("id", followingIds);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return lists.map((row) => {
+    const profile = profileMap.get(row.user_id);
+    return {
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      description: row.description,
+      vote_count: row.vote_count,
+      downvote_count: row.downvote_count ?? 0,
+      save_count: row.save_count ?? 0,
+      updated_at: row.updated_at,
+      username: profile?.username ?? null,
+      display_name: profile?.display_name ?? null,
+    };
+  });
+}
+
+export { getUserListVote };
+export type { ListVoteType };
