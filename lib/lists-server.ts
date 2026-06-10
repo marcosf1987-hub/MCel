@@ -9,6 +9,18 @@ import { canViewList, FAVORITES_LIST_SLUG, getOrCreateFavoritesList } from "@/li
 import { getUserListVote } from "@/lib/social-lists";
 import type { ListVisibility, ListVoteType, ProductList } from "@/types/database";
 
+export type EditableList = Pick<
+  ProductList,
+  | "id"
+  | "user_id"
+  | "title"
+  | "slug"
+  | "description"
+  | "visibility"
+  | "is_system"
+  | "vote_count"
+>;
+
 /** Lista del usuario por slug; crea «Mis favoritos» si aún no existe. */
 export async function getUserListBySlug(
   supabase: SupabaseClient,
@@ -298,12 +310,12 @@ export async function getEditableListBySlug(
   supabase: SupabaseClient,
   userId: string,
   slug: string
-): Promise<{ list: Record<string, unknown>; isOwner: boolean } | null> {
+): Promise<{ list: EditableList; isOwner: boolean } | null> {
   const own = await getUserListBySlug(supabase, userId, slug);
-  if (own) return { list: own, isOwner: true };
+  if (own) return { list: own as EditableList, isOwner: true };
 
   const collab = await getCollaboratedListBySlug(supabase, userId, slug);
-  if (collab) return { list: collab as Record<string, unknown>, isOwner: false };
+  if (collab) return { list: collab as EditableList, isOwner: false };
 
   return null;
 }

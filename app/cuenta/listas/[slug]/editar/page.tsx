@@ -29,7 +29,7 @@ export default async function EditListPage({
   let collaborators: Awaited<ReturnType<typeof getListCollaborators>> = [];
   if (isOwner && !list.is_system) {
     try {
-      collaborators = await getListCollaborators(supabase, list.id as string);
+      collaborators = await getListCollaborators(supabase, list.id);
     } catch {
       collaborators = [];
     }
@@ -75,12 +75,12 @@ export default async function EditListPage({
           <CardContent>
             <ListForm
               mode="edit"
-              listId={list.id as string}
+              listId={list.id}
               initial={{
-                title: list.title as string,
-                description: (list.description as string | null) ?? "",
-                visibility: list.visibility as "public" | "unlisted" | "private",
-                isSystem: Boolean(list.is_system),
+                title: list.title,
+                description: list.description ?? "",
+                visibility: list.visibility,
+                isSystem: list.is_system,
               }}
             />
           </CardContent>
@@ -112,12 +112,12 @@ export default async function EditListPage({
           <CardTitle>Productos en la lista</CardTitle>
         </CardHeader>
         <CardContent>
-          <ListItemsEditor listId={list.id as string} items={editorItems} />
+          <ListItemsEditor listId={list.id} items={editorItems} />
         </CardContent>
       </Card>
 
       {isOwner && !list.is_system && (
-        <DeleteListButton listId={list.id as string} listTitle={list.title as string} />
+        <DeleteListButton listId={list.id} listTitle={list.title} />
       )}
     </div>
   );

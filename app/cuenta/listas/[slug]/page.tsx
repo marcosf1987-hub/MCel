@@ -9,7 +9,6 @@ import { getListProductCards } from "@/lib/lists-server";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
 import { LIST_VISIBILITY_LABELS, FAVORITES_LIST_SLUG } from "@/lib/lists";
 import { getSiteUrl } from "@/lib/supabase/env";
-import type { ListVisibility } from "@/types/database";
 import type { ProductListParams } from "@/lib/product-list-filters";
 import { Button } from "@/components/ui/button";
 import { ListsDbSetupBanner } from "@/components/lists/lists-db-setup-banner";
@@ -57,13 +56,15 @@ export default async function MyListDetailPage({
 
   if (!list) notFound();
 
-  const listId = list.id as string;
-  const listUserId = list.user_id as string;
-  const listTitle = list.title as string;
-  const listSlug = list.slug as string;
-  const listDescription = list.description as string | null;
-  const listVisibility = list.visibility as import("@/types/database").ListVisibility;
-  const listVoteCount = list.vote_count as number;
+  const {
+    id: listId,
+    user_id: listUserId,
+    title: listTitle,
+    slug: listSlug,
+    description: listDescription,
+    visibility: listVisibility,
+    vote_count: listVoteCount,
+  } = list;
 
   const { data: profile } = await supabase
     .from("profiles")
