@@ -12,7 +12,7 @@ En Vercel → proyecto → **Settings** → **Environment Variables**, agregá:
 | `NEXT_PUBLIC_SITE_URL` | `https://TU-PROYECTO.vercel.app` |
 | `OPENAI_API_KEY` | opcional (resúmenes de evaluaciones) |
 | `GEMINI_API_KEY` | opcional (ranking estético de fotos; sin key usa solo heurísticas) |
-| `CRON_SECRET` | secreto para el cron nocturno de ranking de fotos (`/api/cron/rank-images`, 00:00 ART) |
+| `CRON_SECRET` | secreto para el cron nocturno de ranking de fotos (`/api/cron/rank-images`, 00:15 ART) |
 
 Marcá las cuatro primeras para **Production**, **Preview** y **Development**.
 
