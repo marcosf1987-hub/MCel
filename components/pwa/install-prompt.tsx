@@ -58,7 +58,7 @@ export function InstallPrompt() {
     >
       <div className="flex gap-3">
         <div className="flex-1">
-          <p className="font-semibold text-[var(--color-brown)]">Instalá Celíacos AR</p>
+          <p className="font-semibold text-[var(--color-brown)]">Instalá CeliApp</p>
           <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
             Accedé más rápido desde tu pantalla de inicio, como una app.
           </p>

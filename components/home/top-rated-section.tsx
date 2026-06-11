@@ -36,12 +36,15 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
           cada colaborador.
         </p>
       </div>
-      <div className="mt-6 grid gap-8 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {products.map((product) => (
-          <article key={product.id} className="flex flex-col">
+          <article
+            key={product.id}
+            className="flex h-full min-h-[420px] flex-col rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm"
+          >
             <Link
               href={`/productos/${product.slug}`}
-              className="relative mb-4 aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--color-brand-cream)]"
+              className="relative mb-4 h-44 shrink-0 overflow-hidden rounded-xl bg-[var(--color-brand-cream)]"
             >
               {product.image_url ? (
                 <Image
@@ -75,7 +78,7 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
               </div>
             </div>
             {product.featured_opinion && (
-              <p className="mt-3 text-sm italic leading-relaxed text-[var(--color-neutral)]">
+              <p className="mt-3 flex-1 text-sm italic leading-relaxed text-[var(--color-neutral)] line-clamp-4">
                 &ldquo;{excerpt(product.featured_opinion)}&rdquo;
                 {product.featured_display_name && (
                   <span className="not-italic text-[var(--color-muted-foreground)]">
@@ -88,7 +91,7 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
             )}
             <Link
               href={`/productos/${product.slug}/resenas`}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-xl border-2 border-[var(--color-brown)] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[var(--color-brown)] transition-colors hover:bg-[var(--color-brown)] hover:text-white"
+              className="mt-auto inline-flex w-full items-center justify-center rounded-xl border-2 border-[var(--color-brown)] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[var(--color-brown)] transition-colors hover:bg-[var(--color-brown)] hover:text-white"
             >
               Ver {product.review_count}{" "}
               {product.review_count === 1 ? "evaluación" : "evaluaciones"}

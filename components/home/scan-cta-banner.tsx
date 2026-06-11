@@ -2,7 +2,11 @@ import Link from "next/link";
 import { QrCode, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function ScanCtaBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function ScanCtaBanner({ variant }: { variant: "guest" | "authed" }) {
+  const secondaryHref = variant === "authed" ? "/productos" : "/login";
+  const secondaryLabel =
+    variant === "authed" ? "Explorar productos" : "Unirme a la comunidad";
+
   return (
     <section className="relative mb-14 overflow-hidden rounded-3xl border border-[var(--color-brand-light)] bg-[var(--color-brand-cream)] px-8 py-10 lg:px-12">
       <div
@@ -25,11 +29,9 @@ export function ScanCtaBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
                 Abrir scanner
               </Link>
             </Button>
-            {!isLoggedIn && (
-              <Button asChild variant="outline" size="lg" className="uppercase tracking-wide">
-                <Link href="/login">Unirme a la comunidad</Link>
-              </Button>
-            )}
+            <Button asChild variant="outline" size="lg" className="uppercase tracking-wide">
+              <Link href={secondaryHref}>{secondaryLabel}</Link>
+            </Button>
           </div>
         </div>
         <div className="flex h-36 w-36 shrink-0 flex-col items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-sm">

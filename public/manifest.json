@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Celíacos AR",
-  "short_name": "Celíacos",
+  "name": "CeliApp",
+  "short_name": "CeliApp",
   "description": "Productos sin gluten evaluados por la comunidad celíaca",
   "start_url": "/",
   "scope": "/",

@@ -47,7 +47,7 @@ export async function Header() {
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-white shadow-sm">
               <Wheat className="h-4 w-4" />
             </span>
-            <span className="hidden min-[360px]:inline">Celíacos</span>
+            <span className="hidden min-[360px]:inline">CeliApp</span>
           </Link>
 
           <div className="min-w-0 flex-1">
@@ -70,7 +70,7 @@ export async function Header() {
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)] text-white shadow-sm">
               <Wheat className="h-5 w-5" />
             </span>
-            <span>Celíacos AR</span>
+            <span>CeliApp</span>
           </Link>
 
           <CategoryMegaMenu data={categoriesData} />

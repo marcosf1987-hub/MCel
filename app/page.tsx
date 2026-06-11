@@ -56,9 +56,6 @@ export default async function HomePage() {
 
       <div className="mx-auto max-w-6xl px-4 py-8 md:hidden">
         <section className="mb-12 overflow-hidden rounded-3xl border border-[var(--color-brand-light)] bg-gradient-to-br from-[var(--color-brand-cream)] via-white to-[var(--color-secondary)] px-6 py-12 text-center shadow-sm">
-          <p className="mb-3 inline-block rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-semibold text-[var(--color-accent-foreground)]">
-            Comunidad celíaca Argentina
-          </p>
           <h1 className="text-3xl font-bold text-[var(--color-brown)] sm:text-4xl">
             Productos sin gluten evaluados por celíacos
           </h1>

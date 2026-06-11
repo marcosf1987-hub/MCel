@@ -205,7 +205,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
         const errMsg = isPermission
           ? isAppleMobile()
-            ? "Safari bloqueó la cámara. Andá a Ajustes → Safari → Cámara (o la app Celíacos) y permití el acceso, luego recargá la página."
+            ? "Safari bloqueó la cámara. Andá a Ajustes → Safari → Cámara (o la app CeliApp) y permití el acceso, luego recargá la página."
             : "Permiso de cámara denegado. Permití el acceso en el navegador e intentá de nuevo."
           : err instanceof Error && err.message === "NO_CONTAINER"
             ? "No pudimos preparar el visor. Intentá de nuevo."

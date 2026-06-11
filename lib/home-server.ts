@@ -41,11 +41,23 @@ export type HomeTopRatedProduct = {
   featured_tier: UserTier | null;
 };
 
+export type RatingBreakdown = {
+  mustTry: number;
+  worthTry: number;
+  notForMe: number;
+};
+
+export type HomeFeaturedProduct = HomeTopRatedProduct & {
+  ai_summary: string | null;
+  rating_breakdown: RatingBreakdown;
+};
+
 export type HomePageData = {
   collaboratorCount: number;
   avatarProfiles: HomeAvatarProfile[];
   latestReviews: HomeLatestReview[];
   topRated: HomeTopRatedProduct[];
+  featuredProduct: HomeFeaturedProduct | null;
   topLists: Awaited<ReturnType<typeof getTopPublicLists>>;
 };
 
@@ -59,12 +71,64 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
       getTopPublicLists(supabase, 3),
     ]);
 
+  const featuredProduct = await buildFeaturedProduct(supabase, topRated[0] ?? null);
+
   return {
     collaboratorCount,
     avatarProfiles,
     latestReviews,
     topRated,
+    featuredProduct,
     topLists,
+  };
+}
+
+async function getRatingBreakdown(
+  supabase: SupabaseClient,
+  productId: string
+): Promise<RatingBreakdown> {
+  const { data: reviews } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("product_id", productId);
+
+  const rows = reviews ?? [];
+  if (!rows.length) return { mustTry: 0, worthTry: 0, notForMe: 0 };
+
+  let mustTry = 0;
+  let worthTry = 0;
+  let notForMe = 0;
+  for (const r of rows) {
+    if (r.rating >= 4) mustTry += 1;
+    else if (r.rating === 3) worthTry += 1;
+    else notForMe += 1;
+  }
+  const total = rows.length;
+  return {
+    mustTry: Math.round((mustTry / total) * 100),
+    worthTry: Math.round((worthTry / total) * 100),
+    notForMe: Math.round((notForMe / total) * 100),
+  };
+}
+
+async function buildFeaturedProduct(
+  supabase: SupabaseClient,
+  top: HomeTopRatedProduct | null
+): Promise<HomeFeaturedProduct | null> {
+  if (!top) return null;
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("ai_summary")
+    .eq("id", top.id)
+    .maybeSingle();
+
+  const rating_breakdown = await getRatingBreakdown(supabase, top.id);
+
+  return {
+    ...top,
+    ai_summary: product?.ai_summary ?? null,
+    rating_breakdown,
   };
 }
 

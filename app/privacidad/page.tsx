@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 prose prose-sm">
       <h1 className="text-2xl font-bold">Política de privacidad</h1>
       <p className="mt-4 text-sm text-[var(--color-muted-foreground)]">
-        Celíacos AR recopila únicamente los datos necesarios para operar la plataforma:
+        CeliApp recopila únicamente los datos necesarios para operar la plataforma:
         email y perfil de autenticación (vía Supabase Auth), evaluaciones, imágenes de
         productos y preferencias de usuario.
       </p>

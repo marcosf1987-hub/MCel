@@ -1,6 +1,23 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Instagram, Mail } from "lucide-react";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  Mail,
+  Music2,
+  Twitter,
+  Youtube,
+} from "lucide-react";
+
+const SOCIAL_PLACEHOLDERS = [
+  { label: "Instagram", icon: Instagram },
+  { label: "Facebook", icon: Facebook },
+  { label: "X / Twitter", icon: Twitter },
+  { label: "TikTok", icon: Music2 },
+  { label: "YouTube", icon: Youtube },
+  { label: "LinkedIn", icon: Linkedin },
+] as const;
 
 export function Footer() {
   return (
@@ -9,27 +26,32 @@ export function Footer() {
         <div className="hidden md:flex md:flex-wrap md:items-center md:justify-between md:gap-6 md:pb-6">
           <div>
             <p className="font-[family-name:var(--font-headline)] text-lg font-bold text-[var(--color-brown)]">
-              Celíacos AR
+              CeliApp
             </p>
             <p className="mt-1 max-w-sm text-sm text-[var(--color-muted-foreground)]">
               Comunidad argentina de productos sin gluten evaluados por celíacos.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-              Redes
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 opacity-60"
-              disabled
-              title="Próximamente"
-            >
-              <Instagram className="h-4 w-4" />
-              Instagram
-            </Button>
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="w-full text-right text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                Redes
+              </span>
+              {SOCIAL_PLACEHOLDERS.map(({ label, icon: Icon }) => (
+                <Button
+                  key={label}
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 opacity-60"
+                  disabled
+                  title={`${label} — próximamente`}
+                  aria-label={label}
+                >
+                  <Icon className="h-4 w-4" />
+                </Button>
+              ))}
+            </div>
             <Button variant="outline" size="sm" className="gap-1.5" disabled title="Próximamente">
               <Mail className="h-4 w-4" />
               Suscribite al newsletter
@@ -52,7 +74,7 @@ export function Footer() {
           </Link>
         </div>
         <p className="mt-2 text-[6px] leading-snug text-[var(--color-muted-foreground)] md:text-[7px]">
-          © {new Date().getFullYear()} Celíacos AR — Comunidad de productos sin gluten
+          © {new Date().getFullYear()} CeliApp — Comunidad de productos sin gluten
         </p>
       </div>
     </footer>

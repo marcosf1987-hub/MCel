@@ -1,6 +1,7 @@
 import { LatestReviewsSection } from "@/components/home/latest-reviews-section";
 import { TopListsSection } from "@/components/home/top-lists-section";
 import { TopRatedSection } from "@/components/home/top-rated-section";
+import { ScanCtaBanner } from "@/components/home/scan-cta-banner";
 import type { HomePageData } from "@/lib/home-server";
 
 export function DesktopAuthedHome({ data }: { data: HomePageData }) {
@@ -9,6 +10,7 @@ export function DesktopAuthedHome({ data }: { data: HomePageData }) {
       <LatestReviewsSection reviews={data.latestReviews} />
       <TopListsSection lists={data.topLists} />
       <TopRatedSection products={data.topRated} />
+      <ScanCtaBanner variant="authed" />
     </div>
   );
 }

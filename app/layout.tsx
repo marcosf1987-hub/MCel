@@ -18,13 +18,13 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const APP_NAME = "Celíacos AR";
+const APP_NAME = "CeliApp";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
   title: {
-    default: "Celíacos AR — Productos sin gluten evaluados por la comunidad",
-    template: "%s | Celíacos AR",
+    default: "CeliApp — Productos sin gluten evaluados por la comunidad",
+    template: "%s | CeliApp",
   },
   description:
     "Descubrí, evaluá y puntuá productos aptos para celíacos. Opiniones reales de la comunidad en Argentina.",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Celíacos AR",
+    title: "CeliApp",
   },
   formatDetection: { telephone: false },
   icons: {
