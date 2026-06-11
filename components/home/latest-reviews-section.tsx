@@ -15,9 +15,9 @@ export function LatestReviewsSection({ reviews }: { reviews: HomeLatestReview[] 
   if (!reviews.length) return null;
 
   return (
-    <section className="mb-14">
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="font-[family-name:var(--font-headline)] text-2xl font-bold italic text-[var(--color-brown)]">
+    <section className="mb-10 md:mb-14">
+      <div className="mb-4 flex items-end justify-between gap-4 md:mb-6">
+        <h2 className="font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
           Últimas evaluaciones
         </h2>
         <Link
@@ -32,7 +32,7 @@ export function LatestReviewsSection({ reviews }: { reviews: HomeLatestReview[] 
         {reviews.map((review) => (
           <article
             key={review.id}
-            className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm"
+            className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm md:p-6"
           >
             <div className="mb-3 flex items-center gap-3">
               <UserAvatar

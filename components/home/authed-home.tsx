@@ -5,9 +5,9 @@ import { TopRatedSection } from "@/components/home/top-rated-section";
 import { ScanCtaBanner } from "@/components/home/scan-cta-banner";
 import type { HomePageData } from "@/lib/home-server";
 
-export function DesktopAuthedHome({ data }: { data: HomePageData }) {
+export function AuthedHome({ data }: { data: HomePageData }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
       {data.featuredProduct && (
         <FeaturedProductHero product={data.featuredProduct} />
       )}

@@ -10,9 +10,9 @@ export function TopListsSection({
   if (!lists.length) return null;
 
   return (
-    <section className="mb-14">
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="font-[family-name:var(--font-headline)] text-2xl font-bold italic text-[var(--color-brown)]">
+    <section className="mb-10 md:mb-14">
+      <div className="mb-4 flex items-end justify-between gap-4 md:mb-6">
+        <h2 className="font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
           Listas destacadas
         </h2>
         <Link

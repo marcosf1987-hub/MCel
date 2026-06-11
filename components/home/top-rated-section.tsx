@@ -14,8 +14,8 @@ function excerpt(text: string | null, max = 120): string {
 export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] }) {
   if (!products.length) {
     return (
-      <section className="mb-14">
-        <h2 className="mb-4 font-[family-name:var(--font-headline)] text-2xl font-bold italic text-[var(--color-brown)]">
+      <section className="mb-10 md:mb-14">
+        <h2 className="mb-4 font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
           Mejor puntuados
         </h2>
         <p className="text-[var(--color-muted-foreground)]">
@@ -26,9 +26,9 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
   }
 
   return (
-    <section className="mb-14">
+    <section className="mb-10 md:mb-14">
       <div className="mb-2">
-        <h2 className="font-[family-name:var(--font-headline)] text-2xl font-bold italic text-[var(--color-brown)]">
+        <h2 className="font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
           Mejor puntuados
         </h2>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
@@ -40,7 +40,7 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
         {products.map((product) => (
           <article
             key={product.id}
-            className="flex w-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm"
+            className="flex w-full max-w-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm sm:w-[280px]"
           >
             <Link
               href={`/productos/${product.slug}`}

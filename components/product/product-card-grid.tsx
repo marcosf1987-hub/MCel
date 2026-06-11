@@ -12,7 +12,7 @@ export function ProductCardGrid({
   return (
     <div className="flex flex-wrap justify-center gap-4">
       {products.map((p) => (
-        <div key={p.id} className="w-[280px]">
+        <div key={p.id} className="w-full max-w-[280px] sm:w-[280px]">
           <ProductCard
             product={p}
             isLoggedIn={isLoggedIn}

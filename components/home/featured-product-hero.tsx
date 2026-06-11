@@ -24,7 +24,7 @@ export function FeaturedProductHero({ product }: { product: HomeFeaturedProduct 
     product.review_count === 1 ? "1 evaluación" : `${product.review_count} evaluaciones`;
 
   return (
-    <section className="mb-12 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm">
+    <section className="mb-10 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm md:mb-12">
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(220px,300px)_1fr] lg:items-center lg:gap-8 lg:p-8">
         <Link
           href={`/productos/${product.slug}`}
@@ -95,14 +95,19 @@ export function FeaturedProductHero({ product }: { product: HomeFeaturedProduct 
             </p>
           )}
 
-          <div className="flex flex-wrap gap-3 pt-1">
-            <Button asChild variant="accent" size="sm" className="gap-1.5 uppercase tracking-wide">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
+            <Button
+              asChild
+              variant="accent"
+              size="sm"
+              className="w-full gap-1.5 uppercase tracking-wide sm:w-auto"
+            >
               <Link href={`/productos/${product.slug}/evaluar`}>
                 <ClipboardList className="h-4 w-4" />
                 Valorar producto
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link href={`/productos/${product.slug}`}>Ver ficha</Link>
             </Button>
           </div>
