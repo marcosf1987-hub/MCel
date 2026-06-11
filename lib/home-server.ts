@@ -122,7 +122,7 @@ export async function getLatestReviews(
       tier: ((profile as { tier?: UserTier })?.tier ?? "none") as UserTier,
       product_name: (product as { name: string })?.name ?? "Producto",
       product_slug: (product as { slug: string })?.slug ?? "",
-      brand_name: getBrandName(brands),
+      brand_name: getBrandName(brands) ?? null,
       product_review_count: (product as { review_count?: number })?.review_count ?? 0,
     };
   });
@@ -193,9 +193,9 @@ export async function getTopRatedWithFeaturedReview(
       weighted_rating: p.weighted_rating,
       review_count: p.review_count,
       image_url: images[0]?.url ?? null,
-      brand_name: getBrandName(
-        (p as { brands?: { name: string } | { name: string }[] }).brands
-      ),
+      brand_name:
+        getBrandName((p as { brands?: { name: string } | { name: string }[] }).brands) ??
+        null,
       featured_opinion: featured?.opinion ?? null,
       featured_rating: featured?.rating ?? null,
       featured_display_name: featured?.display_name ?? null,
