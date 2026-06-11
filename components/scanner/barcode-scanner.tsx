@@ -26,11 +26,45 @@ async function loadHtml5Qrcode() {
   return { Html5Qrcode: mod.Html5Qrcode, formats };
 }
 
+function isAppleMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function waitForDom(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+type CameraConfig = string | { facingMode: string };
+
+async function resolveCamera(
+  Html5Qrcode: typeof import("html5-qrcode").Html5Qrcode
+): Promise<CameraConfig> {
+  if (isAppleMobile()) {
+    return { facingMode: "environment" };
+  }
+
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras.length) return { facingMode: "environment" };
+    const back = cameras.find((c) => /back|rear|environment|trasera/i.test(c.label));
+    return back?.id ?? cameras[cameras.length - 1]?.id ?? cameras[0].id;
+  } catch {
+    return { facingMode: "environment" };
+  }
+}
+
 export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerProps) {
   const uid = useId().replace(/:/g, "");
   const readerId = `barcode-reader-${uid}`;
   const [manualCode, setManualCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [startingCamera, setStartingCamera] = useState(false);
@@ -38,8 +72,16 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
   const onScanRef = useRef(onScan);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const decodedRef = useRef(false);
+  const startRequestRef = useRef(0);
 
   onScanRef.current = onScan;
+
+  const reportError = useCallback(
+    (message: string) => {
+      onStatus?.("error", message);
+    },
+    [onStatus]
+  );
 
   const stopCamera = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -54,6 +96,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
     }
     setCameraActive(false);
     setStartingCamera(false);
+    setHint(null);
   }, []);
 
   useEffect(() => {
@@ -76,115 +119,155 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
     [onStatus]
   );
 
-  const startLiveScan = async () => {
+  const startLiveScan = () => {
     if (disabled || cameraActive || startingCamera) return;
-    setError(null);
-    setHint(null);
     decodedRef.current = false;
+    startRequestRef.current += 1;
+    const requestId = startRequestRef.current;
     setStartingCamera(true);
     onStatus?.("info", "Activando cámara…");
 
-    try {
-      const { Html5Qrcode, formats } = await loadHtml5Qrcode();
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras.length) {
-        throw new Error("NO_CAMERA");
-      }
+    void (async () => {
+      try {
+        const { Html5Qrcode, formats } = await loadHtml5Qrcode();
+        if (requestId !== startRequestRef.current) return;
 
-      const back = cameras.find((c) => /back|rear|environment|trasera/i.test(c.label));
-      const cameraId = back?.id ?? cameras[cameras.length - 1]?.id ?? cameras[0].id;
+        setCameraActive(true);
+        await waitForDom();
+        if (requestId !== startRequestRef.current) return;
 
-      setCameraActive(true);
-      setStartingCamera(false);
-      setHint("Apuntá al código de barras dentro del recuadro");
-
-      await new Promise((r) => requestAnimationFrame(r));
-
-      const scanner = new Html5Qrcode(readerId, {
-        formatsToSupport: formats,
-        verbose: false,
-      });
-      scannerRef.current = scanner;
-
-      await scanner.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 110 },
-          aspectRatio: 1.5,
-        },
-        (decoded) => {
-          if (decodedRef.current) return;
-          decodedRef.current = true;
-          void (async () => {
-            await stopCamera();
-            setHint(null);
-            handleDecoded(decoded);
-          })();
-        },
-        () => {
-          /* sin código en este frame */
+        const container = document.getElementById(readerId);
+        if (!container) {
+          throw new Error("NO_CONTAINER");
         }
-      );
-    } catch (err) {
-      await stopCamera();
-      const errMsg =
-        err instanceof Error && err.message === "NO_CAMERA"
-          ? "No encontramos cámara en este dispositivo. Ingresá el código manualmente."
-          : "No pudimos abrir la cámara. Revisá los permisos o ingresá el código manualmente.";
-      setError(errMsg);
-      onStatus?.("error", errMsg);
-    }
+
+        const camera = await resolveCamera(Html5Qrcode);
+        if (requestId !== startRequestRef.current) return;
+
+        setStartingCamera(false);
+        setHint("Apuntá al código de barras dentro del recuadro");
+
+        const scanner = new Html5Qrcode(readerId, {
+          formatsToSupport: formats,
+          verbose: false,
+        });
+        scannerRef.current = scanner;
+
+        const scanConfig = {
+          fps: 10,
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+            const width = Math.min(280, Math.floor(viewfinderWidth * 0.92));
+            const height = Math.min(120, Math.floor(viewfinderHeight * 0.35));
+            return { width, height: Math.max(64, height) };
+          },
+        };
+
+        try {
+          await scanner.start(
+            camera,
+            scanConfig,
+            (decoded) => {
+              if (decodedRef.current) return;
+              decodedRef.current = true;
+              void (async () => {
+                await stopCamera();
+                handleDecoded(decoded);
+              })();
+            },
+            () => {
+              /* sin código en este frame */
+            }
+          );
+        } catch (firstErr) {
+          if (typeof camera === "string") throw firstErr;
+          await scanner.start(
+            { facingMode: "environment" },
+            scanConfig,
+            (decoded) => {
+              if (decodedRef.current) return;
+              decodedRef.current = true;
+              void (async () => {
+                await stopCamera();
+                handleDecoded(decoded);
+              })();
+            },
+            () => {}
+          );
+        }
+      } catch (err) {
+        if (requestId !== startRequestRef.current) return;
+        await stopCamera();
+
+        const isPermission =
+          err instanceof Error &&
+          (/permission|notallowed|denied/i.test(err.message) ||
+            err.name === "NotAllowedError");
+
+        const errMsg = isPermission
+          ? isAppleMobile()
+            ? "Safari bloqueó la cámara. Andá a Ajustes → Safari → Cámara (o la app Celíacos) y permití el acceso, luego recargá la página."
+            : "Permiso de cámara denegado. Permití el acceso en el navegador e intentá de nuevo."
+          : err instanceof Error && err.message === "NO_CONTAINER"
+            ? "No pudimos preparar el visor. Intentá de nuevo."
+            : "No pudimos abrir la cámara. Revisá los permisos o ingresá el código manualmente.";
+
+        reportError(errMsg);
+      }
+    })();
+  };
+
+  const cancelScan = () => {
+    startRequestRef.current += 1;
+    void stopCamera();
+    onStatus?.("idle", "");
   };
 
   return (
     <div className="space-y-4">
-      {cameraActive ? (
-        <div className="space-y-3">
-          <div
-            id={readerId}
-            className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:rounded-2xl"
-          />
-          {hint && (
-            <p className="text-center text-sm text-[var(--color-muted-foreground)]">
-              {hint}
-            </p>
-          )}
+      {/* Siempre montado: en iPhone el visor debe existir antes de scanner.start() */}
+      <div
+        className={
+          cameraActive
+            ? "space-y-3"
+            : "pointer-events-none fixed -left-[9999px] h-px w-px overflow-hidden opacity-0"
+        }
+        aria-hidden={!cameraActive}
+      >
+        <div
+          id={readerId}
+          className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:rounded-2xl"
+        />
+        {cameraActive && hint && (
+          <p className="text-center text-sm text-[var(--color-muted-foreground)]">
+            {hint}
+          </p>
+        )}
+        {cameraActive && (
           <Button
             type="button"
             variant="outline"
             className="w-full gap-2"
             disabled={disabled}
-            onClick={() => void stopCamera()}
+            onClick={cancelScan}
           >
             <X className="h-4 w-4" />
             Cancelar escaneo
           </Button>
-        </div>
-      ) : (
+        )}
+      </div>
+
+      {!cameraActive && (
         <Button
           type="button"
           variant="accent"
           size="lg"
           disabled={disabled || startingCamera}
           className="h-12 w-full gap-2 text-base"
-          onClick={() => void startLiveScan()}
+          onClick={startLiveScan}
         >
           <Camera className="h-6 w-6" />
           {startingCamera ? "Abriendo cámara…" : "Escanear código"}
         </Button>
-      )}
-
-      {!cameraActive && hint && (
-        <p className="text-center text-sm text-[var(--color-muted-foreground)]">
-          {hint}
-        </p>
-      )}
-
-      {error && (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error}
-        </p>
       )}
 
       <div className="space-y-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-brand-cream)] p-4">
