@@ -10,7 +10,7 @@ import type { Html5Qrcode } from "html5-qrcode";
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
   disabled?: boolean;
-  onStatus?: (type: "loading" | "success" | "error" | "info", message: string) => void;
+  onStatus?: (type: "loading" | "success" | "error" | "info" | "idle", message: string) => void;
 }
 
 async function loadHtml5Qrcode() {
