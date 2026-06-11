@@ -10,7 +10,7 @@ export function ProductCardGrid({
   favoriteIds?: Set<string>;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,280px))] gap-4">
       {products.map((p) => (
         <ProductCard
           key={p.id}

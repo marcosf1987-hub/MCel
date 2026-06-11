@@ -26,8 +26,8 @@ export function ProductCard({
   showFavorite?: boolean;
 }) {
   return (
-    <Link href={`/productos/${product.slug}`} className="block h-full">
-      <Card className="relative h-full overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
+    <Link href={`/productos/${product.slug}`} className="block w-full">
+      <Card className="relative w-full overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
         <div className="relative aspect-square overflow-hidden bg-[var(--color-brand-cream)]">
           {showFavorite && (
             <div className="absolute right-2 top-2 z-10">
@@ -45,7 +45,7 @@ export function ProductCard({
               alt={product.name}
               fill
               className="object-contain p-3"
-              sizes="200px"
+              sizes="280px"
               unoptimized={product.image_url.includes("openfoodfacts")}
             />
           ) : (
