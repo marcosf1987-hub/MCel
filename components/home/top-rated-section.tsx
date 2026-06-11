@@ -36,11 +36,11 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
           cada colaborador.
         </p>
       </div>
-      <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(220px,280px))] gap-6">
+      <div className="mt-6 flex flex-wrap justify-center gap-6">
         {products.map((product) => (
           <article
             key={product.id}
-            className="flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm"
+            className="flex w-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm"
           >
             <Link
               href={`/productos/${product.slug}`}
