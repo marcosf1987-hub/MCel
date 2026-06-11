@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesForm } from "@/components/auth/preferences-form";
+import { AvatarUpload } from "@/components/account/avatar-upload";
 import { TierProgressJourney } from "@/components/account/tier-progress-journey";
 import { CollaborationsSection } from "@/components/account/collaborations-section";
 import type { CollaborationItem } from "@/components/account/collaborations-section";
@@ -106,6 +107,20 @@ export default async function PreferencesPage() {
         collaborationCount={profile.collaboration_count}
         tier={profile.tier as UserTier}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Foto de perfil</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AvatarUpload
+            userId={profile.id}
+            displayName={profile.display_name}
+            username={profile.username}
+            avatarUrl={profile.avatar_url}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
