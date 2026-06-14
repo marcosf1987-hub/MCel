@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, ListMusic, Star } from "lucide-react";
 import type { HomePageData, HomeTopRatedProduct } from "@/lib/home-server";
+import { cn } from "@/lib/utils";
 
 function productBadge(rating: number | null): { label: string; className: string } {
   const r = rating ?? 0;
@@ -98,15 +99,17 @@ export function HomeRankedProductRows({
 export function HomeRankedListRows({
   lists,
   title,
+  className,
 }: {
   lists: HomePageData["topLists"];
   title: string;
+  className?: string;
 }) {
   if (!lists.length) return null;
 
   return (
-    <section className="mb-8">
-      <h2 className="mb-4 font-[family-name:var(--font-headline)] text-xl font-bold text-[var(--color-brown)]">
+    <section className={cn("mb-8", className)}>
+      <h2 className="mb-3 font-[family-name:var(--font-headline)] text-xl font-bold text-[var(--color-brown)]">
         {title}
       </h2>
       <ul className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-white">

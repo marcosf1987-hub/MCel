@@ -11,7 +11,7 @@ export function HomeSectionHeader({
   linkLabel?: string;
 }) {
   return (
-    <div className="mb-4 flex items-end justify-between gap-3">
+    <div className="mb-3 flex items-end justify-between gap-3">
       <h2 className="font-[family-name:var(--font-headline)] text-xl font-bold text-[var(--color-brown)]">
         {title}
       </h2>

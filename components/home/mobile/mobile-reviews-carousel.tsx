@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { StarRating } from "@/components/product/star-rating";
 import { TierBadge } from "@/components/ui/badge";
 import type { HomeLatestReview } from "@/lib/home-server";
+import { cn } from "@/lib/utils";
 
 function excerpt(text: string, max = 100): string {
   const t = text.trim();
@@ -14,11 +15,17 @@ function excerpt(text: string, max = 100): string {
   return `${t.slice(0, max).trim()}…`;
 }
 
-export function MobileReviewsCarousel({ reviews }: { reviews: HomeLatestReview[] }) {
+export function MobileReviewsCarousel({
+  reviews,
+  className,
+}: {
+  reviews: HomeLatestReview[];
+  className?: string;
+}) {
   if (!reviews.length) return null;
 
   return (
-    <section className="mb-8">
+    <section className={cn("mb-5", className)}>
       <HomeSectionHeader title="Últimas evaluaciones" href="/productos" linkLabel="Ver todo" />
       <HomeCarousel>
         {reviews.map((review) => (

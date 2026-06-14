@@ -8,7 +8,7 @@ import type { HomePageData } from "@/lib/home-server";
 export function MobileAuthedHome({ data }: { data: HomePageData }) {
   return (
     <div className="md:hidden">
-      <div className="px-4 pb-6 pt-4">
+      <div className="px-4 pb-6 pt-2">
         {data.featuredProduct && (
           <FeaturedProductCompact product={data.featuredProduct} />
         )}
