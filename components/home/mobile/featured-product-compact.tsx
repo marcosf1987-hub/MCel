@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Award } from "lucide-react";
-import { HomeSectionHeader } from "@/components/home/mobile/home-section-header";
 import { StarRating } from "@/components/product/star-rating";
 import type { HomeFeaturedProduct } from "@/lib/home-server";
 import { cn } from "@/lib/utils";
@@ -29,13 +28,6 @@ export function FeaturedProductCompact({
 
   return (
     <section className={cn("-mx-4 mb-5", className)}>
-      <div className="px-4">
-        <HomeSectionHeader
-          title="Producto destacado"
-          href={`/productos/${product.slug}`}
-          linkLabel="Ver ficha"
-        />
-      </div>
       <Link
         href={`/productos/${product.slug}`}
         className="flex h-[11rem] w-full overflow-hidden bg-white"
@@ -69,8 +61,12 @@ export function FeaturedProductCompact({
           <p className="line-clamp-2 text-xs italic leading-snug text-[var(--color-brown)]">
             &ldquo;{excerpt(subtitle)}&rdquo;
           </p>
-          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-            {product.brand_name ? `${product.brand_name} · ` : ""}
+          {product.brand_name && (
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              {product.brand_name}
+            </p>
+          )}
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-primary)]">
             Ver producto
           </p>
         </div>
