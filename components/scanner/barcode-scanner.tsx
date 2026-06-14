@@ -42,6 +42,66 @@ function waitForDom(): Promise<void> {
   });
 }
 
+async function waitForContainerSize(
+  elementId: string,
+  minSize = 48,
+  maxAttempts = 30
+): Promise<{ width: number; height: number }> {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const el = document.getElementById(elementId);
+    const rect = el?.getBoundingClientRect();
+    if (rect && rect.width >= minSize && rect.height >= minSize) {
+      return { width: rect.width, height: rect.height };
+    }
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
+  throw new Error("NO_CONTAINER_SIZE");
+}
+
+const READY_HINT = "Apuntá al código de barras dentro del recuadro";
+
+function buildScanConfig(isApple: boolean) {
+  if (isApple) {
+    return {
+      fps: 8,
+      qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
+        width: Math.floor(viewfinderWidth * 0.9),
+        height: Math.min(140, Math.floor(viewfinderHeight * 0.35)),
+      }),
+      videoConstraints: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    };
+  }
+
+  return {
+    fps: 10,
+    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+      const width = Math.min(280, Math.floor(viewfinderWidth * 0.92));
+      const height = Math.min(120, Math.floor(viewfinderHeight * 0.35));
+      return { width, height: Math.max(64, height) };
+    },
+  };
+}
+
+async function applyIosFocusIfSupported(scanner: Html5Qrcode) {
+  if (!isAppleMobile()) return;
+  try {
+    await scanner.applyVideoConstraints({
+      advanced: [{ focusMode: "continuous" }],
+    } as MediaTrackConstraints);
+    agentLog("H3", "barcode-scanner:focus", "applied continuous focus", {});
+  } catch (err) {
+    agentLog("H3", "barcode-scanner:focus", "focus constraints skipped", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 function isDebugScanner(): boolean {
   if (typeof window === "undefined") return false;
   return window.location.search.includes("debugScanner");
@@ -55,7 +115,7 @@ function agentLog(
 ) {
   const payload = {
     sessionId: "8de89c",
-    runId: "pre-fix",
+    runId: "post-fix",
     hypothesisId,
     location,
     message,
@@ -200,18 +260,17 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
           return;
         }
 
-        const container = document.getElementById(readerId);
-        const rect = container?.getBoundingClientRect();
-        agentLog("H5", "barcode-scanner:container", "container check", {
-          requestId,
-          found: Boolean(container),
-          width: rect?.width ?? 0,
-          height: rect?.height ?? 0,
-        });
-        pushDebug(`container ${rect?.width ?? 0}x${rect?.height ?? 0}`);
-        if (!container) {
+        let containerSize: { width: number; height: number };
+        try {
+          containerSize = await waitForContainerSize(readerId);
+        } catch {
           throw new Error("NO_CONTAINER");
         }
+        agentLog("H5", "barcode-scanner:container", "container ready", {
+          requestId,
+          ...containerSize,
+        });
+        pushDebug(`container ${containerSize.width}x${containerSize.height}`);
 
         const camera = await resolveCamera(Html5Qrcode);
         agentLog("H2", "barcode-scanner:camera", "camera resolved", {
@@ -225,29 +284,25 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
         }
 
         setStartingCamera(false);
-        setHint("Apuntá al código de barras dentro del recuadro");
+        setHint(READY_HINT);
+        onStatus?.("info", READY_HINT);
 
+        const isApple = isAppleMobile();
         const scanner = new Html5Qrcode(readerId, {
           formatsToSupport: formats,
-          verbose: false,
+          verbose: isDebugScanner(),
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: !isApple,
+          },
         });
         scannerRef.current = scanner;
 
-        const scanConfig = {
-          fps: 10,
-          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const width = Math.min(280, Math.floor(viewfinderWidth * 0.92));
-            const height = Math.min(120, Math.floor(viewfinderHeight * 0.35));
-            const box = { width, height: Math.max(64, height) };
-            agentLog("H3", "barcode-scanner:qrbox", "qrbox computed", {
-              requestId,
-              viewfinderWidth,
-              viewfinderHeight,
-              box,
-            });
-            return box;
-          },
-        };
+        const scanConfig = buildScanConfig(isApple);
+        agentLog("H3", "barcode-scanner:config", "scan config", {
+          requestId,
+          isApple,
+          scanConfig,
+        });
 
         const onDecode = (decoded: string) => {
           agentLog("H3", "barcode-scanner:decode", "barcode decoded", {
@@ -284,8 +339,11 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
             isScanning: scanner.isScanning,
           });
           pushDebug(`startDone scanning=${scanner.isScanning}`);
-          agentLog("H1", "barcode-scanner:ready", "camera ready but status may still say activating", {
+          await applyIosFocusIfSupported(scanner);
+          onStatus?.("info", READY_HINT);
+          agentLog("H1", "barcode-scanner:ready", "camera ready", {
             requestId,
+            isScanning: scanner.isScanning,
           });
         } catch (firstErr) {
           agentLog("H2", "barcode-scanner:startFail", "primary start failed", {
@@ -301,6 +359,8 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
             isScanning: scanner.isScanning,
           });
           pushDebug(`fallbackDone scanning=${scanner.isScanning}`);
+          await applyIosFocusIfSupported(scanner);
+          onStatus?.("info", READY_HINT);
         }
       } catch (err) {
         if (requestId !== startRequestRef.current) return;
@@ -349,7 +409,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
       >
         <div
           id={readerId}
-          className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:rounded-2xl"
+          className="min-h-[260px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:rounded-2xl [&_video]:min-h-[240px]"
         />
         {cameraActive && hint && (
           <p className="text-center text-sm text-[var(--color-muted-foreground)]">
