@@ -42,6 +42,48 @@ function waitForDom(): Promise<void> {
   });
 }
 
+function isDebugScanner(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.search.includes("debugScanner");
+}
+
+function agentLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown> = {}
+) {
+  const payload = {
+    sessionId: "8de89c",
+    runId: "pre-fix",
+    hypothesisId,
+    location,
+    message,
+    data,
+    timestamp: Date.now(),
+  };
+  // #region agent log
+  fetch("http://127.0.0.1:7732/ingest/3790f503-df5e-4315-a24e-28885c27c3fb", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "8de89c",
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+  // #endregion
+  if (isDebugScanner()) {
+    try {
+      const key = "debugScanner:8de89c";
+      const prev = JSON.parse(sessionStorage.getItem(key) ?? "[]") as string[];
+      prev.push(`${new Date().toISOString().slice(11, 23)} [${hypothesisId}] ${message}`);
+      sessionStorage.setItem(key, JSON.stringify(prev.slice(-40)));
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 type CameraConfig = string | { facingMode: string };
 
 async function resolveCamera(
@@ -68,11 +110,18 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
   const [hint, setHint] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [startingCamera, setStartingCamera] = useState(false);
+  const [debugLines, setDebugLines] = useState<string[]>([]);
 
   const onScanRef = useRef(onScan);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const decodedRef = useRef(false);
   const startRequestRef = useRef(0);
+  const scanErrorCountRef = useRef(0);
+
+  const pushDebug = useCallback((line: string) => {
+    if (!isDebugScanner()) return;
+    setDebugLines((prev) => [...prev.slice(-39), line]);
+  }, []);
 
   onScanRef.current = onScan;
 
@@ -122,27 +171,58 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
   const startLiveScan = () => {
     if (disabled || cameraActive || startingCamera) return;
     decodedRef.current = false;
+    scanErrorCountRef.current = 0;
     startRequestRef.current += 1;
     const requestId = startRequestRef.current;
     setStartingCamera(true);
     onStatus?.("info", "Activando cámara…");
+    agentLog("H1", "barcode-scanner:startLiveScan", "button clicked", {
+      requestId,
+      isApple: isAppleMobile(),
+      disabled,
+    });
+    pushDebug(`click req=${requestId}`);
 
     void (async () => {
       try {
+        agentLog("H2", "barcode-scanner:loadLib", "loading html5-qrcode", { requestId });
         const { Html5Qrcode, formats } = await loadHtml5Qrcode();
-        if (requestId !== startRequestRef.current) return;
+        if (requestId !== startRequestRef.current) {
+          agentLog("H4", "barcode-scanner:cancelled", "after loadLib", { requestId });
+          return;
+        }
 
         setCameraActive(true);
+        pushDebug("cameraActive=true");
         await waitForDom();
-        if (requestId !== startRequestRef.current) return;
+        if (requestId !== startRequestRef.current) {
+          agentLog("H4", "barcode-scanner:cancelled", "after waitForDom", { requestId });
+          return;
+        }
 
         const container = document.getElementById(readerId);
+        const rect = container?.getBoundingClientRect();
+        agentLog("H5", "barcode-scanner:container", "container check", {
+          requestId,
+          found: Boolean(container),
+          width: rect?.width ?? 0,
+          height: rect?.height ?? 0,
+        });
+        pushDebug(`container ${rect?.width ?? 0}x${rect?.height ?? 0}`);
         if (!container) {
           throw new Error("NO_CONTAINER");
         }
 
         const camera = await resolveCamera(Html5Qrcode);
-        if (requestId !== startRequestRef.current) return;
+        agentLog("H2", "barcode-scanner:camera", "camera resolved", {
+          requestId,
+          camera: typeof camera === "string" ? camera : camera.facingMode,
+        });
+        pushDebug(`camera=${typeof camera === "string" ? camera : camera.facingMode}`);
+        if (requestId !== startRequestRef.current) {
+          agentLog("H4", "barcode-scanner:cancelled", "after resolveCamera", { requestId });
+          return;
+        }
 
         setStartingCamera(false);
         setHint("Apuntá al código de barras dentro del recuadro");
@@ -158,44 +238,78 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const width = Math.min(280, Math.floor(viewfinderWidth * 0.92));
             const height = Math.min(120, Math.floor(viewfinderHeight * 0.35));
-            return { width, height: Math.max(64, height) };
+            const box = { width, height: Math.max(64, height) };
+            agentLog("H3", "barcode-scanner:qrbox", "qrbox computed", {
+              requestId,
+              viewfinderWidth,
+              viewfinderHeight,
+              box,
+            });
+            return box;
           },
         };
 
+        const onDecode = (decoded: string) => {
+          agentLog("H3", "barcode-scanner:decode", "barcode decoded", {
+            requestId,
+            length: decoded.length,
+            scanErrors: scanErrorCountRef.current,
+          });
+          pushDebug(`DECODED len=${decoded.length}`);
+          if (decodedRef.current) return;
+          decodedRef.current = true;
+          void (async () => {
+            await stopCamera();
+            handleDecoded(decoded);
+          })();
+        };
+
+        const onScanError = () => {
+          scanErrorCountRef.current += 1;
+          if (scanErrorCountRef.current === 1 || scanErrorCountRef.current % 50 === 0) {
+            agentLog("H3", "barcode-scanner:scanError", "scan frame without decode", {
+              requestId,
+              count: scanErrorCountRef.current,
+            });
+            pushDebug(`scanErrors=${scanErrorCountRef.current}`);
+          }
+        };
+
         try {
-          await scanner.start(
-            camera,
-            scanConfig,
-            (decoded) => {
-              if (decodedRef.current) return;
-              decodedRef.current = true;
-              void (async () => {
-                await stopCamera();
-                handleDecoded(decoded);
-              })();
-            },
-            () => {
-              /* sin código en este frame */
-            }
-          );
+          agentLog("H2", "barcode-scanner:start", "calling scanner.start primary", { requestId });
+          pushDebug("start(primary)…");
+          await scanner.start(camera, scanConfig, onDecode, onScanError);
+          agentLog("H2", "barcode-scanner:startDone", "scanner.start resolved", {
+            requestId,
+            isScanning: scanner.isScanning,
+          });
+          pushDebug(`startDone scanning=${scanner.isScanning}`);
+          agentLog("H1", "barcode-scanner:ready", "camera ready but status may still say activating", {
+            requestId,
+          });
         } catch (firstErr) {
+          agentLog("H2", "barcode-scanner:startFail", "primary start failed", {
+            requestId,
+            error: firstErr instanceof Error ? firstErr.message : String(firstErr),
+          });
+          pushDebug(`startFail: ${firstErr instanceof Error ? firstErr.message : "unknown"}`);
           if (typeof camera === "string") throw firstErr;
-          await scanner.start(
-            { facingMode: "environment" },
-            scanConfig,
-            (decoded) => {
-              if (decodedRef.current) return;
-              decodedRef.current = true;
-              void (async () => {
-                await stopCamera();
-                handleDecoded(decoded);
-              })();
-            },
-            () => {}
-          );
+          agentLog("H2", "barcode-scanner:start", "calling scanner.start fallback", { requestId });
+          await scanner.start({ facingMode: "environment" }, scanConfig, onDecode, onScanError);
+          agentLog("H2", "barcode-scanner:startDone", "fallback start resolved", {
+            requestId,
+            isScanning: scanner.isScanning,
+          });
+          pushDebug(`fallbackDone scanning=${scanner.isScanning}`);
         }
       } catch (err) {
         if (requestId !== startRequestRef.current) return;
+        agentLog("H2", "barcode-scanner:catch", "startLiveScan failed", {
+          requestId,
+          error: err instanceof Error ? err.message : String(err),
+          name: err instanceof Error ? err.name : "unknown",
+        });
+        pushDebug(`ERROR: ${err instanceof Error ? err.message : "unknown"}`);
         await stopCamera();
 
         const isPermission =
@@ -268,6 +382,12 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
           <Camera className="h-6 w-6" />
           {startingCamera ? "Abriendo cámara…" : "Escanear código"}
         </Button>
+      )}
+
+      {isDebugScanner() && debugLines.length > 0 && (
+        <pre className="max-h-32 overflow-auto rounded border border-amber-300 bg-amber-50 p-2 text-[10px] leading-tight text-amber-950">
+          {debugLines.join("\n")}
+        </pre>
       )}
 
       <div className="space-y-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-brand-cream)] p-4">
