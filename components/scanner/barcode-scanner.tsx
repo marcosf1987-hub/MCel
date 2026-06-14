@@ -91,7 +91,7 @@ async function applyIosFocusIfSupported(scanner: Html5Qrcode) {
   try {
     await scanner.applyVideoConstraints({
       advanced: [{ focusMode: "continuous" }],
-    } as MediaTrackConstraints);
+    } as unknown as MediaTrackConstraints);
     agentLog("H3", "barcode-scanner:focus", "applied continuous focus", {});
   } catch (err) {
     agentLog("H3", "barcode-scanner:focus", "focus constraints skipped", {
