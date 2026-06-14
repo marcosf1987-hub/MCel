@@ -60,16 +60,14 @@ async function waitForContainerSize(
   throw new Error("NO_CONTAINER_SIZE");
 }
 
-const READY_HINT = "Apuntá al código de barras dentro del recuadro";
+const READY_HINT = "Apuntá al código de barras en el centro del visor";
 
 function buildScanConfig(isApple: boolean) {
   if (isApple) {
+    // Sin qrbox: en iOS el contenedor no puede ser más grande que qrbox (issue html5-qrcode #484).
+    // Full-frame mejora detección EAN-13 en Safari.
     return {
-      fps: 8,
-      qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
-        width: Math.floor(viewfinderWidth * 0.9),
-        height: Math.min(140, Math.floor(viewfinderHeight * 0.35)),
-      }),
+      fps: 5,
       videoConstraints: {
         facingMode: "environment",
         width: { ideal: 1280 },
@@ -123,14 +121,16 @@ function agentLog(
     timestamp: Date.now(),
   };
   // #region agent log
-  fetch("http://127.0.0.1:7732/ingest/3790f503-df5e-4315-a24e-28885c27c3fb", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "8de89c",
-    },
-    body: JSON.stringify(payload),
-  }).catch(() => {});
+  if (isDebugScanner()) {
+    fetch("http://127.0.0.1:7732/ingest/3790f503-df5e-4315-a24e-28885c27c3fb", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "8de89c",
+      },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
   // #endregion
   if (isDebugScanner()) {
     try {
@@ -298,11 +298,12 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
         scannerRef.current = scanner;
 
         const scanConfig = buildScanConfig(isApple);
-        agentLog("H3", "barcode-scanner:config", "scan config", {
-          requestId,
-          isApple,
-          scanConfig,
-        });
+      agentLog("H3", "barcode-scanner:config", "scan config", {
+        requestId,
+        isApple,
+        fullFrame: isApple,
+        fps: scanConfig.fps,
+      });
 
         const onDecode = (decoded: string) => {
           agentLog("H3", "barcode-scanner:decode", "barcode decoded", {

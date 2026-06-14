@@ -8,7 +8,8 @@
     "prebuild": "node scripts/generate-pwa-icons.mjs",
     "generate:icons": "node scripts/generate-pwa-icons.mjs",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:scanner-emulation": "node scripts/emulate-iphone-scanner.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.3",

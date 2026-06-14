@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scanner iOS fixture</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 16px; }
+      #reader { min-height: 260px; background: #111; border-radius: 12px; overflow: hidden; }
+      #status { margin: 12px 0; padding: 8px; background: #f5f5f5; border-radius: 8px; }
+      #debug { font: 11px/1.4 monospace; white-space: pre-wrap; background: #fffbeb; padding: 8px; border: 1px solid #fcd34d; }
+      button { width: 100%; padding: 12px; font-size: 16px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Fixture scanner (misma config iOS)</h1>
+    <div id="status">Listo</div>
+    <div id="reader"></div>
+    <button id="start" type="button">Escanear código</button>
+    <pre id="debug"></pre>
+    <script>
+      const debugEl = document.getElementById("debug");
+      const statusEl = document.getElementById("status");
+      const log = (msg) => {
+        debugEl.textContent += msg + "\n";
+        console.log(msg);
+      };
+
+      const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      log("UA: " + navigator.userAgent);
+      log("isApple UA match: " + isApple);
+
+      const formats = [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+      ];
+
+      const scanConfig = {
+        fps: 5,
+        videoConstraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      };
+
+      let scanner = null;
+      let scanErrors = 0;
+
+      document.getElementById("start").addEventListener("click", async () => {
+        statusEl.textContent = "Activando cámara…";
+        log("click start");
+        try {
+          scanner = new Html5Qrcode("reader", {
+            formatsToSupport: formats,
+            verbose: true,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: false },
+          });
+          await scanner.start(
+            { facingMode: "environment" },
+            scanConfig,
+            (decoded) => {
+              statusEl.textContent = "DECODED: " + decoded;
+              log("DECODED " + decoded);
+            },
+            () => {
+              scanErrors += 1;
+              if (scanErrors === 1 || scanErrors % 50 === 0) log("scanErrors=" + scanErrors);
+            }
+          );
+          statusEl.textContent = "Apuntá al código de barras en el centro del visor";
+          log("startDone isScanning=" + scanner.isScanning);
+          try {
+            await scanner.applyVideoConstraints({ advanced: [{ focusMode: "continuous" }] });
+            log("focus applied");
+          } catch (e) {
+            log("focus skip: " + e.message);
+          }
+        } catch (e) {
+          statusEl.textContent = "ERROR: " + e.message;
+          log("ERROR " + e.message);
+        }
+      });
+    </script>
+  </body>
+</html>
