@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { StarInput } from "@/components/product/star-rating";
+import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +24,7 @@ import {
   type PriceRange,
 } from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
-import { Loader2, Send, Trash2 } from "lucide-react";
+import { Loader2, Send, Trash2, X } from "lucide-react";
 
 type ReviewInitialValues = {
   rating: number;
@@ -33,6 +35,11 @@ type ReviewInitialValues = {
   glutenCertification: GlutenCertification;
 };
 
+type UserProductImage = {
+  id: string;
+  url: string;
+};
+
 export function ReviewForm({
   productId,
   productSlug,
@@ -41,6 +48,7 @@ export function ReviewForm({
   mode = "create",
   reviewId,
   initialValues,
+  userImages: initialUserImages = [],
 }: {
   productId: string;
   productSlug: string;
@@ -49,9 +57,9 @@ export function ReviewForm({
   mode?: "create" | "edit";
   reviewId?: string;
   initialValues?: ReviewInitialValues;
+  userImages?: UserProductImage[];
 }) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isEdit = mode === "edit";
 
   const [rating, setRating] = useState(initialValues?.rating ?? 0);
@@ -62,6 +70,9 @@ export function ReviewForm({
     initialValues?.glutenCertification ?? "desconocido"
   );
   const [imageName, setImageName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [userImages, setUserImages] = useState<UserProductImage[]>(initialUserImages);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
 
   const [generalDescription, setGeneralDescription] = useState(
     initialValues?.generalDescription ?? ""
@@ -75,6 +86,39 @@ export function ReviewForm({
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
     setStatusMsg(message);
+  };
+
+  const handleSelectImage = (file: File | null) => {
+    setSelectedFile(file);
+    setImageName(file?.name ?? null);
+    if (file) {
+      setStatus(
+        "info",
+        `Foto seleccionada: ${file.name} (${Math.round(file.size / 1024)} KB)`
+      );
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!window.confirm("¿Eliminar esta foto? No se puede deshacer.")) return;
+    setDeletingImageId(imageId);
+    try {
+      const res = await fetch(`/api/product-images/${imageId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatus("error", data.error ?? "No se pudo eliminar la foto");
+        return;
+      }
+      setUserImages((prev) => prev.filter((img) => img.id !== imageId));
+      setStatus("success", "Foto eliminada.");
+    } catch (err) {
+      setStatus("error", err instanceof Error ? err.message : "Error de conexión");
+    } finally {
+      setDeletingImageId(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -130,7 +174,7 @@ export function ReviewForm({
       return;
     }
 
-    const file = fileInputRef.current?.files?.[0];
+    const file = selectedFile;
     if (!isEdit && !file && !hasExistingImages) {
       setStatus("error", "Subí una foto del producto.");
       return;
@@ -297,56 +341,60 @@ export function ReviewForm({
       </div>
 
       {!isEdit && (
-        <div>
-          <Label htmlFor="image">
-            Foto del producto {!hasExistingImages && "*"}
-          </Label>
-          <Input
-            ref={fileInputRef}
-            id="image"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={loading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              setImageName(f?.name ?? null);
-              if (f) {
-                setStatus(
-                  "info",
-                  `Foto seleccionada: ${f.name} (${Math.round(f.size / 1024)} KB)`
-                );
-              }
-            }}
-          />
-          {hasExistingImages && (
-            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-              El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva.
-            </p>
-          )}
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            Las fotos se comprimen automáticamente para evitar errores de tamaño.
-          </p>
-          {imageName && (
-            <p className="mt-1 text-xs font-medium text-[var(--color-brown)]">✓ {imageName}</p>
-          )}
-        </div>
+        <ProductImagePicker
+          label="Foto del producto"
+          required={!hasExistingImages}
+          disabled={loading}
+          imageName={imageName}
+          hint={
+            hasExistingImages
+              ? "El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva. Las fotos se comprimen automáticamente."
+              : "Las fotos se comprimen automáticamente para evitar errores de tamaño."
+          }
+          onSelect={handleSelectImage}
+        />
       )}
 
       {isEdit && (
-        <div>
-          <Label htmlFor="image">Nueva foto (opcional)</Label>
-          <Input
-            ref={fileInputRef}
-            id="image"
-            type="file"
-            accept="image/*"
+        <div className="space-y-3">
+          {userImages.length > 0 && (
+            <div>
+              <Label>Tus fotos</Label>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {userImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="relative aspect-square overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-brand-cream)]"
+                  >
+                    <Image
+                      src={img.url}
+                      alt="Tu foto del producto"
+                      fill
+                      className="object-cover"
+                      sizes="120px"
+                      unoptimized={img.url.includes("supabase")}
+                    />
+                    <button
+                      type="button"
+                      disabled={loading || deletingImageId === img.id}
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
+                      aria-label="Eliminar foto"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <ProductImagePicker
+            label="Agregar foto"
             disabled={loading}
-            onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+            imageName={imageName}
+            hint="Podés tomar una foto nueva o elegir una del carrete."
+            onSelect={handleSelectImage}
           />
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            Si subís una foto nueva, se agrega a las imágenes del producto.
-          </p>
         </div>
       )}
 

@@ -40,6 +40,13 @@ export default async function EditReviewPage({
     .select("*", { count: "exact", head: true })
     .eq("product_id", product.id);
 
+  const { data: userImages } = await supabase
+    .from("product_images")
+    .select("id, url")
+    .eq("product_id", product.id)
+    .eq("user_id", user.id)
+    .order("sort_order");
+
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
@@ -62,6 +69,7 @@ export default async function EditReviewPage({
               opinion: review.opinion,
               glutenCertification: review.gluten_certification,
             }}
+            userImages={userImages ?? []}
           />
         </CardContent>
       </Card>

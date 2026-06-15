@@ -62,20 +62,7 @@ async function waitForContainerSize(
 
 const READY_HINT = "Apuntá al código de barras en el centro del visor";
 
-function buildScanConfig(isApple: boolean) {
-  if (isApple) {
-    // Sin qrbox: en iOS el contenedor no puede ser más grande que qrbox (issue html5-qrcode #484).
-    // Full-frame mejora detección EAN-13 en Safari.
-    return {
-      fps: 5,
-      videoConstraints: {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
-    };
-  }
-
+function buildAndroidScanConfig() {
   return {
     fps: 10,
     qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
@@ -86,17 +73,28 @@ function buildScanConfig(isApple: boolean) {
   };
 }
 
-async function applyIosFocusIfSupported(scanner: Html5Qrcode) {
-  if (!isAppleMobile()) return;
+async function applyVideoFocus(videoEl: HTMLVideoElement | null) {
+  if (!videoEl?.srcObject) return;
+  const track = (videoEl.srcObject as MediaStream).getVideoTracks()[0];
+  if (!track) return;
+
   try {
-    await scanner.applyVideoConstraints({
-      advanced: [{ focusMode: "continuous" }],
-    } as unknown as MediaTrackConstraints);
-    agentLog("H3", "barcode-scanner:focus", "applied continuous focus", {});
-  } catch (err) {
-    agentLog("H3", "barcode-scanner:focus", "focus constraints skipped", {
-      error: err instanceof Error ? err.message : String(err),
-    });
+    const caps = track.getCapabilities?.() as MediaTrackCapabilities & {
+      zoom?: { min: number; max: number };
+      focusDistance?: { min: number; max: number };
+    };
+
+    const advanced: Record<string, unknown>[] = [{ focusMode: "continuous" }];
+    if (caps?.zoom?.max) {
+      advanced.push({ zoom: Math.min(2, caps.zoom.max) });
+    }
+    if (caps?.focusDistance?.max) {
+      advanced.push({ focusDistance: Math.min(1, caps.focusDistance.max) });
+    }
+
+    await track.applyConstraints({ advanced } as MediaTrackConstraints);
+  } catch {
+    /* focus not supported */
   }
 }
 
@@ -111,37 +109,24 @@ function agentLog(
   message: string,
   data: Record<string, unknown> = {}
 ) {
+  if (!isDebugScanner()) return;
   const payload = {
     sessionId: "8de89c",
-    runId: "post-fix",
+    runId: "zxing-ios",
     hypothesisId,
     location,
     message,
     data,
     timestamp: Date.now(),
   };
-  // #region agent log
-  if (isDebugScanner()) {
-    fetch("http://127.0.0.1:7732/ingest/3790f503-df5e-4315-a24e-28885c27c3fb", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "8de89c",
-      },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
-  }
-  // #endregion
-  if (isDebugScanner()) {
-    try {
-      const key = "debugScanner:8de89c";
-      const prev = JSON.parse(sessionStorage.getItem(key) ?? "[]") as string[];
-      prev.push(`${new Date().toISOString().slice(11, 23)} [${hypothesisId}] ${message}`);
-      sessionStorage.setItem(key, JSON.stringify(prev.slice(-40)));
-    } catch {
-      /* ignore */
-    }
-  }
+  fetch("http://127.0.0.1:7732/ingest/3790f503-df5e-4315-a24e-28885c27c3fb", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "8de89c",
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
 }
 
 type CameraConfig = string | { facingMode: string };
@@ -149,10 +134,6 @@ type CameraConfig = string | { facingMode: string };
 async function resolveCamera(
   Html5Qrcode: typeof import("html5-qrcode").Html5Qrcode
 ): Promise<CameraConfig> {
-  if (isAppleMobile()) {
-    return { facingMode: "environment" };
-  }
-
   try {
     const cameras = await Html5Qrcode.getCameras();
     if (!cameras.length) return { facingMode: "environment" };
@@ -163,9 +144,87 @@ async function resolveCamera(
   }
 }
 
+async function resolveZxingDeviceId(): Promise<string | undefined> {
+  const { BrowserMultiFormatReader } = await import("@zxing/browser");
+  const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+  if (!devices.length) return undefined;
+  const back = devices.find((d) => /back|rear|environment|trasera/i.test(d.label));
+  return back?.deviceId ?? devices[devices.length - 1]?.deviceId;
+}
+
+type ZxingSession = {
+  stop: () => void;
+};
+
+async function startZxingScan(
+  videoEl: HTMLVideoElement,
+  onDecode: (decoded: string) => void
+): Promise<ZxingSession> {
+  const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
+    import("@zxing/browser"),
+    import("@zxing/library"),
+  ]);
+
+  const hints = new Map();
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.QR_CODE,
+  ]);
+
+  const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 250 });
+  let stopped = false;
+  let controls: { stop: () => void } | null = null;
+
+  videoEl.setAttribute("playsinline", "true");
+  videoEl.setAttribute("webkit-playsinline", "true");
+  videoEl.muted = true;
+
+  const onResult = (result: { getText: () => string } | undefined) => {
+    if (stopped || !result) return;
+    onDecode(result.getText());
+  };
+
+  const deviceId = await resolveZxingDeviceId();
+  const constraints: MediaStreamConstraints = deviceId
+    ? { video: { deviceId: { exact: deviceId } } }
+    : {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      };
+
+  try {
+    controls = await reader.decodeFromConstraints(constraints, videoEl, onResult);
+  } catch {
+    controls = await reader.decodeFromVideoDevice(undefined, videoEl, onResult);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  await applyVideoFocus(videoEl);
+
+  return {
+    stop: () => {
+      stopped = true;
+      controls?.stop();
+      const stream = videoEl.srcObject as MediaStream | null;
+      stream?.getTracks().forEach((track) => track.stop());
+      videoEl.srcObject = null;
+    },
+  };
+}
+
 export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerProps) {
   const uid = useId().replace(/:/g, "");
   const readerId = `barcode-reader-${uid}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const useIosZxing = isAppleMobile();
+
   const [manualCode, setManualCode] = useState("");
   const [hint, setHint] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -174,6 +233,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
   const onScanRef = useRef(onScan);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const zxingRef = useRef<ZxingSession | null>(null);
   const decodedRef = useRef(false);
   const startRequestRef = useRef(0);
   const scanErrorCountRef = useRef(0);
@@ -193,6 +253,16 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
   );
 
   const stopCamera = useCallback(async () => {
+    const zxing = zxingRef.current;
+    zxingRef.current = null;
+    if (zxing) {
+      try {
+        zxing.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+
     const scanner = scannerRef.current;
     scannerRef.current = null;
     if (scanner) {
@@ -203,6 +273,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
         /* ignore stop races */
       }
     }
+
     setCameraActive(false);
     setStartingCamera(false);
     setHint(null);
@@ -210,6 +281,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
   useEffect(() => {
     return () => {
+      startRequestRef.current += 1;
       void stopCamera();
     };
   }, [stopCamera]);
@@ -228,6 +300,18 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
     [onStatus]
   );
 
+  const onDecodeSuccess = useCallback(
+    (decoded: string) => {
+      if (decodedRef.current) return;
+      decodedRef.current = true;
+      void (async () => {
+        await stopCamera();
+        handleDecoded(decoded);
+      })();
+    },
+    [handleDecoded, stopCamera]
+  );
+
   const startLiveScan = () => {
     if (disabled || cameraActive || startingCamera) return;
     decodedRef.current = false;
@@ -238,27 +322,50 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
     onStatus?.("info", "Activando cámara…");
     agentLog("H1", "barcode-scanner:startLiveScan", "button clicked", {
       requestId,
-      isApple: isAppleMobile(),
+      useIosZxing,
       disabled,
     });
-    pushDebug(`click req=${requestId}`);
+    pushDebug(`click req=${requestId} ios=${useIosZxing}`);
 
     void (async () => {
       try {
-        agentLog("H2", "barcode-scanner:loadLib", "loading html5-qrcode", { requestId });
-        const { Html5Qrcode, formats } = await loadHtml5Qrcode();
-        if (requestId !== startRequestRef.current) {
-          agentLog("H4", "barcode-scanner:cancelled", "after loadLib", { requestId });
+        setCameraActive(true);
+        await waitForDom();
+        if (requestId !== startRequestRef.current) return;
+
+        if (useIosZxing) {
+          const videoEl = videoRef.current;
+          if (!videoEl) throw new Error("NO_CONTAINER");
+
+          agentLog("H2", "barcode-scanner:zxing", "starting zxing", { requestId });
+          pushDebug("zxing start…");
+
+          setStartingCamera(false);
+          setHint(READY_HINT);
+          onStatus?.("info", READY_HINT);
+
+          const session = await startZxingScan(videoEl, (decoded) => {
+            agentLog("H3", "barcode-scanner:zxingDecode", "decoded", {
+              requestId,
+              length: decoded.length,
+            });
+            pushDebug(`DECODED len=${decoded.length}`);
+            onDecodeSuccess(decoded);
+          });
+
+          if (requestId !== startRequestRef.current) {
+            session.stop();
+            return;
+          }
+
+          zxingRef.current = session;
+          agentLog("H1", "barcode-scanner:ready", "zxing ready", { requestId });
+          pushDebug("zxing ready");
           return;
         }
 
-        setCameraActive(true);
-        pushDebug("cameraActive=true");
-        await waitForDom();
-        if (requestId !== startRequestRef.current) {
-          agentLog("H4", "barcode-scanner:cancelled", "after waitForDom", { requestId });
-          return;
-        }
+        const { Html5Qrcode, formats } = await loadHtml5Qrcode();
+        if (requestId !== startRequestRef.current) return;
 
         let containerSize: { width: number; height: number };
         try {
@@ -270,40 +377,24 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
           requestId,
           ...containerSize,
         });
-        pushDebug(`container ${containerSize.width}x${containerSize.height}`);
 
         const camera = await resolveCamera(Html5Qrcode);
-        agentLog("H2", "barcode-scanner:camera", "camera resolved", {
-          requestId,
-          camera: typeof camera === "string" ? camera : camera.facingMode,
-        });
-        pushDebug(`camera=${typeof camera === "string" ? camera : camera.facingMode}`);
-        if (requestId !== startRequestRef.current) {
-          agentLog("H4", "barcode-scanner:cancelled", "after resolveCamera", { requestId });
-          return;
-        }
+        if (requestId !== startRequestRef.current) return;
 
         setStartingCamera(false);
         setHint(READY_HINT);
         onStatus?.("info", READY_HINT);
 
-        const isApple = isAppleMobile();
         const scanner = new Html5Qrcode(readerId, {
           formatsToSupport: formats,
           verbose: isDebugScanner(),
           experimentalFeatures: {
-            useBarCodeDetectorIfSupported: !isApple,
+            useBarCodeDetectorIfSupported: true,
           },
         });
         scannerRef.current = scanner;
 
-        const scanConfig = buildScanConfig(isApple);
-      agentLog("H3", "barcode-scanner:config", "scan config", {
-        requestId,
-        isApple,
-        fullFrame: isApple,
-        fps: scanConfig.fps,
-      });
+        const scanConfig = buildAndroidScanConfig();
 
         const onDecode = (decoded: string) => {
           agentLog("H3", "barcode-scanner:decode", "barcode decoded", {
@@ -311,56 +402,27 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
             length: decoded.length,
             scanErrors: scanErrorCountRef.current,
           });
-          pushDebug(`DECODED len=${decoded.length}`);
-          if (decodedRef.current) return;
-          decodedRef.current = true;
-          void (async () => {
-            await stopCamera();
-            handleDecoded(decoded);
-          })();
+          onDecodeSuccess(decoded);
         };
 
         const onScanError = () => {
           scanErrorCountRef.current += 1;
-          if (scanErrorCountRef.current === 1 || scanErrorCountRef.current % 50 === 0) {
-            agentLog("H3", "barcode-scanner:scanError", "scan frame without decode", {
-              requestId,
-              count: scanErrorCountRef.current,
-            });
-            pushDebug(`scanErrors=${scanErrorCountRef.current}`);
-          }
         };
 
         try {
-          agentLog("H2", "barcode-scanner:start", "calling scanner.start primary", { requestId });
-          pushDebug("start(primary)…");
           await scanner.start(camera, scanConfig, onDecode, onScanError);
-          agentLog("H2", "barcode-scanner:startDone", "scanner.start resolved", {
-            requestId,
-            isScanning: scanner.isScanning,
-          });
-          pushDebug(`startDone scanning=${scanner.isScanning}`);
-          await applyIosFocusIfSupported(scanner);
+          const videoEl = document
+            .getElementById(readerId)
+            ?.querySelector("video") as HTMLVideoElement | null;
+          await applyVideoFocus(videoEl);
           onStatus?.("info", READY_HINT);
-          agentLog("H1", "barcode-scanner:ready", "camera ready", {
-            requestId,
-            isScanning: scanner.isScanning,
-          });
         } catch (firstErr) {
-          agentLog("H2", "barcode-scanner:startFail", "primary start failed", {
-            requestId,
-            error: firstErr instanceof Error ? firstErr.message : String(firstErr),
-          });
-          pushDebug(`startFail: ${firstErr instanceof Error ? firstErr.message : "unknown"}`);
           if (typeof camera === "string") throw firstErr;
-          agentLog("H2", "barcode-scanner:start", "calling scanner.start fallback", { requestId });
           await scanner.start({ facingMode: "environment" }, scanConfig, onDecode, onScanError);
-          agentLog("H2", "barcode-scanner:startDone", "fallback start resolved", {
-            requestId,
-            isScanning: scanner.isScanning,
-          });
-          pushDebug(`fallbackDone scanning=${scanner.isScanning}`);
-          await applyIosFocusIfSupported(scanner);
+          const videoEl = document
+            .getElementById(readerId)
+            ?.querySelector("video") as HTMLVideoElement | null;
+          await applyVideoFocus(videoEl);
           onStatus?.("info", READY_HINT);
         }
       } catch (err) {
@@ -368,7 +430,6 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
         agentLog("H2", "barcode-scanner:catch", "startLiveScan failed", {
           requestId,
           error: err instanceof Error ? err.message : String(err),
-          name: err instanceof Error ? err.name : "unknown",
         });
         pushDebug(`ERROR: ${err instanceof Error ? err.message : "unknown"}`);
         await stopCamera();
@@ -379,7 +440,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
             err.name === "NotAllowedError");
 
         const errMsg = isPermission
-          ? isAppleMobile()
+          ? useIosZxing
             ? "Safari bloqueó la cámara. Andá a Ajustes → Safari → Cámara (o la app CeliApp) y permití el acceso, luego recargá la página."
             : "Permiso de cámara denegado. Permití el acceso en el navegador e intentá de nuevo."
           : err instanceof Error && err.message === "NO_CONTAINER"
@@ -399,7 +460,6 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
 
   return (
     <div className="space-y-4">
-      {/* Siempre montado: en iPhone el visor debe existir antes de scanner.start() */}
       <div
         className={
           cameraActive
@@ -408,14 +468,22 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
         }
         aria-hidden={!cameraActive}
       >
-        <div
-          id={readerId}
-          className="min-h-[260px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:rounded-2xl [&_video]:min-h-[240px]"
-        />
+        {useIosZxing ? (
+          <video
+            ref={videoRef}
+            className="min-h-[260px] w-full rounded-2xl border border-[var(--color-border)] bg-black object-cover"
+            playsInline
+            muted
+            autoPlay
+          />
+        ) : (
+          <div
+            id={readerId}
+            className="min-h-[260px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black [&_video]:min-h-[240px] [&_video]:rounded-2xl"
+          />
+        )}
         {cameraActive && hint && (
-          <p className="text-center text-sm text-[var(--color-muted-foreground)]">
-            {hint}
-          </p>
+          <p className="text-center text-sm text-[var(--color-muted-foreground)]">{hint}</p>
         )}
         {cameraActive && (
           <Button

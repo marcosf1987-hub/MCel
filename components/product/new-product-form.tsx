@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
 import { compressImage } from "@/lib/compress-image";
+import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
 import type { OffProductData } from "@/lib/off/parse";
 
@@ -25,6 +26,7 @@ export function NewProductForm() {
   const [offImageUrl, setOffImageUrl] = useState("");
   const [manualMode, setManualMode] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
 
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
@@ -270,30 +272,24 @@ export function NewProductForm() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="image">Imagen del producto {!offImageUrl && "*"}</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setImageFile(f);
-                    if (f) {
-                      setStatus("info", `Foto seleccionada: ${f.name}`);
-                    }
-                  }}
-                />
-                {offImageUrl ? (
-                  <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                    Hay imagen de Open Food Facts. Podés omitir la foto o subir una propia.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                    Obligatoria si no hay imagen automática. Se comprime sola antes de subir.
-                  </p>
-                )}
-              </div>
+              <ProductImagePicker
+                label="Imagen del producto"
+                required={!offImageUrl}
+                disabled={loading}
+                imageName={imageName}
+                hint={
+                  offImageUrl
+                    ? "Hay imagen de Open Food Facts. Podés omitir la foto o subir una propia."
+                    : "Obligatoria si no hay imagen automática. Se comprime sola antes de subir."
+                }
+                onSelect={(file) => {
+                  setImageFile(file);
+                  setImageName(file?.name ?? null);
+                  if (file) {
+                    setStatus("info", `Foto seleccionada: ${file.name}`);
+                  }
+                }}
+              />
 
               <Button type="submit" disabled={loading} className="w-full" size="lg">
                 {loading ? "Guardando…" : "Crear producto y evaluar"}
