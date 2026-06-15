@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
+import { buildProductCards } from "@/lib/product-cards";
 import { getBrandName } from "@/lib/utils";
-import { visibleProductImages } from "@/lib/product-images-display";
 
 export default async function CategoryPage({
   params,
@@ -32,20 +32,7 @@ export default async function CategoryPage({
 
   const subs = category.subcategories as { id: string; name: string; name_es: string | null; slug: string }[];
 
-  const cards = (products ?? []).map((p) => {
-    const images = visibleProductImages(
-      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
-    );
-    return {
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      weighted_rating: p.weighted_rating,
-      review_count: p.review_count,
-      image_url: images[0]?.url ?? null,
-      brand_name: getBrandName(p.brands),
-    };
-  });
+  const cards = await buildProductCards(supabase, products ?? [], getBrandName);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

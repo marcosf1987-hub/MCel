@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   fetchFilteredProducts,
-  mapProductToCard,
   type ProductListParams,
 } from "@/lib/product-list-filters";
+import { buildProductCards } from "@/lib/product-cards";
 import { getBrandName } from "@/lib/utils";
 import { canViewList, FAVORITES_LIST_SLUG, getOrCreateFavoritesList } from "@/lib/lists";
 import { getUserListVote } from "@/lib/social-lists";
@@ -125,7 +125,7 @@ export async function getListProductCards(
   }
 
   return {
-    cards: ordered.map((p) => mapProductToCard(p, getBrandName)),
+    cards: await buildProductCards(supabase, ordered, getBrandName),
     productIds,
   };
 }

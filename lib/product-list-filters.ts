@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyCatalogFilters } from "@/lib/apply-product-filters";
-import { visibleProductImages } from "@/lib/product-images-display";
+import { mapRowToProductCard } from "@/lib/product-cards";
 
 export type ProductListParams = {
   q?: string;
@@ -85,16 +85,5 @@ export function mapProductToCard(
   p: ProductRowForCard,
   getBrandName: (b: ProductRowForCard["brands"]) => string | undefined
 ) {
-  const images = visibleProductImages(
-    (p.product_images ?? []) as { url: string; sort_order: number; is_hidden?: boolean }[]
-  );
-  return {
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    weighted_rating: p.weighted_rating,
-    review_count: p.review_count,
-    image_url: images[0]?.url ?? null,
-    brand_name: getBrandName(p.brands),
-  };
+  return mapRowToProductCard(p, getBrandName);
 }

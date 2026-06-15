@@ -4,8 +4,8 @@ import { ProductFilters } from "@/components/product/product-filters";
 import { ProductCardGrid } from "@/components/product/product-card-grid";
 import { applyCatalogFilters } from "@/lib/apply-product-filters";
 import { getProductCardAuthContext } from "@/lib/product-card-auth";
+import { buildProductCards } from "@/lib/product-cards";
 import { getBrandName } from "@/lib/utils";
-import { visibleProductImages } from "@/lib/product-images-display";
 
 export const metadata = { title: "Productos" };
 
@@ -53,20 +53,7 @@ export default async function ProductsPage({
     params.rating ?? params.minRating
   );
 
-  const cards = filtered.map((p) => {
-    const images = visibleProductImages(
-      (p.product_images as { url: string; sort_order: number; is_hidden?: boolean }[]) ?? []
-    );
-    return {
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      weighted_rating: p.weighted_rating,
-      review_count: p.review_count,
-      image_url: images[0]?.url ?? null,
-      brand_name: getBrandName(p.brands),
-    };
-  });
+  const cards = await buildProductCards(supabase, filtered, getBrandName);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

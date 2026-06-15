@@ -10,16 +10,15 @@ export function ProductCardGrid({
   favoriteIds?: Set<string>;
 }) {
   return (
-    <div className="flex flex-wrap justify-center gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {products.map((p) => (
-        <div key={p.id} className="w-full max-w-[280px] sm:w-[280px]">
-          <ProductCard
-            product={p}
-            isLoggedIn={isLoggedIn}
-            isFavorited={favoriteIds.has(p.id)}
-            showFavorite
-          />
-        </div>
+        <ProductCard
+          key={p.id}
+          product={p}
+          isLoggedIn={isLoggedIn}
+          isFavorited={favoriteIds.has(p.id)}
+          showFavorite
+        />
       ))}
     </div>
   );
