@@ -28,6 +28,14 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/009_lists_phase3_social.sql` (voto negativo, seguir usuarios, colaboradores, comentarios, Fase 3)
    - `supabase/migrations/010_product_image_quality.sql` (ranking estético de fotos, ocultar OFF malas)
    - `supabase/migrations/011_avatars_storage.sql` (fotos de perfil, bucket avatars)
+   - `supabase/migrations/012_product_images_delete.sql` (borrar fotos propias)
+   - `supabase/migrations/013_app_roles_phase_a.sql` (roles admin, suspensión, soft delete, audit log)
+
+> Después de `013`, asigná el primer superadmin en SQL Editor:
+> ```sql
+> UPDATE profiles SET app_role = 'superadmin'
+> WHERE id = (SELECT id FROM auth.users WHERE email = 'tu-email@gmail.com');
+> ```
 
 > Copiá el **texto SQL** del archivo, no la ruta `c:\Users\...`
 

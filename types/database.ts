@@ -1,5 +1,7 @@
 export type UserTier = "none" | "bronze" | "silver" | "gold";
 
+export type AppRole = "user" | "moderator" | "admin" | "superadmin";
+
 export type GlutenCertification =
   | "sin_tacc"
   | "sin_gluten"
@@ -39,6 +41,10 @@ export interface Profile {
   preferences: UserPreferences;
   collaboration_count: number;
   tier: UserTier;
+  app_role: AppRole;
+  is_suspended: boolean;
+  suspended_at: string | null;
+  suspended_reason: string | null;
   created_at: string;
   updated_at: string;
 }

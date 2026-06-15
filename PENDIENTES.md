@@ -1,5 +1,12 @@
 # Pendientes — MCel
 
+## Admin / roles
+
+- [x] **Fase A:** `app_role`, suspensión, soft delete, RLS staff, `/admin`, audit log.
+- [ ] **Fase B:** Panel de reportes y moderación de contenido.
+- [ ] **Fase C:** ABM catálogo + cola imágenes `needs_review`.
+- [ ] **Fase D:** Dashboard KPIs con evolución temporal.
+
 ## Listas sociales (Fase 4+)
 
 - [ ] Notificaciones cuando alguien comenta o vota tu lista.

@@ -39,6 +39,31 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  if (user && (path.startsWith("/admin") || path.startsWith("/cuenta") || path.startsWith("/api/admin"))) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_suspended, app_role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.is_suspended) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "Cuenta suspendida");
+      return NextResponse.redirect(url);
+    }
+
+    if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
+      const staffRoles = ["moderator", "admin", "superadmin"];
+      if (!profile?.app_role || !staffRoles.includes(profile.app_role)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/";
+        url.searchParams.set("error", "sin_permisos_admin");
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   const needsAuth =
     path === "/productos/nuevo" ||
     path.endsWith("/evaluar") ||
@@ -57,6 +82,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/admin(.*)",
+    "/api/admin(.*)",
     "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
