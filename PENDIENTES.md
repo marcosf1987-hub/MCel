@@ -3,7 +3,7 @@
 ## Admin / roles
 
 - [x] **Fase A:** `app_role`, suspensión, soft delete, RLS staff, `/admin`, audit log.
-- [ ] **Fase B:** Panel de reportes y moderación de contenido.
+- [x] **Fase B:** Panel `/admin/reports`, resolver/descartar, ocultar contenido.
 - [ ] **Fase C:** ABM catálogo + cola imágenes `needs_review`.
 - [ ] **Fase D:** Dashboard KPIs con evolución temporal.
 

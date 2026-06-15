@@ -9,8 +9,7 @@ export const metadata = { title: "Administración" };
 
 const NAV = [
   { href: "/admin", label: "Resumen" },
-  { href: "/admin#proximo", label: "Próximamente: reportes" },
-  { href: "/admin#proximo", label: "Próximamente: KPIs" },
+  { href: "/admin/reports", label: "Reportes" },
 ];
 
 export default async function AdminLayout({

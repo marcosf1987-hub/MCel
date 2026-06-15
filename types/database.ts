@@ -214,6 +214,9 @@ export interface Report {
   target_id: string;
   reason: string;
   status: "pending" | "resolved" | "dismissed";
+  resolved_by: string | null;
+  resolved_at: string | null;
+  moderator_note: string | null;
   created_at: string;
 }
 

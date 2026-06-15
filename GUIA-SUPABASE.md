@@ -30,6 +30,7 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/011_avatars_storage.sql` (fotos de perfil, bucket avatars)
    - `supabase/migrations/012_product_images_delete.sql` (borrar fotos propias)
    - `supabase/migrations/013_app_roles_phase_a.sql` (roles admin, suspensión, soft delete, audit log)
+   - `supabase/migrations/014_reports_moderation_phase_b.sql` (cola reportes, soft delete listas)
 
 > Después de `013`, asigná el primer superadmin en SQL Editor:
 > ```sql

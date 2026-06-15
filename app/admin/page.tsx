@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session-profile";
 import {
@@ -50,9 +51,16 @@ export default async function AdminPage() {
           Resumen
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Fase A: roles, permisos y base de auditoría. Los módulos de moderación y KPIs
-          llegan en las siguientes fases.
+          Panel de administración. Moderación, catálogo y KPIs en próximas fases.
         </p>
+        {(pendingReports ?? 0) > 0 && (
+          <Link
+            href="/admin/reports"
+            className="mt-2 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+          >
+            Ver {pendingReports} reporte{(pendingReports ?? 0) !== 1 ? "s" : ""} pendiente{(pendingReports ?? 0) !== 1 ? "s" : ""} →
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -106,7 +114,7 @@ export default async function AdminPage() {
         </Card>
       </div>
 
-      <Card id="proximo">
+      <Card>
         <CardHeader>
           <CardTitle>Tus permisos</CardTitle>
         </CardHeader>
@@ -129,10 +137,6 @@ export default async function AdminPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs text-[var(--color-muted-foreground)]">
-            Para asignarte como superadmin, ejecutá la migración 013 y luego el UPDATE
-            comentado al final del SQL con tu email.
-          </p>
         </CardContent>
       </Card>
     </div>
