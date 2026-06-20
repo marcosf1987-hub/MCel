@@ -2,14 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session-profile";
-import { APP_ROLE_LABELS } from "@/lib/auth/roles";
+import { APP_ROLE_LABELS, canManageCatalog } from "@/lib/auth/roles";
 import { Shield } from "lucide-react";
 
 export const metadata = { title: "Administración" };
 
-const NAV = [
+const BASE_NAV = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin/reports", label: "Reportes" },
+];
+
+const CATALOG_NAV = [
+  { href: "/admin/catalog", label: "Catálogo" },
+  { href: "/admin/images", label: "Imágenes" },
 ];
 
 export default async function AdminLayout({
@@ -31,6 +36,10 @@ export default async function AdminLayout({
   }
 
   const roleLabel = APP_ROLE_LABELS[auth.session.profile.app_role];
+  const nav = [
+    ...BASE_NAV,
+    ...(canManageCatalog(auth.session.profile.app_role) ? CATALOG_NAV : []),
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--color-brand-cream)]">
@@ -53,7 +62,7 @@ export default async function AdminLayout({
           </Link>
         </div>
         <nav className="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 pb-3 text-sm">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.label}
               href={item.href}

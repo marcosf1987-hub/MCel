@@ -4,7 +4,7 @@
 
 - [x] **Fase A:** `app_role`, suspensión, soft delete, RLS staff, `/admin`, audit log.
 - [x] **Fase B:** Panel `/admin/reports`, resolver/descartar, ocultar contenido.
-- [ ] **Fase C:** ABM catálogo + cola imágenes `needs_review`.
+- [x] **Fase C:** ABM catálogo (`/admin/catalog`) + cola imágenes (`/admin/images`).
 - [ ] **Fase D:** Dashboard KPIs con evolución temporal.
 
 ## Listas sociales (Fase 4+)
@@ -16,7 +16,7 @@
 ## Imágenes de producto
 
 - [x] **IA — ranking de fotos:** batch nocturno (Gemini free + heurísticas), pool candidato de 10, ocultar OFF bajo umbral 40 si hay alternativas.
-- [ ] UI admin para cola `needs_review` y override `manual`.
+- [x] UI admin para cola `needs_review` y override `manual` (`/admin/images`).
 
 ## Otras ideas (backlog)
 
