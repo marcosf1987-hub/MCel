@@ -8,6 +8,7 @@ import {
   canModerateContent,
 } from "@/lib/auth/roles";
 import { countReviewImages } from "@/lib/admin/catalog-server";
+import { countSuspendedUsers } from "@/lib/admin/users-server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AdminPage() {
@@ -17,6 +18,7 @@ export default async function AdminPage() {
 
   const role = auth.session.profile.app_role;
   const showCatalog = canManageCatalog(role);
+  const showUsers = canManageUsers(role);
 
   const [
     { count: usersCount },
@@ -24,6 +26,7 @@ export default async function AdminPage() {
     { count: reviewsCount },
     { count: pendingReports },
     pendingImages,
+    suspendedUsers,
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase
@@ -39,6 +42,7 @@ export default async function AdminPage() {
       .select("*", { count: "exact", head: true })
       .eq("status", "pending"),
     showCatalog ? countReviewImages(supabase) : Promise.resolve(0),
+    showUsers ? countSuspendedUsers(supabase) : Promise.resolve(0),
   ]);
 
   const permissions = [
@@ -69,6 +73,14 @@ export default async function AdminPage() {
             className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
           >
             Ver {pendingReports} reporte{(pendingReports ?? 0) !== 1 ? "s" : ""} pendiente{(pendingReports ?? 0) !== 1 ? "s" : ""} →
+          </Link>
+        )}
+        {showUsers && (suspendedUsers ?? 0) > 0 && (
+          <Link
+            href="/admin/users?suspended=yes"
+            className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+          >
+            Ver {suspendedUsers} usuario{(suspendedUsers ?? 0) !== 1 ? "s" : ""} suspendido{(suspendedUsers ?? 0) !== 1 ? "s" : ""} →
           </Link>
         )}
         {showCatalog && pendingImages > 0 && (

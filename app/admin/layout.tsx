@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session-profile";
-import { APP_ROLE_LABELS, canManageCatalog } from "@/lib/auth/roles";
+import { APP_ROLE_LABELS, canManageCatalog, canManageUsers } from "@/lib/auth/roles";
 import { Shield } from "lucide-react";
 
 export const metadata = { title: "Administración" };
@@ -12,6 +12,8 @@ const BASE_NAV = [
   { href: "/admin/analytics", label: "Métricas" },
   { href: "/admin/reports", label: "Reportes" },
 ];
+
+const USERS_NAV = [{ href: "/admin/users", label: "Usuarios" }];
 
 const CATALOG_NAV = [
   { href: "/admin/catalog", label: "Catálogo" },
@@ -39,6 +41,7 @@ export default async function AdminLayout({
   const roleLabel = APP_ROLE_LABELS[auth.session.profile.app_role];
   const nav = [
     ...BASE_NAV,
+    ...(canManageUsers(auth.session.profile.app_role) ? USERS_NAV : []),
     ...(canManageCatalog(auth.session.profile.app_role) ? CATALOG_NAV : []),
   ];
 

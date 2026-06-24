@@ -6,6 +6,7 @@
 - [x] **Fase B:** Panel `/admin/reports`, resolver/descartar, ocultar contenido.
 - [x] **Fase C:** ABM catálogo (`/admin/catalog`) + cola imágenes (`/admin/images`).
 - [x] **Fase D:** Dashboard `/admin/analytics` con KPIs y evolución temporal.
+- [x] **Fase E:** Gestión usuarios (`/admin/users`), suspensión, roles y export GDPR.
 
 ## Listas sociales (Fase 4+)
 
