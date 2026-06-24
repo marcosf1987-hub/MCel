@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ListVoteType } from "@/types/database";
+import type { ListCollaboratorRole, ListVoteType } from "@/types/database";
 
 export async function getUserListVote(
   supabase: SupabaseClient,
@@ -31,6 +31,21 @@ export async function isFollowingUser(
   return Boolean(data);
 }
 
+export async function getCollaboratorRole(
+  supabase: SupabaseClient,
+  listId: string,
+  userId: string
+): Promise<ListCollaboratorRole | null> {
+  const { data } = await supabase
+    .from("list_collaborators")
+    .select("role")
+    .eq("list_id", listId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return (data?.role as ListCollaboratorRole) ?? null;
+}
+
 export async function canEditList(
   supabase: SupabaseClient,
   listId: string,
@@ -44,14 +59,17 @@ export async function canEditList(
 
   if (list?.user_id === userId) return true;
 
-  const { data: collab } = await supabase
-    .from("list_collaborators")
-    .select("user_id")
-    .eq("list_id", listId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const role = await getCollaboratorRole(supabase, listId, userId);
+  return role === "editor";
+}
 
-  return Boolean(collab);
+export async function canViewListAsCollaborator(
+  supabase: SupabaseClient,
+  listId: string,
+  userId: string
+): Promise<boolean> {
+  const role = await getCollaboratorRole(supabase, listId, userId);
+  return role === "viewer" || role === "editor";
 }
 
 export async function isListOwner(

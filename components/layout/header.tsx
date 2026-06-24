@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { NotificationBellLink } from "@/components/lists/notification-bell-link";
+import { countUnreadNotifications } from "@/lib/list-notifications";
 import { Wheat, Heart, User, ListMusic } from "lucide-react";
 
 export async function Header() {
   const env = getSupabasePublicEnv();
   let user = null;
   let profile: { display_name: string | null; tier: string } | null = null;
+  let unreadNotifications = 0;
 
   if (env.ok) {
     const supabase = await createClient();
@@ -25,6 +28,11 @@ export async function Header() {
         .eq("id", user.id)
         .single();
       profile = p;
+      try {
+        unreadNotifications = await countUnreadNotifications(supabase, user.id);
+      } catch {
+        unreadNotifications = 0;
+      }
     }
   }
 
@@ -59,6 +67,7 @@ export async function Header() {
               <Link href="/login">Entrar</Link>
             </Button>
           )}
+          {user && <NotificationBellLink unreadCount={unreadNotifications} />}
         </div>
 
         {/* Desktop */}
@@ -82,6 +91,7 @@ export async function Header() {
           <nav className="ml-auto flex shrink-0 items-center gap-1">
             {user ? (
               <>
+                <NotificationBellLink unreadCount={unreadNotifications} />
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/cuenta/listas" className="gap-1.5">
                     <ListMusic className="h-4 w-4" />

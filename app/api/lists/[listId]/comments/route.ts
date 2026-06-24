@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
+import { createListNotification } from "@/lib/list-notifications";
 
 export async function GET(
   _request: NextRequest,
@@ -61,13 +62,25 @@ export async function POST(
 
   if (!list) return listJson({ ok: false, error: "Lista no encontrada." }, 404);
 
-  const { error } = await supabase.from("list_comments").insert({
-    list_id: listId,
-    user_id: user.id,
-    body: text,
-  });
+  const { data: comment, error } = await supabase
+    .from("list_comments")
+    .insert({
+      list_id: listId,
+      user_id: user.id,
+      body: text,
+    })
+    .select("id")
+    .single();
 
   if (error) return listJson({ ok: false, error: error.message }, 500);
+
+  await createListNotification(supabase, {
+    recipientId: list.user_id,
+    actorId: user.id,
+    listId,
+    type: "list_comment",
+    commentId: comment.id,
+  });
 
   return withCookies(response, listJson({ ok: true }));
 }

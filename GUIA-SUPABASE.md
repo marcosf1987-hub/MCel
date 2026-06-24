@@ -32,6 +32,7 @@ Solo ejecutá lo que falte:
    - `supabase/migrations/013_app_roles_phase_a.sql` (roles admin, suspensión, soft delete, audit log)
    - `supabase/migrations/014_reports_moderation_phase_b.sql` (cola reportes, soft delete listas)
    - `supabase/migrations/015_admin_catalog_phase_c.sql` (ABM catálogo admin, override imágenes)
+   - `supabase/migrations/016_lists_phase4_social.sql` (notificaciones listas, roles colaborador)
 
 > Después de `013`, asigná el primer superadmin en SQL Editor:
 > ```sql

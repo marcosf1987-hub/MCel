@@ -7,7 +7,8 @@ import { buildProductCards } from "@/lib/product-cards";
 import { getBrandName } from "@/lib/utils";
 import { canViewList, FAVORITES_LIST_SLUG, getOrCreateFavoritesList } from "@/lib/lists";
 import { getUserListVote } from "@/lib/social-lists";
-import type { ListVisibility, ListVoteType, ProductList } from "@/types/database";
+import { sortFeedLists, type FeedSort } from "@/lib/list-feed-score";
+import type { ListCollaboratorRole, ListVisibility, ListVoteType, ProductList } from "@/types/database";
 
 export type EditableList = Pick<
   ProductList,
@@ -287,10 +288,10 @@ export async function getCollaboratedListBySlug(
   supabase: SupabaseClient,
   userId: string,
   slug: string
-) {
+): Promise<{ list: EditableList; role: ListCollaboratorRole } | null> {
   const { data: rows, error } = await supabase
     .from("list_collaborators")
-    .select("product_lists(*)")
+    .select("role, product_lists(*)")
     .eq("user_id", userId);
 
   if (error) throw error;
@@ -300,7 +301,10 @@ export async function getCollaboratedListBySlug(
       ? row.product_lists[0]
       : row.product_lists;
     if (pl && (pl as { slug: string }).slug === slug) {
-      return pl;
+      return {
+        list: pl as EditableList,
+        role: (row.role as ListCollaboratorRole) ?? "editor",
+      };
     }
   }
   return null;
@@ -310,12 +314,24 @@ export async function getEditableListBySlug(
   supabase: SupabaseClient,
   userId: string,
   slug: string
-): Promise<{ list: EditableList; isOwner: boolean } | null> {
+): Promise<{
+  list: EditableList;
+  isOwner: boolean;
+  collaborationRole: ListCollaboratorRole | null;
+} | null> {
   const own = await getUserListBySlug(supabase, userId, slug);
-  if (own) return { list: own as EditableList, isOwner: true };
+  if (own) {
+    return { list: own as EditableList, isOwner: true, collaborationRole: null };
+  }
 
   const collab = await getCollaboratedListBySlug(supabase, userId, slug);
-  if (collab) return { list: collab as EditableList, isOwner: false };
+  if (collab) {
+    return {
+      list: collab.list,
+      isOwner: false,
+      collaborationRole: collab.role,
+    };
+  }
 
   return null;
 }
@@ -326,7 +342,7 @@ export async function getListCollaborators(
 ) {
   const { data, error } = await supabase
     .from("list_collaborators")
-    .select("user_id, profiles(username, display_name)")
+    .select("user_id, role, profiles(username, display_name)")
     .eq("list_id", listId);
 
   if (error) throw error;
@@ -335,6 +351,7 @@ export async function getListCollaborators(
     const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     return {
       userId: row.user_id as string,
+      role: (row.role as ListCollaboratorRole) ?? "editor",
       username: (p as { username: string | null })?.username ?? null,
       displayName: (p as { display_name: string | null })?.display_name ?? null,
     };
@@ -395,8 +412,10 @@ export async function getCollaboratedListsSummary(supabase: SupabaseClient, user
 export async function getFollowingFeedLists(
   supabase: SupabaseClient,
   userId: string,
-  limit = 25
+  opts: { limit?: number; sort?: FeedSort } = {}
 ) {
+  const limit = opts.limit ?? 25;
+  const sort = opts.sort ?? "relevant";
   const { data: follows } = await supabase
     .from("user_follows")
     .select("following_id")
@@ -413,10 +432,11 @@ export async function getFollowingFeedLists(
     .in("user_id", followingIds)
     .in("visibility", ["public", "unlisted"])
     .eq("is_system", false)
-    .order("updated_at", { ascending: false })
-    .limit(limit);
+    .limit(limit * 2);
 
   if (!lists?.length) return [];
+
+  const sorted = sortFeedLists(lists, sort).slice(0, limit);
 
   const { data: profiles } = await supabase
     .from("profiles")
@@ -425,7 +445,7 @@ export async function getFollowingFeedLists(
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-  return lists.map((row) => {
+  return sorted.map((row) => {
     const profile = profileMap.get(row.user_id);
     return {
       id: row.id,

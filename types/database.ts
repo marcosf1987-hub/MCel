@@ -147,6 +147,8 @@ export interface Review {
 
 export type ListVisibility = "public" | "unlisted" | "private";
 export type ListVoteType = "up" | "down";
+export type ListCollaboratorRole = "viewer" | "editor";
+export type ListNotificationType = "list_vote" | "list_comment";
 
 export interface ProductList {
   id: string;
@@ -196,6 +198,18 @@ export interface ListCollaborator {
   list_id: string;
   user_id: string;
   invited_by: string;
+  role: ListCollaboratorRole;
+  created_at: string;
+}
+
+export interface ListNotification {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  list_id: string;
+  type: ListNotificationType;
+  comment_id: string | null;
+  read_at: string | null;
   created_at: string;
 }
 

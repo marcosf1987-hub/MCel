@@ -3,11 +3,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ListCollaboratorRole } from "@/types/database";
+
+const ROLE_LABELS: Record<ListCollaboratorRole, string> = {
+  editor: "Editor",
+  viewer: "Solo lectura",
+};
 
 type Collab = {
   userId: string;
   username: string | null;
   displayName: string | null;
+  role: ListCollaboratorRole;
 };
 
 export function ListCollaboratorsEditor({
@@ -19,6 +26,7 @@ export function ListCollaboratorsEditor({
 }) {
   const [collaborators, setCollaborators] = useState(initialCollaborators);
   const [username, setUsername] = useState("");
+  const [inviteRole, setInviteRole] = useState<ListCollaboratorRole>("editor");
   const [loading, setLoading] = useState(false);
 
   const invite = async () => {
@@ -30,31 +38,40 @@ export function ListCollaboratorsEditor({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: value }),
+        body: JSON.stringify({ username: value, role: inviteRole }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
-        collaborator?: Collab & { userId: string };
+        collaborator?: Collab;
         error?: string;
       };
       if (!res.ok || !data.ok || !data.collaborator) {
         throw new Error(data.error ?? "Error al invitar");
       }
-      const c = data.collaborator;
-      setCollaborators((prev) => [
-        ...prev,
-        {
-          userId: c.userId,
-          username: c.username,
-          displayName: c.displayName,
-        },
-      ]);
+      setCollaborators((prev) => [...prev, data.collaborator!]);
       setUsername("");
     } catch (e) {
       window.alert(e instanceof Error ? e.message : "No se pudo invitar");
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateRole = async (userId: string, role: ListCollaboratorRole) => {
+    const res = await fetch(`/api/lists/${listId}/collaborators`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, role }),
+    });
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    if (!res.ok || !data.ok) {
+      window.alert(data.error ?? "No se pudo actualizar el rol");
+      return;
+    }
+    setCollaborators((prev) =>
+      prev.map((c) => (c.userId === userId ? { ...c, role } : c))
+    );
   };
 
   const remove = async (userId: string) => {
@@ -74,15 +91,25 @@ export function ListCollaboratorsEditor({
   return (
     <div className="space-y-3">
       <p className="text-sm text-[var(--color-muted-foreground)]">
-        Los colaboradores pueden agregar y quitar productos. Solo vos editás título y visibilidad.
+        Editores pueden agregar o quitar productos. Lectores solo ven la lista privada.
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="usuario (sin @)"
           disabled={loading}
+          className="min-w-[140px] flex-1"
         />
+        <select
+          className="rounded-md border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+          value={inviteRole}
+          onChange={(e) => setInviteRole(e.target.value as ListCollaboratorRole)}
+          disabled={loading}
+        >
+          <option value="editor">Editor</option>
+          <option value="viewer">Solo lectura</option>
+        </select>
         <Button type="button" variant="accent" size="sm" disabled={loading} onClick={() => void invite()}>
           Invitar
         </Button>
@@ -92,7 +119,7 @@ export function ListCollaboratorsEditor({
           {collaborators.map((c) => (
             <li
               key={c.userId}
-              className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2"
             >
               <span>
                 {c.displayName ?? c.username ?? "Usuario"}
@@ -100,13 +127,25 @@ export function ListCollaboratorsEditor({
                   <span className="text-[var(--color-muted-foreground)]"> @{c.username}</span>
                 )}
               </span>
-              <button
-                type="button"
-                className="text-xs text-red-600 hover:underline"
-                onClick={() => void remove(c.userId)}
-              >
-                Quitar
-              </button>
+              <div className="flex items-center gap-2">
+                <select
+                  className="rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs"
+                  value={c.role}
+                  onChange={(e) =>
+                    void updateRole(c.userId, e.target.value as ListCollaboratorRole)
+                  }
+                >
+                  <option value="editor">{ROLE_LABELS.editor}</option>
+                  <option value="viewer">{ROLE_LABELS.viewer}</option>
+                </select>
+                <button
+                  type="button"
+                  className="text-xs text-red-600 hover:underline"
+                  onClick={() => void remove(c.userId)}
+                >
+                  Quitar
+                </button>
+              </div>
             </li>
           ))}
         </ul>

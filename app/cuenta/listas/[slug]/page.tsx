@@ -41,10 +41,12 @@ export default async function MyListDetailPage({
 
   let list;
   let isOwner = true;
+  let collaborationRole: "viewer" | "editor" | null = null;
   try {
     const editable = await getEditableListBySlug(supabase, user.id, slug);
     list = editable?.list ?? null;
     isOwner = editable?.isOwner ?? true;
+    collaborationRole = editable?.collaborationRole ?? null;
   } catch (e) {
     console.error("getEditableListBySlug:", e);
     const msg = e instanceof Error ? e.message : "";
@@ -90,7 +92,11 @@ export default async function MyListDetailPage({
           )}
           <h1 className="text-2xl font-bold text-[var(--color-brown)]">{listTitle}</h1>
           {!isOwner && (
-            <p className="mt-1 text-xs text-[var(--color-accent)]">Colaborás en esta lista</p>
+            <p className="mt-1 text-xs text-[var(--color-accent)]">
+              {collaborationRole === "viewer"
+                ? "Colaborás en solo lectura"
+                : "Colaborás en esta lista"}
+            </p>
           )}
           {listDescription && (
             <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
@@ -103,12 +109,14 @@ export default async function MyListDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href={`/cuenta/listas/${slug}/editar`}>
-              <Pencil className="h-4 w-4" />
-              Editar
-            </Link>
-          </Button>
+          {collaborationRole !== "viewer" && (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href={`/cuenta/listas/${slug}/editar`}>
+                <Pencil className="h-4 w-4" />
+                Editar
+              </Link>
+            </Button>
+          )}
           {shareUrl && (
             <Button asChild variant="outline" size="sm">
               <Link href={sharePath!}>Vista pública</Link>

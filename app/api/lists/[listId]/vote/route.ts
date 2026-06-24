@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
+import { createListNotification } from "@/lib/list-notifications";
 import type { ListVoteType } from "@/types/database";
 
 export async function POST(
@@ -60,6 +61,13 @@ export async function POST(
       vote_type: voteType,
     });
     if (error) return listJson({ ok: false, error: error.message }, 500);
+
+    await createListNotification(supabase, {
+      recipientId: list.user_id,
+      actorId: user.id,
+      listId,
+      type: "list_vote",
+    });
   }
 
   const { data: updated } = await supabase

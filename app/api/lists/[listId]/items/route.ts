@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
+import { canEditList } from "@/lib/social-lists";
 import { getNextListItemSortOrder, isProductInList } from "@/lib/lists";
 
 export async function POST(
@@ -11,14 +12,9 @@ export async function POST(
   const { supabase, user, response } = auth;
   const { listId } = await params;
 
-  const { data: list } = await supabase
-    .from("product_lists")
-    .select("id, user_id")
-    .eq("id", listId)
-    .maybeSingle();
-
-  if (!list || list.user_id !== user.id) {
-    return listJson({ ok: false, error: "Lista no encontrada." }, 404);
+  const canEdit = await canEditList(supabase, listId, user.id);
+  if (!canEdit) {
+    return listJson({ ok: false, error: "Lista no encontrada o sin permiso de edición." }, 404);
   }
 
   const body = (await request.json()) as { productId?: string };
@@ -58,14 +54,9 @@ export async function DELETE(
   const productId = request.nextUrl.searchParams.get("productId")?.trim();
   if (!productId) return listJson({ ok: false, error: "Falta productId." }, 400);
 
-  const { data: list } = await supabase
-    .from("product_lists")
-    .select("id, user_id")
-    .eq("id", listId)
-    .maybeSingle();
-
-  if (!list || list.user_id !== user.id) {
-    return listJson({ ok: false, error: "Lista no encontrada." }, 404);
+  const canEdit = await canEditList(supabase, listId, user.id);
+  if (!canEdit) {
+    return listJson({ ok: false, error: "Lista no encontrada o sin permiso de edición." }, 404);
   }
 
   const { error } = await supabase

@@ -10,9 +10,9 @@
 
 ## Listas sociales (Fase 4+)
 
-- [ ] Notificaciones cuando alguien comenta o vota tu lista.
-- [ ] Ordenar feed por relevancia (no solo `updated_at`).
-- [ ] Roles de colaborador (solo lectura vs editor).
+- [x] Notificaciones cuando alguien comenta o vota tu lista (`/cuenta/notificaciones`).
+- [x] Ordenar feed por relevancia (`/cuenta/feed?sort=relevant|recent`).
+- [x] Roles de colaborador (solo lectura vs editor).
 
 ## Imágenes de producto
 

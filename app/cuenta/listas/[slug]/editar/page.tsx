@@ -24,7 +24,11 @@ export default async function EditListPage({
 
   const editable = await getEditableListBySlug(supabase, user.id, slug);
   if (!editable) notFound();
-  const { list, isOwner } = editable;
+  const { list, isOwner, collaborationRole } = editable;
+
+  if (collaborationRole === "viewer") {
+    redirect(`/cuenta/listas/${slug}`);
+  }
 
   let collaborators: Awaited<ReturnType<typeof getListCollaborators>> = [];
   if (isOwner && !list.is_system) {
