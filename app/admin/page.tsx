@@ -55,8 +55,14 @@ export default async function AdminPage() {
           Resumen
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Panel de administración. Moderación, catálogo e imágenes activos.
+          Panel de administración. Moderación, catálogo, imágenes y métricas.
         </p>
+        <Link
+          href="/admin/analytics"
+          className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          Ver métricas y evolución →
+        </Link>
         {(pendingReports ?? 0) > 0 && (
           <Link
             href="/admin/reports"

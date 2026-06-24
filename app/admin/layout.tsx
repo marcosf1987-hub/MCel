@@ -9,6 +9,7 @@ export const metadata = { title: "Administración" };
 
 const BASE_NAV = [
   { href: "/admin", label: "Resumen" },
+  { href: "/admin/analytics", label: "Métricas" },
   { href: "/admin/reports", label: "Reportes" },
 ];
 

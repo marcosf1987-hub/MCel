@@ -5,7 +5,7 @@
 - [x] **Fase A:** `app_role`, suspensión, soft delete, RLS staff, `/admin`, audit log.
 - [x] **Fase B:** Panel `/admin/reports`, resolver/descartar, ocultar contenido.
 - [x] **Fase C:** ABM catálogo (`/admin/catalog`) + cola imágenes (`/admin/images`).
-- [ ] **Fase D:** Dashboard KPIs con evolución temporal.
+- [x] **Fase D:** Dashboard `/admin/analytics` con KPIs y evolución temporal.
 
 ## Listas sociales (Fase 4+)
 
