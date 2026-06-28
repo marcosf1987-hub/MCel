@@ -74,6 +74,11 @@ const TARGET_LABELS: Record<ModerationTargetType, string> = {
   list_comment: "comentario",
 };
 
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
 export async function resolveModerationTargetOwner(
   supabase: SupabaseClient,
   targetType: ModerationTargetType,
@@ -98,7 +103,7 @@ export async function resolveModerationTargetOwner(
       .select("user_id, product_id, products(slug, name)")
       .eq("id", targetId)
       .maybeSingle();
-    const product = data?.products as { slug: string; name: string } | null;
+    const product = firstRelation(data?.products);
     return {
       userId: data?.user_id ?? null,
       label: product?.name ?? "evaluación",
@@ -112,7 +117,7 @@ export async function resolveModerationTargetOwner(
       .select("user_id, title, slug, profiles(username)")
       .eq("id", targetId)
       .maybeSingle();
-    const owner = data?.profiles as { username: string | null } | null;
+    const owner = firstRelation(data?.profiles);
     const href =
       owner?.username && data?.slug
         ? `/listas/${owner.username}/${data.slug}`
@@ -132,14 +137,11 @@ export async function resolveModerationTargetOwner(
       )
       .eq("id", targetId)
       .maybeSingle();
-    const list = data?.product_lists as {
-      title: string;
-      slug: string;
-      profiles: { username: string | null } | null;
-    } | null;
+    const list = firstRelation(data?.product_lists);
+    const listOwner = list ? firstRelation(list.profiles) : null;
     const href =
-      list?.profiles?.username && list?.slug
-        ? `/listas/${list.profiles.username}/${list.slug}`
+      listOwner?.username && list?.slug
+        ? `/listas/${listOwner.username}/${list.slug}`
         : null;
     return {
       userId: data?.user_id ?? null,
