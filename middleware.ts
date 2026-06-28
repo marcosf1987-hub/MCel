@@ -5,33 +5,38 @@ import { getSupabasePublicEnv } from "@/lib/supabase/env";
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function middleware(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
   const env = getSupabasePublicEnv();
   if (!env.ok) {
-    return NextResponse.next({ request });
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
-  const supabase = createServerClient(
-    env.url,
-    env.anonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: CookieToSet[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
+  const supabase = createServerClient(env.url, env.anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet: CookieToSet[]) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        supabaseResponse = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   const {
     data: { user },
@@ -39,7 +44,12 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  if (user && (path.startsWith("/admin") || path.startsWith("/cuenta") || path.startsWith("/api/admin"))) {
+  if (
+    user &&
+    (path.startsWith("/admin") ||
+      path.startsWith("/cuenta") ||
+      path.startsWith("/api/admin"))
+  ) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_suspended, app_role")

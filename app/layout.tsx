@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Libre_Caslon_Text } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -58,23 +59,32 @@ export const viewport: Viewport = {
 /** La app usa Supabase en cada vista; evita prerender en build sin variables de entorno. */
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isAdmin = pathname.startsWith("/admin");
+
   return (
     <html
       lang="es-AR"
       className={`${libreCaslon.variable} ${dmSans.variable}`}
     >
       <body className="flex min-h-screen flex-col antialiased font-[family-name:var(--font-body)]">
-        <Header />
-        <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
-          {children}
-        </main>
-        <Footer />
-        <InstallPrompt />
+        {isAdmin ? (
+          children
+        ) : (
+          <>
+            <Header />
+            <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+              {children}
+            </main>
+            <Footer />
+            <InstallPrompt />
+          </>
+        )}
       </body>
     </html>
   );

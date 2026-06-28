@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logAdminAction } from "@/lib/admin/audit-log";
+import { notifyModerationAction } from "@/lib/user-notifications";
 
 export type ModerationTargetType = "product" | "review" | "list" | "list_comment";
 
@@ -52,6 +53,18 @@ export async function hideModerationTarget(
     metadata,
   });
 
+  const note =
+    typeof metadata.moderator_note === "string"
+      ? metadata.moderator_note
+      : null;
+  await notifyModerationAction(supabase, {
+    actorId,
+    targetType,
+    targetId,
+    action: "hidden",
+    note,
+  });
+
   return { ok: true };
 }
 
@@ -94,6 +107,13 @@ export async function restoreModerationTarget(
     action: "restore_content",
     entityType: targetType,
     entityId: targetId,
+  });
+
+  await notifyModerationAction(supabase, {
+    actorId,
+    targetType,
+    targetId,
+    action: "restored",
   });
 
   return { ok: true };

@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
 import {
-  countUnreadNotifications,
-  fetchUserNotifications,
-} from "@/lib/list-notifications";
+  countAllUnreadNotifications,
+  fetchAllNotifications,
+  markAllNotificationsRead,
+} from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
   const auth = await getAuthedSupabase(request);
@@ -13,11 +14,11 @@ export async function GET(request: NextRequest) {
   const unreadOnly = request.nextUrl.searchParams.get("unread") === "true";
 
   if (unreadOnly) {
-    const count = await countUnreadNotifications(supabase, user.id);
+    const count = await countAllUnreadNotifications(supabase, user.id);
     return withCookies(response, listJson({ ok: true, unreadCount: count }));
   }
 
-  const notifications = await fetchUserNotifications(supabase, user.id);
+  const notifications = await fetchAllNotifications(supabase, user.id);
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   return withCookies(
@@ -31,15 +32,8 @@ export async function PATCH(request: NextRequest) {
   if ("error" in auth && auth.error) return auth.error;
 
   const { supabase, user, response } = auth;
-  const now = new Date().toISOString();
 
-  const { error } = await supabase
-    .from("list_notifications")
-    .update({ read_at: now })
-    .eq("user_id", user.id)
-    .is("read_at", null);
-
-  if (error) return listJson({ ok: false, error: error.message }, 500);
+  await markAllNotificationsRead(supabase, user.id);
 
   return withCookies(response, listJson({ ok: true }));
 }

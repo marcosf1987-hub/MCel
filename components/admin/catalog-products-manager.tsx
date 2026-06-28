@@ -22,6 +22,10 @@ export function CatalogProductsManager({
   const [actingId, setActingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [mergeSourceId, setMergeSourceId] = useState<string | null>(null);
+  const [mergeConfirmTargetId, setMergeConfirmTargetId] = useState<string | null>(
+    null
+  );
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<
     (Category & { subcategories: Subcategory[] })[]
@@ -124,8 +128,102 @@ export function CatalogProductsManager({
     if (ok) setEditingId(null);
   };
 
+  const mergeSource = mergeSourceId
+    ? products.find((p) => p.id === mergeSourceId)
+    : null;
+  const mergeTarget = mergeConfirmTargetId
+    ? products.find((p) => p.id === mergeConfirmTargetId)
+    : null;
+
+  const runMerge = async () => {
+    if (!mergeSourceId || !mergeConfirmTargetId) return;
+    setActingId(mergeSourceId);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/catalog/products/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          sourceId: mergeSourceId,
+          targetId: mergeConfirmTargetId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setError(data.error ?? "No se pudo fusionar.");
+        return;
+      }
+      setMergeSourceId(null);
+      setMergeConfirmTargetId(null);
+      await loadProducts();
+    } catch {
+      setError("Error de conexión.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {mergeSource && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">Fusionar duplicado</p>
+          <p className="mt-1">
+            Origen (se ocultará): <strong>{mergeSource.name}</strong> (
+            {mergeSource.barcode})
+          </p>
+          <p className="mt-1 text-amber-800">
+            Tocá «Elegir destino» en el producto que querés conservar. Las
+            evaluaciones, imágenes y favoritos se moverán al destino.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="mt-2"
+            onClick={() => {
+              setMergeSourceId(null);
+              setMergeConfirmTargetId(null);
+            }}
+          >
+            Cancelar fusión
+          </Button>
+        </div>
+      )}
+
+      {mergeTarget && mergeSource && (
+        <div className="rounded-lg border border-[var(--color-border)] bg-white p-4 text-sm">
+          <p className="font-medium text-[var(--color-brown)]">
+            ¿Fusionar en «{mergeTarget.name}»?
+          </p>
+          <p className="mt-2 text-[var(--color-muted-foreground)]">
+            «{mergeSource.name}» dejará de existir como producto visible. Esta
+            acción no se puede deshacer fácilmente.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={actingId === mergeSourceId}
+              onClick={() => void runMerge()}
+            >
+              {actingId === mergeSourceId && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Confirmar fusión
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setMergeConfirmTargetId(null)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1">
           <Label htmlFor="product-search">Buscar</Label>
@@ -199,6 +297,31 @@ export function CatalogProductsManager({
                         >
                           Ocultar
                         </Button>
+                        {!mergeSourceId && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setMergeSourceId(product.id);
+                              setMergeConfirmTargetId(null);
+                            }}
+                          >
+                            Fusionar…
+                          </Button>
+                        )}
+                        {mergeSourceId &&
+                          mergeSourceId !== product.id &&
+                          !product.deleted_at && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="accent"
+                              onClick={() => setMergeConfirmTargetId(product.id)}
+                            >
+                              Elegir destino
+                            </Button>
+                          )}
                       </>
                     )}
                     {product.slug && !product.deleted_at && (

@@ -10,8 +10,10 @@ import type { CollaborationItem } from "@/components/account/collaborations-sect
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getBrandName } from "@/lib/utils";
-import type { UserTier, GlutenCertification } from "@/types/database";
-import { Bookmark, Heart, ListMusic, Plus, Rss } from "lucide-react";
+import { canAccessAdminPanel } from "@/lib/auth/roles";
+import { AdminPanelLink } from "@/components/admin/admin-panel-link";
+import type { AppRole, UserTier, GlutenCertification } from "@/types/database";
+import { Bookmark, Heart, ListMusic, Plus, Rss, Shield } from "lucide-react";
 
 export const metadata = { title: "Mi cuenta" };
 
@@ -30,6 +32,8 @@ export default async function PreferencesPage() {
     .single();
 
   if (!profile) redirect("/login");
+
+  const showAdminPanel = canAccessAdminPanel(profile.app_role as AppRole);
 
   const { data: reviews } = await supabase
     .from("reviews")
@@ -107,6 +111,23 @@ export default async function PreferencesPage() {
         collaborationCount={profile.collaboration_count}
         tier={profile.tier as UserTier}
       />
+
+      {showAdminPanel && (
+        <Card className="border-[var(--color-primary)]/30 bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Shield className="h-5 w-5 text-[var(--color-primary)]" />
+              Administración
+            </CardTitle>
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              Moderación, reportes, catálogo y métricas de la comunidad.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <AdminPanelLink variant="accent" size="default" />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

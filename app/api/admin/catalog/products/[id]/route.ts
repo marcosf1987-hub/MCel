@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/admin-auth";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { slugify } from "@/lib/utils";
+import { notifyModerationAction } from "@/lib/user-notifications";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -19,7 +20,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { data: existing } = await supabase
     .from("products")
-    .select("id, name, slug, barcode, brand_id")
+    .select("id, name, slug, barcode, brand_id, created_by")
     .eq("id", productId)
     .maybeSingle();
 
@@ -92,6 +93,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     entityId: productId,
     metadata: updates,
   });
+
+  if (body.hide === true) {
+    await notifyModerationAction(supabase, {
+      actorId: session.userId,
+      targetType: "product",
+      targetId: productId,
+      action: "hidden",
+    });
+  } else if (body.restore === true) {
+    await notifyModerationAction(supabase, {
+      actorId: session.userId,
+      targetType: "product",
+      targetId: productId,
+      action: "restored",
+    });
+  }
 
   return withAdminCookies(response, adminJson({ ok: true }));
 }

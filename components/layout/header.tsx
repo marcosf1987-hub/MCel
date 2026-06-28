@@ -8,14 +8,19 @@ import { SearchBar } from "@/components/layout/search-bar";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { NotificationBellLink } from "@/components/lists/notification-bell-link";
-import { countUnreadNotifications } from "@/lib/list-notifications";
+import { countAllUnreadNotifications } from "@/lib/notifications";
+import { canAccessAdminPanel } from "@/lib/auth/roles";
+import { AdminPanelLink } from "@/components/admin/admin-panel-link";
+import type { AppRole } from "@/types/database";
 import { Wheat, Heart, User, ListMusic } from "lucide-react";
 
 export async function Header() {
   const env = getSupabasePublicEnv();
   let user = null;
-  let profile: { display_name: string | null; tier: string } | null = null;
+  let profile: { display_name: string | null; tier: string; app_role: AppRole } | null =
+    null;
   let unreadNotifications = 0;
+  let showAdminPanel = false;
 
   if (env.ok) {
     const supabase = await createClient();
@@ -24,12 +29,13 @@ export async function Header() {
     if (user) {
       const { data: p } = await supabase
         .from("profiles")
-        .select("display_name, tier")
+        .select("display_name, tier, app_role")
         .eq("id", user.id)
         .single();
-      profile = p;
+      profile = p as typeof profile;
+      showAdminPanel = p ? canAccessAdminPanel(p.app_role as AppRole) : false;
       try {
-        unreadNotifications = await countUnreadNotifications(supabase, user.id);
+        unreadNotifications = await countAllUnreadNotifications(supabase, user.id);
       } catch {
         unreadNotifications = 0;
       }
@@ -67,7 +73,14 @@ export async function Header() {
               <Link href="/login">Entrar</Link>
             </Button>
           )}
-          {user && <NotificationBellLink unreadCount={unreadNotifications} />}
+          {user && (
+            <div className="flex shrink-0 items-center gap-1">
+              {showAdminPanel && (
+                <AdminPanelLink variant="ghost" size="icon" showLabel={false} />
+              )}
+              <NotificationBellLink unreadCount={unreadNotifications} />
+            </div>
+          )}
         </div>
 
         {/* Desktop */}
@@ -92,6 +105,7 @@ export async function Header() {
             {user ? (
               <>
                 <NotificationBellLink unreadCount={unreadNotifications} />
+                {showAdminPanel && <AdminPanelLink variant="ghost" size="sm" />}
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/cuenta/listas" className="gap-1.5">
                     <ListMusic className="h-4 w-4" />

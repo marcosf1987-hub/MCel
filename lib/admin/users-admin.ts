@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logAdminAction } from "@/lib/admin/audit-log";
+import {
+  notifyAccountSuspended,
+  notifyAccountUnsuspended,
+} from "@/lib/user-notifications";
 import { hasMinRole } from "@/lib/auth/roles";
 import type { AppRole } from "@/types/database";
 
@@ -87,6 +91,8 @@ export async function suspendUser(
     metadata: { reason: reason.trim() || null },
   });
 
+  await notifyAccountSuspended(supabase, actorId, targetId, reason);
+
   return { ok: true };
 }
 
@@ -129,6 +135,8 @@ export async function unsuspendUser(
     entityType: "profile",
     entityId: targetId,
   });
+
+  await notifyAccountUnsuspended(supabase, actorId, targetId);
 
   return { ok: true };
 }

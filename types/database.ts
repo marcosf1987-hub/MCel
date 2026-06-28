@@ -150,6 +150,24 @@ export type ListVoteType = "up" | "down";
 export type ListCollaboratorRole = "viewer" | "editor";
 export type ListNotificationType = "list_vote" | "list_comment";
 
+export type UserNotificationType =
+  | "content_hidden"
+  | "content_restored"
+  | "account_suspended"
+  | "account_unsuspended";
+
+export interface UserNotification {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  type: UserNotificationType;
+  title: string;
+  message: string;
+  link_href: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface ProductList {
   id: string;
   user_id: string;

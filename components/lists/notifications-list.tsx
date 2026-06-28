@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { EnrichedNotification } from "@/lib/list-notifications";
+import type { AppNotification } from "@/lib/notifications";
 import { Loader2 } from "lucide-react";
 
-const TYPE_LABELS = {
+const LIST_TYPE_LABELS = {
   list_vote: "votó tu lista",
   list_comment: "comentó en tu lista",
 } as const;
@@ -22,19 +22,25 @@ function formatWhen(iso: string) {
 export function NotificationsList({
   initialNotifications,
 }: {
-  initialNotifications: EnrichedNotification[];
+  initialNotifications: AppNotification[];
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [loading, setLoading] = useState(false);
 
-  const markRead = useCallback(async (id: string) => {
-    await fetch(`/api/notifications/${id}`, {
+  const markRead = useCallback(async (n: AppNotification) => {
+    const params =
+      n.source === "list" || n.source === "moderation"
+        ? `?source=${n.source}`
+        : "";
+    await fetch(`/api/notifications/${n.id}${params}`, {
       method: "PATCH",
       credentials: "include",
     });
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+      prev.map((item) =>
+        item.id === n.id && item.source === n.source
+          ? { ...item, read_at: new Date().toISOString() }
+          : item
       )
     );
   }, []);
@@ -59,7 +65,7 @@ export function NotificationsList({
     const unread = notifications.filter((n) => !n.read_at);
     if (!unread.length) return;
     const timer = window.setTimeout(() => {
-      void Promise.all(unread.slice(0, 5).map((n) => markRead(n.id)));
+      void Promise.all(unread.slice(0, 5).map((n) => markRead(n)));
     }, 1500);
     return () => window.clearTimeout(timer);
   }, [notifications, markRead]);
@@ -91,30 +97,64 @@ export function NotificationsList({
 
       <ul className="space-y-2">
         {notifications.map((n) => {
-          const href =
-            n.owner_username && n.list_slug
-              ? `/listas/${n.owner_username}/${n.list_slug}`
-              : null;
-          const actor = n.actor_name ?? n.actor_username ?? "Alguien";
+          const key = `${n.source}-${n.id}`;
+
+          if (n.source === "list") {
+            const href =
+              n.owner_username && n.list_slug
+                ? `/listas/${n.owner_username}/${n.list_slug}`
+                : null;
+            const actor = n.actor_name ?? n.actor_username ?? "Alguien";
+
+            return (
+              <li key={key}>
+                <Card
+                  className={
+                    !n.read_at ? "border-[var(--color-primary)]/40 bg-white" : undefined
+                  }
+                >
+                  <CardContent className="py-3 text-sm">
+                    <p className="text-[var(--color-brown)]">
+                      <span className="font-medium">{actor}</span>{" "}
+                      {LIST_TYPE_LABELS[n.type]}{" "}
+                      {href ? (
+                        <Link
+                          href={href}
+                          className="font-medium text-[var(--color-primary)] hover:underline"
+                        >
+                          {n.list_title}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{n.list_title}</span>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                      {formatWhen(n.created_at)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          }
 
           return (
-            <li key={n.id}>
-              <Card className={!n.read_at ? "border-[var(--color-primary)]/40 bg-white" : undefined}>
+            <li key={key}>
+              <Card
+                className={
+                  !n.read_at ? "border-[var(--color-primary)]/40 bg-white" : undefined
+                }
+              >
                 <CardContent className="py-3 text-sm">
-                  <p className="text-[var(--color-brown)]">
-                    <span className="font-medium">{actor}</span>{" "}
-                    {TYPE_LABELS[n.type]}{" "}
-                    {href ? (
-                      <Link
-                        href={href}
-                        className="font-medium text-[var(--color-primary)] hover:underline"
-                      >
-                        {n.list_title}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{n.list_title}</span>
-                    )}
-                  </p>
+                  <p className="font-medium text-[var(--color-brown)]">{n.title}</p>
+                  <p className="mt-1 text-[var(--color-brown)]">{n.message}</p>
+                  {n.link_href && (
+                    <Link
+                      href={n.link_href}
+                      className="mt-2 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+                    >
+                      Ver más →
+                    </Link>
+                  )}
                   <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
                     {formatWhen(n.created_at)}
                   </p>

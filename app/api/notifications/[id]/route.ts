@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
+import { markNotificationRead } from "@/lib/notifications";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -10,13 +11,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { supabase, user, response } = auth;
 
-  const { error } = await supabase
-    .from("list_notifications")
-    .update({ read_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const sourceParam = request.nextUrl.searchParams.get("source");
+  const source =
+    sourceParam === "list" || sourceParam === "moderation"
+      ? sourceParam
+      : undefined;
 
-  if (error) return listJson({ ok: false, error: error.message }, 500);
+  const ok = await markNotificationRead(supabase, user.id, id, source);
+
+  if (!ok) {
+    return listJson({ ok: false, error: "Notificación no encontrada." }, 404);
+  }
 
   return withCookies(response, listJson({ ok: true }));
 }
