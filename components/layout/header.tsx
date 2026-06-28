@@ -14,11 +14,16 @@ import { AdminPanelLink } from "@/components/admin/admin-panel-link";
 import type { AppRole } from "@/types/database";
 import { Wheat, Heart, User, ListMusic } from "lucide-react";
 
+type HeaderProfile = {
+  display_name: string | null;
+  tier: string;
+  app_role: AppRole;
+};
+
 export async function Header() {
   const env = getSupabasePublicEnv();
   let user = null;
-  let profile: { display_name: string | null; tier: string; app_role: AppRole } | null =
-    null;
+  let profile: HeaderProfile | null = null;
   let unreadNotifications = 0;
   let showAdminPanel = false;
 
@@ -32,7 +37,7 @@ export async function Header() {
         .select("display_name, tier, app_role")
         .eq("id", user.id)
         .single();
-      profile = p as typeof profile;
+      profile = p as HeaderProfile | null;
       showAdminPanel = p ? canAccessAdminPanel(p.app_role as AppRole) : false;
       try {
         unreadNotifications = await countAllUnreadNotifications(supabase, user.id);
