@@ -29,9 +29,9 @@ export const TAXONOMY_CATEGORY_ORDER = [
   "otros",
 ] as const;
 
-export function sortTaxonomyCategories(
-  categories: TaxonomyCategory[]
-): TaxonomyCategory[] {
+export function sortTaxonomyCategories<T extends Pick<TaxonomyCategory, "slug" | "name" | "name_es">>(
+  categories: T[]
+): T[] {
   const order = new Map(
     TAXONOMY_CATEGORY_ORDER.map((slug, index) => [slug, index])
   );

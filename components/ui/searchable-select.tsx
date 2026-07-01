@@ -4,35 +4,35 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import {
-  flattenTaxonomyOptions,
-  labelForSelection,
-  type TaxonomyCategory,
-  type TaxonomySelection,
-} from "@/lib/catalog-taxonomy";
 import { ChevronDown } from "lucide-react";
 
-type CategoryComboboxProps = {
-  categories: TaxonomyCategory[];
-  value: TaxonomySelection | null;
-  onChange: (value: TaxonomySelection | null) => void;
+export type SearchableSelectOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
+type SearchableSelectProps = {
+  options: SearchableSelectOption[];
+  value: string | null;
+  onChange: (value: string) => void;
   disabled?: boolean;
-  required?: boolean;
-  label?: string;
-  hint?: string;
+  label: string;
+  placeholder?: string;
+  emptyMessage?: string;
   id?: string;
 };
 
-export function CategoryCombobox({
-  categories,
+export function SearchableSelect({
+  options,
   value,
   onChange,
   disabled = false,
-  required = false,
-  label = "Categoría y subcategoría",
-  hint,
+  label,
+  placeholder = "Buscar…",
+  emptyMessage = "Sin resultados.",
   id,
-}: CategoryComboboxProps) {
+}: SearchableSelectProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const listId = `${inputId}-list`;
@@ -40,19 +40,15 @@ export function CategoryCombobox({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const options = useMemo(
-    () => flattenTaxonomyOptions(categories),
-    [categories]
-  );
-
-  const selectedLabel = labelForSelection(categories, value);
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options.slice(0, 40);
-    return options
-      .filter((opt) => opt.searchText.includes(q))
-      .slice(0, 40);
+    if (!q) return options;
+    return options.filter((opt) => {
+      const text = (opt.searchText ?? opt.label).toLowerCase();
+      return text.includes(q);
+    });
   }, [options, query]);
 
   useEffect(() => {
@@ -64,14 +60,11 @@ export function CategoryCombobox({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
-  const displayValue = open ? query : (selectedLabel ?? "");
+  const displayValue = open ? query : selectedLabel;
 
   return (
     <div ref={rootRef} className="relative space-y-1.5">
-      <Label htmlFor={inputId}>
-        {label}
-        {required && " *"}
-      </Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <div className="relative">
         <Input
           id={inputId}
@@ -81,8 +74,7 @@ export function CategoryCombobox({
           aria-autocomplete="list"
           autoComplete="off"
           disabled={disabled}
-          required={false}
-          placeholder="Buscá por categoría o producto (ej. fideos, harina…)"
+          placeholder={placeholder}
           value={displayValue}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -96,21 +88,16 @@ export function CategoryCombobox({
         />
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
       </div>
-      {hint && (
-        <p className="text-xs text-[var(--color-muted-foreground)]">{hint}</p>
-      )}
       {open && filtered.length > 0 && (
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
         >
           {filtered.map((opt) => {
-            const active =
-              value?.categoryId === opt.categoryId &&
-              value?.subcategoryId === opt.subcategoryId;
+            const active = value === opt.value;
             return (
-              <li key={`${opt.categoryId}-${opt.subcategoryId}`} role="presentation">
+              <li key={opt.value} role="presentation">
                 <div
                   role="option"
                   aria-selected={active}
@@ -123,24 +110,18 @@ export function CategoryCombobox({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onChange({
-                        categoryId: opt.categoryId,
-                        subcategoryId: opt.subcategoryId,
-                      });
+                      onChange(opt.value);
                       setQuery("");
                       setOpen(false);
                     }
                   }}
                   onClick={() => {
-                    onChange({
-                      categoryId: opt.categoryId,
-                      subcategoryId: opt.subcategoryId,
-                    });
+                    onChange(opt.value);
                     setQuery("");
                     setOpen(false);
                   }}
                 >
-                  <span className="text-[var(--color-brown)]">{opt.label}</span>
+                  {opt.label}
                 </div>
               </li>
             );
@@ -149,7 +130,7 @@ export function CategoryCombobox({
       )}
       {open && query.trim() && filtered.length === 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-muted-foreground)] shadow-lg">
-          Sin resultados. Probá otro término o elegí Otros › Otros.
+          {emptyMessage}
         </div>
       )}
     </div>

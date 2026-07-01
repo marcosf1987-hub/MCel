@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CategoryCombobox } from "@/components/ui/category-combobox";
+import { TaxonomyCategoryFields } from "@/components/ui/taxonomy-category-fields";
 import type { AdminProductRow } from "@/lib/admin/catalog-server";
 import type { TaxonomyCategory, TaxonomySelection } from "@/lib/catalog-taxonomy";
 import type { Brand } from "@/types/database";
@@ -397,7 +397,7 @@ export function CatalogProductsManager({
                         ))}
                       </select>
                     </div>
-                    <CategoryCombobox
+                    <TaxonomyCategoryFields
                       categories={categories}
                       value={classification}
                       onChange={(value) => {
@@ -410,7 +410,6 @@ export function CatalogProductsManager({
                           }));
                         }
                       }}
-                      label="Clasificación"
                     />
                     <div className="flex gap-2">
                       <Button

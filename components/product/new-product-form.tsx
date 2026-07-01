@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CategoryCombobox } from "@/components/ui/category-combobox";
+import { TaxonomyCategoryFields } from "@/components/ui/taxonomy-category-fields";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
 import { compressImage } from "@/lib/compress-image";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
@@ -330,13 +330,11 @@ export function NewProductForm() {
                   required
                 />
               </div>
-              <CategoryCombobox
+              <TaxonomyCategoryFields
                 categories={taxonomy}
                 value={classification}
                 onChange={setClassification}
                 disabled={loading || taxonomyLoading}
-                required
-                hint="Buscá en todo el catálogo (ej. fideos, harina, galletitas)."
               />
               <ProductImagePicker
                 label="Imagen del producto"

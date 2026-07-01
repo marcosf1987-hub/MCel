@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getCategoriesNavData } from "@/lib/categories-cache";
-import { categoryDisplayName } from "@/lib/categories-types";
 import { getTopPublicLists } from "@/lib/lists-server";
 import { createClient } from "@/lib/supabase/server";
+import { ExploreCategoryAccordion } from "@/components/explore/category-accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Compass, ListMusic, ThumbsUp } from "lucide-react";
 
@@ -20,7 +20,7 @@ export default async function ExplorePage() {
         <h1 className="text-2xl font-bold text-[var(--color-brown)]">Explorar</h1>
       </div>
       <p className="mb-6 text-sm text-[var(--color-muted-foreground)]">
-        Elegí una categoría o descubrí listas curadas por la comunidad.
+        Tocá una categoría para ver subcategorías o descubrí listas curadas por la comunidad.
       </p>
 
       {topLists.length > 0 && (
@@ -92,29 +92,15 @@ export default async function ExplorePage() {
                 className="flex items-center justify-between px-4 py-3.5 hover:bg-[var(--color-brand-cream)]"
               >
                 <span className="font-medium text-[var(--color-brown)]">
-                  Todas las categorías
+                  Todos los productos
                 </span>
                 <span className="text-sm text-[var(--color-muted-foreground)]">
                   {data.totalProducts} productos
                 </span>
               </Link>
             </li>
-            {data.categories.map((cat) => (
-              <li key={cat.id}>
-                <Link
-                  href={`/categorias/${cat.slug}`}
-                  className="flex items-center justify-between px-4 py-3.5 hover:bg-[var(--color-brand-cream)]"
-                >
-                  <span className="text-[var(--color-brown)]">
-                    {categoryDisplayName(cat)}
-                  </span>
-                  <span className="text-sm text-[var(--color-muted-foreground)]">
-                    ({cat.product_count})
-                  </span>
-                </Link>
-              </li>
-            ))}
           </ul>
+          <ExploreCategoryAccordion categories={data.categories} />
           <div className="border-t border-[var(--color-border)] px-4 py-3">
             <Link
               href="/marcas"
