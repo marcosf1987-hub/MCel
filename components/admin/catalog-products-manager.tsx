@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CategoryCombobox } from "@/components/ui/category-combobox";
 import type { AdminProductRow } from "@/lib/admin/catalog-server";
-import type { Brand, Category, Subcategory } from "@/types/database";
+import type { TaxonomyCategory, TaxonomySelection } from "@/lib/catalog-taxonomy";
+import type { Brand } from "@/types/database";
 import { Loader2 } from "lucide-react";
 
 export function CatalogProductsManager({
@@ -27,9 +29,10 @@ export function CatalogProductsManager({
     null
   );
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<
-    (Category & { subcategories: Subcategory[] })[]
-  >([]);
+  const [categories, setCategories] = useState<TaxonomyCategory[]>([]);
+  const [classification, setClassification] = useState<TaxonomySelection | null>(
+    null
+  );
   const [editForm, setEditForm] = useState({
     name: "",
     barcode: "",
@@ -64,12 +67,12 @@ export function CatalogProductsManager({
   const loadTaxonomy = useCallback(async () => {
     const [brandsRes, catsRes] = await Promise.all([
       fetch("/api/admin/catalog/brands", { credentials: "include" }),
-      fetch("/api/admin/catalog/categories", { credentials: "include" }),
+      fetch("/api/catalog/taxonomy", { credentials: "include" }),
     ]);
     const brandsData = await brandsRes.json();
     const catsData = await catsRes.json();
     if (brandsData.ok) setBrands(brandsData.brands);
-    if (catsData.ok) setCategories(catsData.categories);
+    if (catsData.ok) setCategories(catsData.categories as TaxonomyCategory[]);
   }, []);
 
   useEffect(() => {
@@ -78,6 +81,10 @@ export function CatalogProductsManager({
 
   const startEdit = (product: AdminProductRow) => {
     setEditingId(product.id);
+    setClassification({
+      categoryId: product.category_id,
+      subcategoryId: product.subcategory_id,
+    });
     setEditForm({
       name: product.name,
       barcode: product.barcode,
@@ -86,9 +93,6 @@ export function CatalogProductsManager({
       subcategory_id: product.subcategory_id,
     });
   };
-
-  const subcategoriesForCategory =
-    categories.find((c) => c.id === editForm.category_id)?.subcategories ?? [];
 
   const patchProduct = async (
     productId: string,
@@ -120,9 +124,15 @@ export function CatalogProductsManager({
 
   const saveEdit = async () => {
     if (!editingId) return;
+    if (!classification?.categoryId || !classification?.subcategoryId) {
+      setError("Elegí categoría y subcategoría del listado.");
+      return;
+    }
     const product = products.find((p) => p.id === editingId);
     const ok = await patchProduct(editingId, {
       ...editForm,
+      category_id: classification.categoryId,
+      subcategory_id: classification.subcategoryId,
       brandName: brands.find((b) => b.id === editForm.brand_id)?.name ?? product?.brand_name,
     });
     if (ok) setEditingId(null);
@@ -387,47 +397,21 @@ export function CatalogProductsManager({
                         ))}
                       </select>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <Label>Categoría</Label>
-                        <select
-                          className="w-full rounded-md border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
-                          value={editForm.category_id}
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              category_id: e.target.value,
-                              subcategory_id: "",
-                            }))
-                          }
-                        >
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name_es ?? c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Subcategoría</Label>
-                        <select
-                          className="w-full rounded-md border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
-                          value={editForm.subcategory_id}
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              subcategory_id: e.target.value,
-                            }))
-                          }
-                        >
-                          {subcategoriesForCategory.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name_es ?? s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                    <CategoryCombobox
+                      categories={categories}
+                      value={classification}
+                      onChange={(value) => {
+                        setClassification(value);
+                        if (value) {
+                          setEditForm((f) => ({
+                            ...f,
+                            category_id: value.categoryId,
+                            subcategory_id: value.subcategoryId,
+                          }));
+                        }
+                      }}
+                      label="Clasificación"
+                    />
                     <div className="flex gap-2">
                       <Button
                         type="button"

@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BarcodeScanner } from "@/components/scanner/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CategoryCombobox } from "@/components/ui/category-combobox";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
 import { compressImage } from "@/lib/compress-image";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
+import {
+  findOtrosSelection,
+  type TaxonomyCategory,
+  type TaxonomySelection,
+} from "@/lib/catalog-taxonomy";
+import {
+  isOffCategoryUseful,
+  mapOffToTaxonomy,
+} from "@/lib/off/map-to-taxonomy";
 import type { OffProductData } from "@/lib/off/parse";
 
 export function NewProductForm() {
@@ -21,8 +31,11 @@ export function NewProductForm() {
   const [barcode, setBarcode] = useState("");
   const [brand, setBrand] = useState("");
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
+  const [taxonomy, setTaxonomy] = useState<TaxonomyCategory[]>([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true);
+  const [classification, setClassification] = useState<TaxonomySelection | null>(
+    null
+  );
   const [offImageUrl, setOffImageUrl] = useState("");
   const [manualMode, setManualMode] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -31,6 +44,61 @@ export function NewProductForm() {
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
     setStatusMsg(message);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/catalog/taxonomy");
+        const data = await res.json();
+        if (!cancelled && data.ok) {
+          setTaxonomy(data.categories as TaxonomyCategory[]);
+        }
+      } catch {
+        if (!cancelled) {
+          setStatus("error", "No se pudo cargar el catálogo de categorías.");
+        }
+      } finally {
+        if (!cancelled) setTaxonomyLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyOffClassification = (
+    categories: TaxonomyCategory[],
+    offCategory: string,
+    offSubcategory: string
+  ) => {
+    if (!isOffCategoryUseful(offCategory, offSubcategory)) {
+      const otros = findOtrosSelection(categories);
+      if (otros) setClassification(otros);
+      return;
+    }
+    const match = mapOffToTaxonomy(offCategory, offSubcategory, categories);
+    setClassification({
+      categoryId: match.categoryId,
+      subcategoryId: match.subcategoryId,
+    });
+    if (match.matchLevel === "full") {
+      setStatus(
+        "info",
+        "Categoría sugerida desde Open Food Facts — confirmá antes de guardar."
+      );
+    } else if (match.matchLevel === "category") {
+      setStatus(
+        "info",
+        "Open Food Facts sugirió la categoría; elegimos «Otros» en subcategoría. Revisá antes de guardar."
+      );
+    } else {
+      setStatus(
+        "info",
+        "Open Food Facts no coincidió con nuestro catálogo. Revisá la categoría (por defecto Otros)."
+      );
+    }
   };
 
   const handleScan = async (code: string) => {
@@ -78,19 +146,24 @@ export function NewProductForm() {
       if (off?.found) {
         setBrand(off.brand || "");
         setName(off.productName || "");
-        setCategory(off.category || "Sin categoría");
-        setSubcategory(off.subcategory || "General");
+        if (taxonomy.length) {
+          applyOffClassification(taxonomy, off.category, off.subcategory);
+        }
         setOffImageUrl(off.imageUrl ?? "");
         setManualMode(false);
-        setStatus(
-          "success",
-          "Producto encontrado en Open Food Facts. Revisá los datos y tocá «Crear producto y evaluar»."
-        );
+        if (!taxonomy.length) {
+          setStatus(
+            "success",
+            "Producto encontrado en Open Food Facts. Elegí categoría del listado."
+          );
+        }
       } else {
         setManualMode(true);
+        const otros = findOtrosSelection(taxonomy);
+        if (otros) setClassification(otros);
         setStatus(
           "info",
-          "No está en Open Food Facts. Completá los datos manualmente y subí una foto."
+          "No está en Open Food Facts. Completá los datos y elegí categoría del listado."
         );
       }
     } catch {
@@ -104,6 +177,11 @@ export function NewProductForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!classification?.categoryId || !classification?.subcategoryId) {
+      setStatus("error", "Elegí categoría y subcategoría del listado.");
+      return;
+    }
 
     if (!offImageUrl && !imageFile) {
       setStatus("error", "Subí una foto del producto o usá un código con imagen en Open Food Facts.");
@@ -122,8 +200,8 @@ export function NewProductForm() {
           barcode,
           brand,
           name,
-          category,
-          subcategory,
+          category_id: classification.categoryId,
+          subcategory_id: classification.subcategoryId,
           offImageUrl: offImageUrl || undefined,
         }),
       });
@@ -213,7 +291,7 @@ export function NewProductForm() {
         <CardContent>
           <BarcodeScanner
             onScan={handleScan}
-            disabled={loading}
+            disabled={loading || taxonomyLoading}
             onStatus={(type, msg) => setStatus(type, msg)}
           />
         </CardContent>
@@ -252,26 +330,14 @@ export function NewProductForm() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="category">Categoría *</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="subcategory">Subcategoría *</Label>
-                <Input
-                  id="subcategory"
-                  name="subcategory"
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  required
-                />
-              </div>
+              <CategoryCombobox
+                categories={taxonomy}
+                value={classification}
+                onChange={setClassification}
+                disabled={loading || taxonomyLoading}
+                required
+                hint="Buscá en todo el catálogo (ej. fideos, harina, galletitas)."
+              />
               <ProductImagePicker
                 label="Imagen del producto"
                 required={!offImageUrl}
@@ -291,7 +357,12 @@ export function NewProductForm() {
                 }}
               />
 
-              <Button type="submit" disabled={loading} className="w-full" size="lg">
+              <Button
+                type="submit"
+                disabled={loading || taxonomyLoading}
+                className="w-full"
+                size="lg"
+              >
                 {loading ? "Guardando…" : "Crear producto y evaluar"}
               </Button>
             </form>

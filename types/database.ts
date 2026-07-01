@@ -68,6 +68,7 @@ export interface Category {
   name: string;
   name_es: string | null;
   slug: string;
+  is_system?: boolean;
   created_at: string;
 }
 
@@ -77,6 +78,7 @@ export interface Subcategory {
   name: string;
   name_es: string | null;
   slug: string;
+  is_system?: boolean;
   created_at: string;
 }
 

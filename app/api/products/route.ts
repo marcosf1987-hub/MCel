@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import {
-  getOrCreateBrand,
-  getOrCreateCategory,
-  getOrCreateSubcategory,
-} from "@/lib/catalog";
+import { getOrCreateBrand } from "@/lib/catalog";
+import { validateCategoryPair } from "@/lib/catalog/validate-category";
 import { insertOffProductImage } from "@/lib/product-images";
 import { slugify } from "@/lib/utils";
 
@@ -13,8 +10,8 @@ interface CreateProductPayload {
   barcode: string;
   brand: string;
   name: string;
-  category: string;
-  subcategory?: string;
+  category_id: string;
+  subcategory_id: string;
   offImageUrl?: string;
 }
 
@@ -44,16 +41,25 @@ export async function POST(request: NextRequest) {
     const barcode = String(body.barcode ?? "").trim();
     const brandName = String(body.brand ?? "").trim();
     const productName = String(body.name ?? "").trim();
-    const categoryName = String(body.category ?? "").trim();
-    const subcategoryName = String(body.subcategory ?? "").trim() || "General";
+    const categoryId = String(body.category_id ?? "").trim();
+    const subcategoryId = String(body.subcategory_id ?? "").trim();
     const offImageUrl = String(body.offImageUrl ?? "").trim();
 
     if (!barcode) return json({ ok: false, error: "Falta el código de barras." }, 400);
-    if (!brandName || !productName || !categoryName) {
+    if (!brandName || !productName) {
       return json(
-        { ok: false, error: "Completá marca, nombre y categoría." },
+        { ok: false, error: "Completá marca y nombre." },
         400
       );
+    }
+
+    const categoryCheck = await validateCategoryPair(
+      supabase,
+      categoryId,
+      subcategoryId
+    );
+    if (!categoryCheck.ok) {
+      return json({ ok: false, error: categoryCheck.error }, 400);
     }
 
     const { data: existing } = await supabase
@@ -74,11 +80,6 @@ export async function POST(request: NextRequest) {
     }
 
     const brandId = await getOrCreateBrand(brandName);
-    const categoryId = await getOrCreateCategory(categoryName);
-    const subcategoryId = await getOrCreateSubcategory(
-      categoryId,
-      subcategoryName
-    );
 
     let slug = slugify(`${brandName}-${productName}`);
     const { data: slugConflict } = await supabase

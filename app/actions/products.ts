@@ -3,11 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   getOrCreateBrand,
-  getOrCreateCategory,
-  getOrCreateSubcategory,
   findProductByBarcode,
   uploadProductImage,
 } from "@/lib/catalog";
+import { validateCategoryPair } from "@/lib/catalog/validate-category";
 import { insertOffProductImage } from "@/lib/product-images";
 import { slugify } from "@/lib/utils";
 
@@ -31,8 +30,8 @@ export async function createProduct(formData: FormData): Promise<
     const barcode = String(formData.get("barcode") ?? "").trim();
     const brandName = String(formData.get("brand") ?? "").trim();
     const productName = String(formData.get("name") ?? "").trim();
-    const categoryName = String(formData.get("category") ?? "").trim();
-    const subcategoryName = String(formData.get("subcategory") ?? "").trim();
+    const categoryId = String(formData.get("category_id") ?? "").trim();
+    const subcategoryId = String(formData.get("subcategory_id") ?? "").trim();
     const offImageUrl = String(formData.get("offImageUrl") ?? "").trim();
     const imageFile = formData.get("image") as File | null;
     const hasFile = imageFile && imageFile.size > 0;
@@ -40,10 +39,10 @@ export async function createProduct(formData: FormData): Promise<
     if (!barcode) {
       return { ok: false, error: "Falta el código de barras." };
     }
-    if (!brandName || !productName || !categoryName) {
+    if (!brandName || !productName) {
       return {
         ok: false,
-        error: "Completá marca, nombre, categoría y subcategoría.",
+        error: "Completá marca, nombre y clasificación.",
       };
     }
     if (!hasFile && !offImageUrl) {
@@ -58,12 +57,16 @@ export async function createProduct(formData: FormData): Promise<
       return { ok: true, data: { slug: existing.slug } };
     }
 
-    const brandId = await getOrCreateBrand(brandName);
-    const categoryId = await getOrCreateCategory(categoryName);
-    const subcategoryId = await getOrCreateSubcategory(
+    const categoryCheck = await validateCategoryPair(
+      supabase,
       categoryId,
-      subcategoryName || "General"
+      subcategoryId
     );
+    if (!categoryCheck.ok) {
+      return { ok: false, error: categoryCheck.error };
+    }
+
+    const brandId = await getOrCreateBrand(brandName);
 
     let slug = slugify(`${brandName}-${productName}`);
     const { data: slugConflict } = await supabase

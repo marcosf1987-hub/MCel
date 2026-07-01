@@ -9,6 +9,7 @@
     "generate:icons": "node scripts/generate-pwa-icons.mjs",
     "start": "next start",
     "lint": "next lint",
+    "test:taxonomy": "node scripts/test-taxonomy-map.mjs",
     "test:scanner-emulation": "node scripts/emulate-iphone-scanner.mjs"
   },
   "dependencies": {
