@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaxonomyCategoryFields } from "@/components/ui/taxonomy-category-fields";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
 import { WizardProgress } from "@/components/ui/wizard-progress";
+import { WizardFooter } from "@/components/ui/wizard-footer";
 import { compressImage } from "@/lib/compress-image";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
@@ -329,7 +330,7 @@ export function NewProductForm() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateProduct} className="space-y-4">
+            <form id="new-product-step2-form" onSubmit={handleCreateProduct} className="space-y-4">
               <div>
                 <Label>Código de barras</Label>
                 <Input value={barcode} readOnly className="bg-[var(--color-brand-cream)]" />
@@ -360,28 +361,26 @@ export function NewProductForm() {
                 onChange={setClassification}
                 disabled={loading || taxonomyLoading}
               />
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={loading}
-                  onClick={() => setWizardStep(1)}
-                >
-                  Atrás
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading || taxonomyLoading}
-                  className="flex-1"
-                  size="lg"
-                >
-                  {loading ? "Creando…" : "Crear producto"}
-                </Button>
-              </div>
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {wizardStep === 2 && (
+        <WizardFooter
+          showBack
+          onBack={() => setWizardStep(1)}
+          onPrimary={() => {
+            const form = document.getElementById(
+              "new-product-step2-form"
+            ) as HTMLFormElement | null;
+            form?.requestSubmit();
+          }}
+          primaryLabel="Crear producto"
+          loading={loading}
+          loadingLabel="Creando…"
+          disabled={loading || taxonomyLoading}
+        />
       )}
 
       {wizardStep === 3 && createdProduct && (
@@ -404,28 +403,28 @@ export function NewProductForm() {
               }}
             />
 
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                disabled={loading || !imageFile}
-                className="w-full"
-                size="lg"
-                onClick={() => handleImageStep(false)}
-              >
-                {loading ? "Subiendo…" : "Subir foto y evaluar"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                className="w-full"
-                onClick={() => handleImageStep(true)}
-              >
-                Saltear por ahora
-              </Button>
-            </div>
           </CardContent>
         </Card>
+      )}
+
+      {wizardStep === 3 && createdProduct && (
+        <WizardFooter
+          onPrimary={() => handleImageStep(false)}
+          primaryLabel="Subir foto y evaluar"
+          loading={loading}
+          loadingLabel="Subiendo…"
+          disabled={loading || !imageFile}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={loading}
+            className="w-full text-[var(--color-muted-foreground)]"
+            onClick={() => handleImageStep(true)}
+          >
+            Saltear por ahora
+          </Button>
+        </WizardFooter>
       )}
     </div>
   );

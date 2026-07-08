@@ -5,13 +5,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { StarInput } from "@/components/product/star-rating";
 import { HeartInput } from "@/components/product/heart-rating";
+import { PriceRangeInput } from "@/components/product/price-range-input";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
 import { WizardProgress } from "@/components/ui/wizard-progress";
+import { WizardFooter } from "@/components/ui/wizard-footer";
 import {
   Select,
   SelectContent,
@@ -21,19 +22,17 @@ import {
 } from "@/components/ui/select";
 import {
   GLUTEN_LABELS,
-  PRICE_RANGE_OPTIONS,
   type GlutenCertification,
   type PriceRange,
   type TasteRating,
 } from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
-import { cn } from "@/lib/utils";
-import { ChevronLeft, Loader2, Send, Trash2, X } from "lucide-react";
+import { Send, Trash2, X } from "lucide-react";
 
 type ReviewInitialValues = {
   rating: number;
   tasteRating: TasteRating | "";
-  priceRange: PriceRange;
+  priceRange: PriceRange | "";
   opinion: string;
   glutenCertification: GlutenCertification;
 };
@@ -45,59 +44,9 @@ type UserProductImage = {
 
 const STEP_TITLES = ["Puntuación", "Sabor", "Precio", "Opinión", "Foto"] as const;
 
-function priceDescription(value: PriceRange): string {
-  const label = PRICE_RANGE_OPTIONS.find((o) => o.value === value)?.label ?? "";
-  return label.includes(" — ") ? label.split(" — ")[1] : label;
-}
-
-function PriceRangeInput({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: PriceRange;
-  onChange: (v: PriceRange) => void;
-  disabled?: boolean;
-}) {
-  const options: PriceRange[] = ["1", "2", "3", "4"];
-
-  return (
-    <div className="grid w-full grid-cols-4 gap-1">
-      {options.map((n) => {
-        const active = value === n;
-        const symbols = "$".repeat(Number(n));
-        const optionLabel = PRICE_RANGE_OPTIONS.find((o) => o.value === n)?.label ?? symbols;
-        return (
-          <button
-            key={n}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(n)}
-            className={cn(
-              "flex min-w-0 flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-2 transition-colors disabled:opacity-50 sm:gap-1 sm:px-2 sm:py-3",
-              active
-                ? "border-[var(--color-primary)] bg-[var(--color-brand-cream)]"
-                : "border-transparent hover:bg-[var(--color-brand-cream)]/60"
-            )}
-            aria-label={optionLabel}
-          >
-            <span className="text-base font-bold text-[var(--color-brown)] sm:text-lg">
-              {symbols}
-            </span>
-            <span className="text-center text-[9px] leading-tight text-[var(--color-muted-foreground)] sm:text-[10px]">
-              {priceDescription(n)}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function ReviewForm({
   productId,
   productSlug,
-  barcode,
   hasExistingImages = false,
   mode = "create",
   reviewId,
@@ -106,7 +55,6 @@ export function ReviewForm({
 }: {
   productId: string;
   productSlug: string;
-  barcode: string;
   hasExistingImages?: boolean;
   mode?: "create" | "edit";
   reviewId?: string;
@@ -134,8 +82,8 @@ export function ReviewForm({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userImages, setUserImages] = useState<UserProductImage[]>(initialUserImages);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<PriceRange>(
-    initialValues?.priceRange ?? "2"
+  const [priceRange, setPriceRange] = useState<PriceRange | "">(
+    initialValues?.priceRange ?? ""
   );
   const [opinion, setOpinion] = useState(initialValues?.opinion ?? "");
 
@@ -252,6 +200,12 @@ export function ReviewForm({
       return;
     }
 
+    if (!priceRange) {
+      setStatus("error", "Seleccioná un rango de precio.");
+      setStep(3);
+      return;
+    }
+
     const file = selectedFile;
     if (!isEdit && !file && !hasExistingImages) {
       setStatus("error", "Subí una foto del producto.");
@@ -352,6 +306,15 @@ export function ReviewForm({
 
   const isLastStep = step === totalSteps;
 
+  const primaryLabel = isLastStep ? (
+    <span className="inline-flex items-center gap-2">
+      <Send className="h-5 w-5" />
+      {isEdit ? "Guardar cambios" : "Publicar evaluación"}
+    </span>
+  ) : (
+    "Siguiente"
+  );
+
   return (
     <div className="space-y-4">
       <WizardProgress step={step} total={totalSteps} title={stepTitle} />
@@ -359,13 +322,9 @@ export function ReviewForm({
       <StatusBanner type={statusType} message={statusMsg} />
 
       {step === 1 && (
-        <div className="space-y-4">
-          <div>
-            <Label>Código de barras</Label>
-            <Input value={barcode} readOnly className="bg-[var(--color-brand-cream)]" />
-          </div>
-          <div>
-            <Label>Puntuación general (1-5) *</Label>
+        <div>
+          <Label>Puntuación general (1-5) *</Label>
+          <div className="mt-3">
             <StarInput value={rating} onChange={setRating} />
           </div>
         </div>
@@ -476,63 +435,22 @@ export function ReviewForm({
         </div>
       )}
 
-      <div className="sticky bottom-4 z-10 space-y-3 rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg">
-        {loading && (
-          <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
-        )}
-        <div
-          className={cn(
-            "flex gap-2",
-            step > 1 ? "flex-col-reverse sm:flex-row" : "flex-col"
-          )}
-        >
-          {step > 1 && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={loading}
-              onClick={goBack}
-              className="w-full shrink-0 gap-1 sm:w-auto"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Atrás
-            </Button>
-          )}
-          <Button
-            type="button"
-            disabled={loading}
-            className="min-w-0 flex-1 gap-2 whitespace-normal px-3 text-sm sm:px-8 sm:text-base"
-            size="lg"
-            onClick={() => {
-              if (isLastStep) void submitReview();
-              else goNext();
-            }}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
-                {isEdit ? "Guardando…" : "Enviando…"}
-              </>
-            ) : isLastStep ? (
-              <>
-                <Send className="h-5 w-5 shrink-0" />
-                {isEdit ? (
-                  <>
-                    <span className="sm:hidden">Guardar</span>
-                    <span className="hidden sm:inline">Guardar cambios</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="sm:hidden">Publicar</span>
-                    <span className="hidden sm:inline">Publicar evaluación</span>
-                  </>
-                )}
-              </>
-            ) : (
-              "Siguiente"
-            )}
-          </Button>
-        </div>
+      {loading && (
+        <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
+      )}
+
+      <WizardFooter
+        showBack={step > 1}
+        onBack={goBack}
+        onPrimary={() => {
+          if (isLastStep) void submitReview();
+          else goNext();
+        }}
+        primaryLabel={primaryLabel}
+        loading={loading}
+        loadingLabel={isEdit ? "Guardando…" : "Enviando…"}
+        disabled={loading}
+      >
         {isEdit && reviewId && (
           <Button
             type="button"
@@ -545,7 +463,7 @@ export function ReviewForm({
             Eliminar mi evaluación
           </Button>
         )}
-      </div>
+      </WizardFooter>
     </div>
   );
 }

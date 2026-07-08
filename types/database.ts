@@ -27,6 +27,14 @@ export const PRICE_RANGE_OPTIONS: { value: PriceRange; label: string }[] = [
   { value: "4", label: "$$$$ — Premium" },
 ];
 
+export const GENERAL_RATING_LABELS: Record<"1" | "2" | "3" | "4" | "5", string> = {
+  "1": "Malo",
+  "2": "Regular",
+  "3": "Bueno",
+  "4": "Muy bueno",
+  "5": "Excelente",
+};
+
 export const TASTE_RATING_LABELS: Record<TasteRating, string> = {
   "1": "Malo (no me gustó)",
   "2": "Bueno (cumple)",

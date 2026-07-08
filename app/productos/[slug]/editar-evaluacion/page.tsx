@@ -20,7 +20,7 @@ export default async function EditReviewPage({
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, slug, name, barcode")
+    .select("id, slug, name")
     .eq("slug", slug)
     .single();
 
@@ -59,7 +59,6 @@ export default async function EditReviewPage({
             reviewId={review.id}
             productId={product.id}
             productSlug={product.slug}
-            barcode={product.barcode}
             hasExistingImages={(imageCount ?? 0) > 0}
             initialValues={{
               rating: review.rating,

@@ -1,5 +1,7 @@
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WizardScaleField, wizardScaleButtonClass } from "@/components/ui/wizard-scale-field";
+import { GENERAL_RATING_LABELS } from "@/types/database";
 
 export function StarRating({
   value,
@@ -50,15 +52,23 @@ export function StarInput({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const selectedLabel =
+    value >= 1 && value <= 5
+      ? GENERAL_RATING_LABELS[String(value) as keyof typeof GENERAL_RATING_LABELS]
+      : null;
+
   return (
-    <div className="flex gap-1">
+    <WizardScaleField
+      selectedLabel={selectedLabel}
+      emptyHint="Elegí de 1 a 5 estrellas"
+    >
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
           onClick={() => onChange(n)}
-          className="rounded-full p-1 transition-transform hover:scale-110"
-          aria-label={`${n} estrellas`}
+          className={wizardScaleButtonClass}
+          aria-label={`${n} estrellas — ${GENERAL_RATING_LABELS[String(n) as keyof typeof GENERAL_RATING_LABELS]}`}
         >
           <Star
             className={cn(
@@ -70,6 +80,6 @@ export function StarInput({
           />
         </button>
       ))}
-    </div>
+    </WizardScaleField>
   );
 }

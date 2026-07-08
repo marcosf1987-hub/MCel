@@ -20,7 +20,7 @@ export default async function EvaluateProductPage({
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, slug, name, barcode")
+    .select("id, slug, name")
     .eq("slug", slug)
     .single();
 
@@ -55,7 +55,6 @@ export default async function EvaluateProductPage({
           <ReviewForm
             productId={product.id}
             productSlug={product.slug}
-            barcode={product.barcode}
             hasExistingImages={(imageCount ?? 0) > 0}
           />
         </CardContent>
