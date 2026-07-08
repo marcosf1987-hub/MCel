@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import {
   GLUTEN_LABELS,
-  PRICE_RANGE_LABELS,
+  PRICE_RANGE_OPTIONS,
   type GlutenCertification,
   type PriceRange,
   type TasteRating,
@@ -45,6 +45,11 @@ type UserProductImage = {
 
 const STEP_TITLES = ["Puntuación", "Sabor", "Precio", "Opinión", "Foto"] as const;
 
+function priceDescription(value: PriceRange): string {
+  const label = PRICE_RANGE_OPTIONS.find((o) => o.value === value)?.label ?? "";
+  return label.includes(" — ") ? label.split(" — ")[1] : label;
+}
+
 function PriceRangeInput({
   value,
   onChange,
@@ -57,10 +62,11 @@ function PriceRangeInput({
   const options: PriceRange[] = ["1", "2", "3", "4"];
 
   return (
-    <div className="flex justify-center gap-2">
+    <div className="grid w-full grid-cols-4 gap-1">
       {options.map((n) => {
         const active = value === n;
         const symbols = "$".repeat(Number(n));
+        const optionLabel = PRICE_RANGE_OPTIONS.find((o) => o.value === n)?.label ?? symbols;
         return (
           <button
             key={n}
@@ -68,16 +74,18 @@ function PriceRangeInput({
             disabled={disabled}
             onClick={() => onChange(n)}
             className={cn(
-              "flex min-w-[4.5rem] flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 transition-colors disabled:opacity-50",
+              "flex min-w-0 flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-2 transition-colors disabled:opacity-50 sm:gap-1 sm:px-2 sm:py-3",
               active
                 ? "border-[var(--color-primary)] bg-[var(--color-brand-cream)]"
                 : "border-transparent hover:bg-[var(--color-brand-cream)]/60"
             )}
-            aria-label={PRICE_RANGE_LABELS[n]}
+            aria-label={optionLabel}
           >
-            <span className="text-lg font-bold text-[var(--color-brown)]">{symbols}</span>
-            <span className="text-[10px] leading-tight text-[var(--color-muted-foreground)]">
-              {PRICE_RANGE_LABELS[n].split(" — ")[1]}
+            <span className="text-base font-bold text-[var(--color-brown)] sm:text-lg">
+              {symbols}
+            </span>
+            <span className="text-center text-[9px] leading-tight text-[var(--color-muted-foreground)] sm:text-[10px]">
+              {priceDescription(n)}
             </span>
           </button>
         );
@@ -472,14 +480,19 @@ export function ReviewForm({
         {loading && (
           <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
         )}
-        <div className="flex gap-2">
+        <div
+          className={cn(
+            "flex gap-2",
+            step > 1 ? "flex-col-reverse sm:flex-row" : "flex-col"
+          )}
+        >
           {step > 1 && (
             <Button
               type="button"
               variant="outline"
               disabled={loading}
               onClick={goBack}
-              className="gap-1"
+              className="w-full shrink-0 gap-1 sm:w-auto"
             >
               <ChevronLeft className="h-4 w-4" />
               Atrás
@@ -488,7 +501,7 @@ export function ReviewForm({
           <Button
             type="button"
             disabled={loading}
-            className="flex-1 gap-2"
+            className="min-w-0 flex-1 gap-2 whitespace-normal px-3 text-sm sm:px-8 sm:text-base"
             size="lg"
             onClick={() => {
               if (isLastStep) void submitReview();
@@ -497,13 +510,23 @@ export function ReviewForm({
           >
             {loading ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
                 {isEdit ? "Guardando…" : "Enviando…"}
               </>
             ) : isLastStep ? (
               <>
-                <Send className="h-5 w-5" />
-                {isEdit ? "Guardar cambios" : "Publicar evaluación"}
+                <Send className="h-5 w-5 shrink-0" />
+                {isEdit ? (
+                  <>
+                    <span className="sm:hidden">Guardar</span>
+                    <span className="hidden sm:inline">Guardar cambios</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="sm:hidden">Publicar</span>
+                    <span className="hidden sm:inline">Publicar evaluación</span>
+                  </>
+                )}
               </>
             ) : (
               "Siguiente"
