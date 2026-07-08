@@ -11,6 +11,8 @@ export type GlutenCertification =
 
 export type PriceRange = "1" | "2" | "3" | "4";
 
+export type TasteRating = "1" | "2" | "3" | "4";
+
 export const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
   "1": "$",
   "2": "$$",
@@ -24,6 +26,13 @@ export const PRICE_RANGE_OPTIONS: { value: PriceRange; label: string }[] = [
   { value: "3", label: "$$$ — Medio" },
   { value: "4", label: "$$$$ — Premium" },
 ];
+
+export const TASTE_RATING_LABELS: Record<TasteRating, string> = {
+  "1": "Malo (no me gustó)",
+  "2": "Bueno (cumple)",
+  "3": "Muy bueno (rico)",
+  "4": "Excelente (delicioso)",
+};
 
 export const GLUTEN_LABELS: Record<GlutenCertification, string> = {
   sin_tacc: "SIN TACC certificado",
@@ -138,8 +147,9 @@ export interface Review {
   user_id: string;
   rating: number;
   opinion: string;
-  general_description: string;
+  general_description: string | null;
   taste: string | null;
+  taste_rating: TasteRating | null;
   price_range: PriceRange;
   gluten_certification: GlutenCertification;
   created_at: string;

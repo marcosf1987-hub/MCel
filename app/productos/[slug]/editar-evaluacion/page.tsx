@@ -63,8 +63,7 @@ export default async function EditReviewPage({
             hasExistingImages={(imageCount ?? 0) > 0}
             initialValues={{
               rating: review.rating,
-              generalDescription: review.general_description,
-              taste: review.taste ?? "",
+              tasteRating: review.taste_rating ?? "",
               priceRange: review.price_range,
               opinion: review.opinion,
               glutenCertification: review.gluten_certification,

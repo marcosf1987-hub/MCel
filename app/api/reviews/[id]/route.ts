@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import type { GlutenCertification, PriceRange } from "@/types/database";
+import type { GlutenCertification, PriceRange, TasteRating } from "@/types/database";
 
 const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
+const VALID_TASTE_RATINGS: TasteRating[] = ["1", "2", "3", "4"];
 
 const VALID_CERTS: GlutenCertification[] = [
   "sin_tacc",
@@ -43,17 +44,23 @@ async function handleUpdate(request: NextRequest, reviewId: string) {
     const body = await request.json();
     const rating = Number(body.rating);
     const opinion = String(body.opinion ?? "").trim();
-    const generalDescription = String(body.generalDescription ?? "").trim();
-    const taste = String(body.taste ?? "").trim() || null;
+    const tasteRating = body.tasteRating as TasteRating | undefined;
     const priceRange = body.priceRange as PriceRange;
     let glutenCert = (body.glutenCertification ?? "desconocido") as GlutenCertification;
     const productSlug = String(body.productSlug ?? "");
 
+    const taste = tasteRating && VALID_TASTE_RATINGS.includes(tasteRating)
+      ? tasteRating
+      : null;
+
     if (!rating || rating < 1 || rating > 5) {
       return json({ ok: false, error: "Puntuación inválida." }, 400);
     }
-    if (!opinion || !generalDescription) {
-      return json({ ok: false, error: "Completá descripción y opinión." }, 400);
+    if (!opinion) {
+      return json({ ok: false, error: "Escribí tu opinión." }, 400);
+    }
+    if (!taste) {
+      return json({ ok: false, error: "Seleccioná cómo te pareció el sabor." }, 400);
     }
     if (!VALID_PRICE_RANGES.includes(priceRange)) {
       return json({ ok: false, error: "Seleccioná un rango de precio." }, 400);
@@ -76,8 +83,9 @@ async function handleUpdate(request: NextRequest, reviewId: string) {
       .update({
         rating,
         opinion,
-        general_description: generalDescription,
-        taste,
+        general_description: null,
+        taste: null,
+        taste_rating: taste,
         price_range: priceRange,
         gluten_certification: glutenCert,
       })

@@ -146,19 +146,20 @@ export async function submitReview(formData: FormData): Promise<
     const productSlug = String(formData.get("productSlug"));
     const rating = Number(formData.get("rating"));
     const opinion = String(formData.get("opinion") ?? "").trim();
-    const generalDescription = String(
-      formData.get("generalDescription") ?? ""
-    ).trim();
-    const taste = String(formData.get("taste") ?? "").trim() || null;
+    const tasteRating = String(formData.get("tasteRating") ?? "");
     const priceRange = String(formData.get("priceRange") ?? "");
     const glutenCert = String(formData.get("glutenCertification") ?? "desconocido");
     const validRanges = ["1", "2", "3", "4"];
+    const validTaste = ["1", "2", "3", "4"];
 
     if (!rating || rating < 1 || rating > 5) {
       return { ok: false, error: "Seleccioná una puntuación del 1 al 5." };
     }
-    if (!opinion || !generalDescription) {
-      return { ok: false, error: "Completá la descripción y tu opinión." };
+    if (!opinion) {
+      return { ok: false, error: "Escribí tu opinión." };
+    }
+    if (!validTaste.includes(tasteRating)) {
+      return { ok: false, error: "Seleccioná cómo te pareció el sabor." };
     }
     if (!validRanges.includes(priceRange)) {
       return { ok: false, error: "Seleccioná un rango de precio." };
@@ -169,8 +170,9 @@ export async function submitReview(formData: FormData): Promise<
       user_id: user.id,
       rating,
       opinion,
-      general_description: generalDescription,
-      taste,
+      general_description: null,
+      taste: null,
+      taste_rating: tasteRating,
       price_range: priceRange,
       gluten_certification: glutenCert,
     });

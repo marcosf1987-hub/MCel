@@ -48,7 +48,7 @@ export default async function EvaluateProductPage({
         <CardHeader>
           <CardTitle>Evaluar: {product.name}</CardTitle>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            Completá todos los campos marcados con * y tocá Publicar al final.
+            Completá cada paso del asistente y publicá al final.
           </p>
         </CardHeader>
         <CardContent>

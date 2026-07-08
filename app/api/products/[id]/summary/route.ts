@@ -11,7 +11,7 @@ export async function POST(
 
   const { data: reviews } = await supabase
     .from("reviews")
-    .select("general_description, taste, price_range")
+    .select("opinion, taste, taste_rating, price_range")
     .eq("product_id", id);
 
   if (!reviews?.length) {

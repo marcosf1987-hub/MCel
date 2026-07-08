@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import type { GlutenCertification, PriceRange } from "@/types/database";
+import type { GlutenCertification, PriceRange, TasteRating } from "@/types/database";
 
 const VALID_CERTS: GlutenCertification[] = [
   "sin_tacc",
@@ -12,6 +12,7 @@ const VALID_CERTS: GlutenCertification[] = [
 ];
 
 const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
+const VALID_TASTE_RATINGS: TasteRating[] = ["1", "2", "3", "4"];
 
 /** GET = diagnóstico */
 export async function GET(request: NextRequest) {
@@ -54,8 +55,7 @@ interface ReviewPayload {
   productSlug: string;
   rating: number;
   opinion: string;
-  generalDescription: string;
-  taste?: string;
+  tasteRating?: string;
   priceRange: string;
   glutenCertification: string;
   skipImage?: boolean;
@@ -96,13 +96,15 @@ export async function POST(request: NextRequest) {
       productSlug,
       rating,
       opinion,
-      generalDescription,
-      taste,
+      tasteRating,
     } = payload;
 
     let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
     const skipImage = payload.skipImage === true;
     const priceRange = payload.priceRange as PriceRange;
+    const taste = VALID_TASTE_RATINGS.includes(tasteRating as TasteRating)
+      ? (tasteRating as TasteRating)
+      : null;
 
     if (!productId || !productSlug) {
       return json({ ok: false, error: "Producto no identificado." }, 400);
@@ -110,8 +112,11 @@ export async function POST(request: NextRequest) {
     if (!rating || rating < 1 || rating > 5) {
       return json({ ok: false, error: "Seleccioná una puntuación del 1 al 5." }, 400);
     }
-    if (!opinion || !generalDescription) {
-      return json({ ok: false, error: "Completá la descripción y tu opinión." }, 400);
+    if (!opinion?.trim()) {
+      return json({ ok: false, error: "Escribí tu opinión sobre el producto." }, 400);
+    }
+    if (!taste) {
+      return json({ ok: false, error: "Seleccioná cómo te pareció el sabor." }, 400);
     }
     if (!VALID_PRICE_RANGES.includes(priceRange)) {
       return json({ ok: false, error: "Seleccioná un rango de precio." }, 400);
@@ -146,9 +151,10 @@ export async function POST(request: NextRequest) {
       product_id: productId,
       user_id: user.id,
       rating,
-      opinion,
-      general_description: generalDescription,
-      taste: taste || null,
+      opinion: opinion.trim(),
+      general_description: null,
+      taste: null,
+      taste_rating: taste,
       price_range: priceRange,
       gluten_certification: glutenCert,
     });

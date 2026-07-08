@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaxonomyCategoryFields } from "@/components/ui/taxonomy-category-fields";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
+import { WizardProgress } from "@/components/ui/wizard-progress";
 import { compressImage } from "@/lib/compress-image";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
@@ -23,8 +24,17 @@ import {
 } from "@/lib/off/map-to-taxonomy";
 import type { OffProductData } from "@/lib/off/parse";
 
+const LOAD_STEPS = 3;
+
+const STEP_TITLES: Record<1 | 2 | 3, string> = {
+  1: "Código de barras",
+  2: "Datos del producto",
+  3: "Imagen del producto",
+};
+
 export function NewProductForm() {
   const router = useRouter();
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [statusType, setStatusType] = useState<StatusType>("idle");
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -40,6 +50,11 @@ export function NewProductForm() {
   const [manualMode, setManualMode] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+  const [createdProduct, setCreatedProduct] = useState<{
+    slug: string;
+    productId: string;
+    hasOffImage: boolean;
+  } | null>(null);
 
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
@@ -83,22 +98,11 @@ export function NewProductForm() {
       categoryId: match.categoryId,
       subcategoryId: match.subcategoryId,
     });
-    if (match.matchLevel === "full") {
-      setStatus(
-        "info",
-        "Categoría sugerida desde Open Food Facts — confirmá antes de guardar."
-      );
-    } else if (match.matchLevel === "category") {
-      setStatus(
-        "info",
-        "Open Food Facts sugirió la categoría; elegimos «Otros» en subcategoría. Revisá antes de guardar."
-      );
-    } else {
-      setStatus(
-        "info",
-        "Open Food Facts no coincidió con nuestro catálogo. Revisá la categoría (por defecto Otros)."
-      );
-    }
+  };
+
+  const goToEvaluate = (slug: string) => {
+    router.push(`/productos/${slug}/evaluar`);
+    router.refresh();
   };
 
   const handleScan = async (code: string) => {
@@ -136,9 +140,7 @@ export function NewProductForm() {
 
       if (data.existsInDb && data.product) {
         setStatus("success", "Este producto ya existe. Te llevamos a evaluarlo…");
-        setTimeout(() => {
-          router.push(`/productos/${data.product!.slug}/evaluar`);
-        }, 800);
+        setTimeout(() => goToEvaluate(data.product!.slug), 800);
         return;
       }
 
@@ -151,31 +153,29 @@ export function NewProductForm() {
         }
         setOffImageUrl(off.imageUrl ?? "");
         setManualMode(false);
-        if (!taxonomy.length) {
-          setStatus(
-            "success",
-            "Producto encontrado en Open Food Facts. Elegí categoría del listado."
-          );
-        }
+        setStatus("success", "Producto encontrado. Confirmá los datos en el siguiente paso.");
       } else {
         setManualMode(true);
         const otros = findOtrosSelection(taxonomy);
         if (otros) setClassification(otros);
         setStatus(
           "info",
-          "No está en Open Food Facts. Completá los datos y elegí categoría del listado."
+          "No está en Open Food Facts. Completá los datos en el siguiente paso."
         );
       }
+
+      setWizardStep(2);
     } catch {
       setBarcode(code);
       setManualMode(true);
       setStatus("error", "No se pudo buscar el código. Podés cargar el producto manualmente.");
+      setWizardStep(2);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!classification?.categoryId || !classification?.subcategoryId) {
@@ -183,13 +183,8 @@ export function NewProductForm() {
       return;
     }
 
-    if (!offImageUrl && !imageFile) {
-      setStatus("error", "Subí una foto del producto o usá un código con imagen en Open Food Facts.");
-      return;
-    }
-
     setLoading(true);
-    setStatus("loading", "Guardando producto…");
+    setStatus("loading", "Creando producto…");
 
     try {
       const res = await fetch("/api/products", {
@@ -219,10 +214,7 @@ export function NewProductForm() {
       try {
         data = JSON.parse(text);
       } catch {
-        setStatus(
-          "error",
-          `Error del servidor (código ${res.status}). Si subiste una foto muy grande, probá de nuevo: ya comprimimos automáticamente.`
-        );
+        setStatus("error", `Error del servidor (código ${res.status}).`);
         return;
       }
 
@@ -241,35 +233,21 @@ export function NewProductForm() {
 
       if (data.alreadyExists) {
         setStatus("success", "Este producto ya existe. Abriendo evaluación…");
-        setTimeout(() => {
-          router.push(`/productos/${slug}/evaluar`);
-          router.refresh();
-        }, 600);
+        setTimeout(() => goToEvaluate(slug), 600);
         return;
       }
 
-      if (imageFile) {
-        setStatus("loading", "Comprimiendo y subiendo foto…");
-        const compressed = await compressImage(imageFile);
-        const uploadResult = await uploadProductImageFromBrowser(productId, compressed);
-        if ("error" in uploadResult) {
-          setStatus(
-            "info",
-            `Producto creado. ${uploadResult.error} Podés subir la foto en la evaluación.`
-          );
-          setTimeout(() => {
-            router.push(`/productos/${slug}/evaluar`);
-            router.refresh();
-          }, 2000);
-          return;
-        }
+      const hasOffImage = Boolean(offImageUrl);
+      setCreatedProduct({ slug, productId, hasOffImage });
+
+      if (hasOffImage) {
+        setStatus("success", "Producto creado con imagen de Open Food Facts.");
+        setTimeout(() => goToEvaluate(slug), 600);
+        return;
       }
 
-      setStatus("success", "¡Producto creado! Abriendo formulario de evaluación…");
-      setTimeout(() => {
-        router.push(`/productos/${slug}/evaluar`);
-        router.refresh();
-      }, 600);
+      setStatus("success", "Producto creado. Podés subir una foto o saltear.");
+      setWizardStep(3);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error inesperado";
       setStatus("error", msg);
@@ -278,34 +256,80 @@ export function NewProductForm() {
     }
   };
 
-  const showForm = Boolean(barcode);
+  const handleImageStep = async (skip: boolean) => {
+    if (!createdProduct) return;
+
+    if (skip) {
+      goToEvaluate(createdProduct.slug);
+      return;
+    }
+
+    if (!imageFile) {
+      setStatus("error", "Elegí una foto o tocá Saltear.");
+      return;
+    }
+
+    setLoading(true);
+    setStatus("loading", "Comprimiendo y subiendo foto…");
+
+    try {
+      const compressed = await compressImage(imageFile);
+      const uploadResult = await uploadProductImageFromBrowser(
+        createdProduct.productId,
+        compressed
+      );
+      if ("error" in uploadResult) {
+        setStatus(
+          "info",
+          `${uploadResult.error} Podés subir la foto en la evaluación.`
+        );
+        setTimeout(() => goToEvaluate(createdProduct.slug), 2000);
+        return;
+      }
+
+      setStatus("success", "¡Foto subida! Abriendo evaluación…");
+      setTimeout(() => goToEvaluate(createdProduct.slug), 600);
+    } catch (err) {
+      setStatus("error", err instanceof Error ? err.message : "Error al subir la foto");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      <WizardProgress
+        step={wizardStep}
+        total={LOAD_STEPS}
+        title={STEP_TITLES[wizardStep]}
+      />
+
       <StatusBanner type={statusType} message={statusMsg} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>1. Escanear o ingresar código</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BarcodeScanner
-            onScan={handleScan}
-            disabled={loading || taxonomyLoading}
-            onStatus={(type, msg) => setStatus(type, msg)}
-          />
-        </CardContent>
-      </Card>
+      {wizardStep === 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Escanear o ingresar código</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarcodeScanner
+              onScan={handleScan}
+              disabled={loading || taxonomyLoading}
+              onStatus={(type, msg) => setStatus(type, msg)}
+            />
+          </CardContent>
+        </Card>
+      )}
 
-      {showForm && (
+      {wizardStep === 2 && (
         <Card>
           <CardHeader>
             <CardTitle>
-              2. {manualMode ? "Datos del producto (manual)" : "Confirmar y crear"}
+              {manualMode ? "Datos del producto (manual)" : "Confirmar y crear"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreateProduct} className="space-y-4">
               <div>
                 <Label>Código de barras</Label>
                 <Input value={barcode} readOnly className="bg-[var(--color-brand-cream)]" />
@@ -336,34 +360,70 @@ export function NewProductForm() {
                 onChange={setClassification}
                 disabled={loading || taxonomyLoading}
               />
-              <ProductImagePicker
-                label="Imagen del producto"
-                required={!offImageUrl}
-                disabled={loading}
-                imageName={imageName}
-                hint={
-                  offImageUrl
-                    ? "Hay imagen de Open Food Facts. Podés omitir la foto o subir una propia."
-                    : "Obligatoria si no hay imagen automática. Se comprime sola antes de subir."
-                }
-                onSelect={(file) => {
-                  setImageFile(file);
-                  setImageName(file?.name ?? null);
-                  if (file) {
-                    setStatus("info", `Foto seleccionada: ${file.name}`);
-                  }
-                }}
-              />
 
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => setWizardStep(1)}
+                >
+                  Atrás
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || taxonomyLoading}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {loading ? "Creando…" : "Crear producto"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {wizardStep === 3 && createdProduct && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Imagen del producto</CardTitle>
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              Subí una foto o saltear si preferís hacerlo en la evaluación.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ProductImagePicker
+              label="Foto del producto"
+              disabled={loading}
+              imageName={imageName}
+              hint="Se comprime automáticamente antes de subir."
+              onSelect={(file) => {
+                setImageFile(file);
+                setImageName(file?.name ?? null);
+              }}
+            />
+
+            <div className="flex flex-col gap-2">
               <Button
-                type="submit"
-                disabled={loading || taxonomyLoading}
+                type="button"
+                disabled={loading || !imageFile}
                 className="w-full"
                 size="lg"
+                onClick={() => handleImageStep(false)}
               >
-                {loading ? "Guardando…" : "Crear producto y evaluar"}
+                {loading ? "Subiendo…" : "Subir foto y evaluar"}
               </Button>
-            </form>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                className="w-full"
+                onClick={() => handleImageStep(true)}
+              >
+                Saltear por ahora
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

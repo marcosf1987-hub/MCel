@@ -1,9 +1,15 @@
-import { PRICE_RANGE_LABELS, type PriceRange } from "@/types/database";
+import { PRICE_RANGE_LABELS, TASTE_RATING_LABELS, type PriceRange, type TasteRating } from "@/types/database";
 
 export interface ReviewSummaryInput {
-  general_description: string;
+  opinion: string;
   taste: string | null;
+  taste_rating: TasteRating | null;
   price_range: PriceRange;
+}
+
+function tasteLabel(r: ReviewSummaryInput): string {
+  if (r.taste_rating) return TASTE_RATING_LABELS[r.taste_rating];
+  return r.taste ?? "no indicado";
 }
 
 export async function summarizeReviews(
@@ -21,7 +27,7 @@ export async function summarizeReviews(
   const payload = reviews
     .map(
       (r, i) =>
-        `Evaluación ${i + 1}: Descripción: ${r.general_description}. Sabor: ${r.taste ?? "no indicado"}. Rango de precio: ${PRICE_RANGE_LABELS[r.price_range]}.`
+        `Evaluación ${i + 1}: Opinión: ${r.opinion}. Sabor: ${tasteLabel(r)}. Rango de precio: ${PRICE_RANGE_LABELS[r.price_range]}.`
     )
     .join("\n");
 
@@ -38,7 +44,7 @@ export async function summarizeReviews(
           {
             role: "system",
             content:
-              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en descripción general, sabor y percepción de precio ($ a $$$$). Sé conciso y objetivo. No des consejo médico.",
+              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en la opinión de los usuarios, sabor y percepción de precio ($ a $$$$). Sé conciso y objetivo. No des consejo médico.",
           },
           { role: "user", content: payload },
         ],
@@ -66,8 +72,8 @@ function buildFallbackSummary(reviews: ReviewSummaryInput[]): string {
   }
   const commonRange = Object.entries(rangeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const tastes = reviews
-    .map((r) => r.taste)
-    .filter(Boolean)
+    .map(tasteLabel)
+    .filter((t) => t !== "no indicado")
     .slice(0, 3)
     .join("; ");
   return `Basado en ${reviews.length} evaluaciones de la comunidad: los usuarios destacan aspectos variados del producto. ${

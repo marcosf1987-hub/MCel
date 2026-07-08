@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { StarInput } from "@/components/product/star-rating";
+import { HeartInput } from "@/components/product/heart-rating";
 import { ProductImagePicker } from "@/components/product/product-image-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBanner, type StatusType } from "@/components/ui/status-banner";
+import { WizardProgress } from "@/components/ui/wizard-progress";
 import {
   Select,
   SelectContent,
@@ -19,17 +21,18 @@ import {
 } from "@/components/ui/select";
 import {
   GLUTEN_LABELS,
-  PRICE_RANGE_OPTIONS,
+  PRICE_RANGE_LABELS,
   type GlutenCertification,
   type PriceRange,
+  type TasteRating,
 } from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
-import { Loader2, Send, Trash2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ChevronLeft, Loader2, Send, Trash2, X } from "lucide-react";
 
 type ReviewInitialValues = {
   rating: number;
-  generalDescription: string;
-  taste: string;
+  tasteRating: TasteRating | "";
   priceRange: PriceRange;
   opinion: string;
   glutenCertification: GlutenCertification;
@@ -39,6 +42,49 @@ type UserProductImage = {
   id: string;
   url: string;
 };
+
+const STEP_TITLES = ["Puntuación", "Sabor", "Precio", "Opinión", "Foto"] as const;
+
+function PriceRangeInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: PriceRange;
+  onChange: (v: PriceRange) => void;
+  disabled?: boolean;
+}) {
+  const options: PriceRange[] = ["1", "2", "3", "4"];
+
+  return (
+    <div className="flex justify-center gap-2">
+      {options.map((n) => {
+        const active = value === n;
+        const symbols = "$".repeat(Number(n));
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(n)}
+            className={cn(
+              "flex min-w-[4.5rem] flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 transition-colors disabled:opacity-50",
+              active
+                ? "border-[var(--color-primary)] bg-[var(--color-brand-cream)]"
+                : "border-transparent hover:bg-[var(--color-brand-cream)]/60"
+            )}
+            aria-label={PRICE_RANGE_LABELS[n]}
+          >
+            <span className="text-lg font-bold text-[var(--color-brown)]">{symbols}</span>
+            <span className="text-[10px] leading-tight text-[var(--color-muted-foreground)]">
+              {PRICE_RANGE_LABELS[n].split(" — ")[1]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ReviewForm({
   productId,
@@ -62,7 +108,14 @@ export function ReviewForm({
   const router = useRouter();
   const isEdit = mode === "edit";
 
+  const needsImageStep = isEdit || !hasExistingImages;
+  const totalSteps = needsImageStep ? 5 : 4;
+
+  const [step, setStep] = useState(1);
   const [rating, setRating] = useState(initialValues?.rating ?? 0);
+  const [tasteRating, setTasteRating] = useState<TasteRating | "">(
+    initialValues?.tasteRating ?? ""
+  );
   const [statusType, setStatusType] = useState<StatusType>("idle");
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,30 +126,65 @@ export function ReviewForm({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userImages, setUserImages] = useState<UserProductImage[]>(initialUserImages);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
-
-  const [generalDescription, setGeneralDescription] = useState(
-    initialValues?.generalDescription ?? ""
-  );
-  const [taste, setTaste] = useState(initialValues?.taste ?? "");
   const [priceRange, setPriceRange] = useState<PriceRange>(
     initialValues?.priceRange ?? "2"
   );
   const [opinion, setOpinion] = useState(initialValues?.opinion ?? "");
+
+  const stepTitle = useMemo(() => {
+    if (step <= 4) return STEP_TITLES[step - 1];
+    return STEP_TITLES[4];
+  }, [step]);
 
   const setStatus = (type: StatusType, message: string) => {
     setStatusType(type);
     setStatusMsg(message);
   };
 
+  const validateStep = (current: number): boolean => {
+    if (current === 1 && rating < 1) {
+      setStatus("error", "Seleccioná una puntuación de 1 a 5 estrellas.");
+      return false;
+    }
+    if (current === 2 && !tasteRating) {
+      setStatus("error", "Elegí cómo te pareció el sabor (1 a 4 corazones).");
+      return false;
+    }
+    if (current === 3 && !["1", "2", "3", "4"].includes(priceRange)) {
+      setStatus("error", "Seleccioná un rango de precio.");
+      return false;
+    }
+    if (current === 4 && !opinion.trim()) {
+      setStatus("error", "Escribí tu opinión sobre el producto.");
+      return false;
+    }
+    if (current === 5 && !isEdit && !selectedFile && !hasExistingImages) {
+      setStatus("error", "Subí una foto del producto o volvé atrás si ya la cargaste.");
+      return false;
+    }
+    return true;
+  };
+
+  const goNext = () => {
+    if (!validateStep(step)) return;
+    setStatusType("idle");
+    setStatusMsg(null);
+    if (step === 4 && !needsImageStep) {
+      void submitReview();
+      return;
+    }
+    setStep((s) => Math.min(s + 1, totalSteps));
+  };
+
+  const goBack = () => {
+    setStatusType("idle");
+    setStatusMsg(null);
+    setStep((s) => Math.max(s - 1, 1));
+  };
+
   const handleSelectImage = (file: File | null) => {
     setSelectedFile(file);
     setImageName(file?.name ?? null);
-    if (file) {
-      setStatus(
-        "info",
-        `Foto seleccionada: ${file.name} (${Math.round(file.size / 1024)} KB)`
-      );
-    }
   };
 
   const handleDeleteImage = async (imageId: string) => {
@@ -151,32 +239,15 @@ export function ReviewForm({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (rating < 1) {
-      setStatus("error", "Seleccioná una puntuación de 1 a 5 estrellas.");
-      return;
-    }
-
-    if (!generalDescription.trim()) {
-      setStatus("error", "Escribí la descripción general del producto.");
-      return;
-    }
-
-    if (!opinion.trim()) {
-      setStatus("error", "Escribí tu opinión / evaluación.");
-      return;
-    }
-
-    if (!["1", "2", "3", "4"].includes(priceRange)) {
-      setStatus("error", "Seleccioná un rango de precio.");
+  const submitReview = async () => {
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
       return;
     }
 
     const file = selectedFile;
     if (!isEdit && !file && !hasExistingImages) {
       setStatus("error", "Subí una foto del producto.");
+      setStep(5);
       return;
     }
 
@@ -190,19 +261,17 @@ export function ReviewForm({
           setStatus("error", uploadResult.error);
           return;
         }
-        setStatus("info", "Foto subida correctamente.");
       }
 
       const payload = {
         productId,
         productSlug,
         rating,
-        generalDescription: generalDescription.trim(),
-        taste: taste.trim(),
+        tasteRating,
         priceRange,
         opinion: opinion.trim(),
         glutenCertification: glutenCert,
-        skipImage: isEdit || (hasExistingImages && !file),
+        skipImage: isEdit || hasExistingImages || Boolean(file),
       };
 
       setStatus("loading", isEdit ? "Guardando cambios…" : "Guardando evaluación…");
@@ -273,91 +342,87 @@ export function ReviewForm({
     }
   };
 
+  const isLastStep = step === totalSteps;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      <WizardProgress step={step} total={totalSteps} title={stepTitle} />
+
       <StatusBanner type={statusType} message={statusMsg} />
 
-      <div>
-        <Label>Código de barras</Label>
-        <Input value={barcode} readOnly className="bg-[var(--color-brand-cream)]" />
-      </div>
-
-      <div>
-        <Label>Puntuación (1-5) *</Label>
-        <StarInput
-          value={rating}
-          onChange={(v) => {
-            setRating(v);
-            setStatus("info", `Puntuación: ${v} de 5 estrellas`);
-          }}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="generalDescription">Descripción general *</Label>
-        <Textarea
-          id="generalDescription"
-          value={generalDescription}
-          onChange={(e) => setGeneralDescription(e.target.value)}
-          required
-          placeholder="Textura, presentación, para qué ocasión..."
-          rows={3}
-          disabled={loading}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="taste">Sabor</Label>
-        <Input
-          id="taste"
-          value={taste}
-          onChange={(e) => setTaste(e.target.value)}
-          placeholder="¿Cómo sabe?"
-          disabled={loading}
-        />
-      </div>
-
-      <div>
-        <Label>Rango de precio *</Label>
-        <Select
-          value={priceRange}
-          onValueChange={(v) => {
-            setPriceRange(v as PriceRange);
-            setStatus("info", `Rango: ${PRICE_RANGE_OPTIONS.find((o) => o.value === v)?.label ?? v}`);
-          }}
-          disabled={loading}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Elegí un rango" />
-          </SelectTrigger>
-          <SelectContent>
-            {PRICE_RANGE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {!isEdit && (
-        <ProductImagePicker
-          label="Foto del producto"
-          required={!hasExistingImages}
-          disabled={loading}
-          imageName={imageName}
-          hint={
-            hasExistingImages
-              ? "El producto ya tiene imagen. Podés subir la tuya o publicar sin foto nueva. Las fotos se comprimen automáticamente."
-              : "Las fotos se comprimen automáticamente para evitar errores de tamaño."
-          }
-          onSelect={handleSelectImage}
-        />
+      {step === 1 && (
+        <div className="space-y-4">
+          <div>
+            <Label>Código de barras</Label>
+            <Input value={barcode} readOnly className="bg-[var(--color-brand-cream)]" />
+          </div>
+          <div>
+            <Label>Puntuación general (1-5) *</Label>
+            <StarInput value={rating} onChange={setRating} />
+          </div>
+        </div>
       )}
 
-      {isEdit && (
-        <div className="space-y-3">
-          {userImages.length > 0 && (
+      {step === 2 && (
+        <div>
+          <Label>¿Cómo te pareció el sabor? *</Label>
+          <div className="mt-3">
+            <HeartInput value={tasteRating} onChange={setTasteRating} />
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div>
+          <Label>Rango de precio *</Label>
+          <div className="mt-3">
+            <PriceRangeInput
+              value={priceRange}
+              onChange={setPriceRange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="opinion">Tu opinión *</Label>
+            <Textarea
+              id="opinion"
+              value={opinion}
+              onChange={(e) => setOpinion(e.target.value)}
+              placeholder="Contá tu experiencia con el producto…"
+              rows={4}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <Label>Certificación gluten</Label>
+            <Select
+              value={glutenCert}
+              onValueChange={(v) => setGlutenCert(v as GlutenCertification)}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(GLUTEN_LABELS).map(([k, label]) => (
+                  <SelectItem key={k} value={k}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {step === 5 && needsImageStep && (
+        <div className="space-y-4">
+          {isEdit && userImages.length > 0 && (
             <div>
               <Label>Tus fotos</Label>
               <div className="mt-2 grid grid-cols-3 gap-2">
@@ -389,68 +454,62 @@ export function ReviewForm({
             </div>
           )}
           <ProductImagePicker
-            label="Agregar foto"
+            label={isEdit ? "Agregar foto" : "Foto del producto"}
+            required={!isEdit && !hasExistingImages}
             disabled={loading}
             imageName={imageName}
-            hint="Podés tomar una foto nueva o elegir una del carrete."
+            hint={
+              isEdit
+                ? "Podés tomar una foto nueva o elegir una del carrete."
+                : "Las fotos se comprimen automáticamente."
+            }
             onSelect={handleSelectImage}
           />
         </div>
       )}
 
-      <div>
-        <Label>Certificación gluten</Label>
-        <Select
-          value={glutenCert}
-          onValueChange={(v) => {
-            setGlutenCert(v as GlutenCertification);
-            setStatus("info", `Certificación: ${GLUTEN_LABELS[v as GlutenCertification]}`);
-          }}
-          disabled={loading}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(GLUTEN_LABELS).map(([k, label]) => (
-              <SelectItem key={k} value={k}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label htmlFor="opinion">Tu evaluación / opinión *</Label>
-        <Textarea
-          id="opinion"
-          value={opinion}
-          onChange={(e) => setOpinion(e.target.value)}
-          required
-          placeholder="Contá tu experiencia completa con el producto..."
-          rows={4}
-          disabled={loading}
-        />
-      </div>
-
       <div className="sticky bottom-4 z-10 space-y-3 rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg">
         {loading && (
           <StatusBanner type="loading" message="Enviando… No cierres esta pantalla." />
         )}
-        <Button type="submit" disabled={loading} className="w-full gap-2" size="lg">
-          {loading ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {isEdit ? "Guardando…" : "Enviando evaluación…"}
-            </>
-          ) : (
-            <>
-              <Send className="h-5 w-5" />
-              {isEdit ? "Guardar cambios" : "Publicar evaluación"}
-            </>
+        <div className="flex gap-2">
+          {step > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              onClick={goBack}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Atrás
+            </Button>
           )}
-        </Button>
+          <Button
+            type="button"
+            disabled={loading}
+            className="flex-1 gap-2"
+            size="lg"
+            onClick={() => {
+              if (isLastStep) void submitReview();
+              else goNext();
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {isEdit ? "Guardando…" : "Enviando…"}
+              </>
+            ) : isLastStep ? (
+              <>
+                <Send className="h-5 w-5" />
+                {isEdit ? "Guardar cambios" : "Publicar evaluación"}
+              </>
+            ) : (
+              "Siguiente"
+            )}
+          </Button>
+        </div>
         {isEdit && reviewId && (
           <Button
             type="button"
@@ -464,6 +523,6 @@ export function ReviewForm({
           </Button>
         )}
       </div>
-    </form>
+    </div>
   );
 }

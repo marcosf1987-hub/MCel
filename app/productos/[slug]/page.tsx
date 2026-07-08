@@ -75,6 +75,7 @@ export default async function ProductDetailPage({
       opinion: r.opinion,
       general_description: r.general_description,
       taste: r.taste,
+      taste_rating: r.taste_rating ?? null,
       price_range: r.price_range,
       gluten_certification: r.gluten_certification,
       created_at: r.created_at,

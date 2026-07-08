@@ -279,6 +279,7 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
   const [cameraActive, setCameraActive] = useState(false);
   const [startingCamera, setStartingCamera] = useState(false);
   const [scanningPhoto, setScanningPhoto] = useState(false);
+  const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [debugLines, setDebugLines] = useState<string[]>([]);
 
   const onScanRef = useRef(onScan);
@@ -591,26 +592,39 @@ export function BarcodeScanner({ onScan, disabled, onStatus }: BarcodeScannerPro
             <Camera className="h-6 w-6" />
             {startingCamera ? "Abriendo cámara…" : "Escanear código"}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled={busy}
-            className="h-11 w-full gap-2"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImageIcon className="h-5 w-5" />
-            {scanningPhoto ? "Leyendo foto…" : "Foto del código"}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            disabled={busy}
-            onChange={(e) => handlePhotoSelected(e.target.files?.[0])}
-          />
+          {!showPhotoOption ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setShowPhotoOption(true)}
+              className="text-center text-sm text-[var(--color-muted-foreground)] underline-offset-2 hover:text-[var(--color-brown)] hover:underline disabled:opacity-50"
+            >
+              ¿La cámara no lee? Subí una foto del código
+            </button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={busy}
+                className="h-11 w-full gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImageIcon className="h-5 w-5" />
+                {scanningPhoto ? "Leyendo foto…" : "Foto del código"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                disabled={busy}
+                onChange={(e) => handlePhotoSelected(e.target.files?.[0])}
+              />
+            </>
+          )}
         </div>
       )}
 
