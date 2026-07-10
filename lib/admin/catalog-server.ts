@@ -31,6 +31,15 @@ export type AdminCategoryRow = Category & {
   subcategories: Subcategory[];
 };
 
+export type AdminProductImageRow = {
+  id: string;
+  url: string;
+  sort_order: number;
+  is_hidden: boolean;
+  quality_status: ImageQualityStatus;
+  image_source: string | null;
+};
+
 export type ReviewImageRow = {
   id: string;
   product_id: string;
@@ -149,6 +158,27 @@ export async function fetchAdminCategories(
   return (categories ?? []).map((cat) => ({
     ...cat,
     subcategories: subsByCategory.get(cat.id) ?? [],
+  }));
+}
+
+export async function fetchAdminProductImages(
+  supabase: SupabaseClient,
+  productId: string
+): Promise<AdminProductImageRow[]> {
+  const { data: images } = await supabase
+    .from("product_images")
+    .select("id, url, sort_order, is_hidden, quality_status, image_source")
+    .eq("product_id", productId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  return (images ?? []).map((img) => ({
+    id: img.id,
+    url: img.url,
+    sort_order: img.sort_order,
+    is_hidden: img.is_hidden,
+    quality_status: img.quality_status as ImageQualityStatus,
+    image_source: img.image_source,
   }));
 }
 

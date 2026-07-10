@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaxonomyCategoryFields } from "@/components/ui/taxonomy-category-fields";
+import { AdminProductImagesEditor } from "@/components/admin/product-images-editor";
 import type { AdminProductRow } from "@/lib/admin/catalog-server";
 import type { TaxonomyCategory, TaxonomySelection } from "@/lib/catalog-taxonomy";
 import type { Brand } from "@/types/database";
@@ -411,6 +412,7 @@ export function CatalogProductsManager({
                         }
                       }}
                     />
+                    <AdminProductImagesEditor productId={product.id} />
                     <div className="flex gap-2">
                       <Button
                         type="button"
