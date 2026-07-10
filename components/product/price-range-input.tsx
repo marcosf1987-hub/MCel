@@ -23,7 +23,7 @@ export function PriceRangeInput({
   return (
     <WizardScaleField
       selectedLabel={value ? priceDescription(value) : null}
-      emptyHint="Elegí cuánto pagaste por el producto"
+      emptyHint="Opcional — elegí cuánto pagaste por el producto"
     >
       {options.map((n) => {
         const symbols = "$".repeat(Number(n));

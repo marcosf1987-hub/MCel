@@ -158,7 +158,7 @@ export interface Review {
   general_description: string | null;
   taste: string | null;
   taste_rating: TasteRating | null;
-  price_range: PriceRange;
+  price_range: PriceRange | null;
   gluten_certification: GlutenCertification;
   created_at: string;
   updated_at: string;

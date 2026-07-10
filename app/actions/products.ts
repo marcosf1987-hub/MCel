@@ -146,8 +146,8 @@ export async function submitReview(formData: FormData): Promise<
     const productSlug = String(formData.get("productSlug"));
     const rating = Number(formData.get("rating"));
     const opinion = String(formData.get("opinion") ?? "").trim();
-    const tasteRating = String(formData.get("tasteRating") ?? "");
-    const priceRange = String(formData.get("priceRange") ?? "");
+    const tasteRating = String(formData.get("tasteRating") ?? "").trim();
+    const priceRange = String(formData.get("priceRange") ?? "").trim();
     const glutenCert = String(formData.get("glutenCertification") ?? "desconocido");
     const validRanges = ["1", "2", "3", "4"];
     const validTaste = ["1", "2", "3", "4"];
@@ -158,12 +158,6 @@ export async function submitReview(formData: FormData): Promise<
     if (!opinion) {
       return { ok: false, error: "Escribí tu opinión." };
     }
-    if (!validTaste.includes(tasteRating)) {
-      return { ok: false, error: "Seleccioná cómo te pareció el sabor." };
-    }
-    if (!validRanges.includes(priceRange)) {
-      return { ok: false, error: "Seleccioná un rango de precio." };
-    }
 
     const { error } = await supabase.from("reviews").insert({
       product_id: productId,
@@ -172,8 +166,8 @@ export async function submitReview(formData: FormData): Promise<
       opinion,
       general_description: null,
       taste: null,
-      taste_rating: tasteRating,
-      price_range: priceRange,
+      taste_rating: validTaste.includes(tasteRating) ? tasteRating : null,
+      price_range: validRanges.includes(priceRange) ? priceRange : null,
       gluten_certification: glutenCert,
     });
 

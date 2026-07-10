@@ -4,12 +4,18 @@ export interface ReviewSummaryInput {
   opinion: string;
   taste: string | null;
   taste_rating: TasteRating | null;
-  price_range: PriceRange;
+  price_range: PriceRange | null;
 }
 
-function tasteLabel(r: ReviewSummaryInput): string {
+function tasteLabel(r: ReviewSummaryInput): string | null {
   if (r.taste_rating) return TASTE_RATING_LABELS[r.taste_rating];
-  return r.taste ?? "no indicado";
+  if (r.taste) return r.taste;
+  return null;
+}
+
+function priceLabel(r: ReviewSummaryInput): string | null {
+  if (!r.price_range) return null;
+  return PRICE_RANGE_LABELS[r.price_range];
 }
 
 export async function summarizeReviews(
@@ -25,10 +31,14 @@ export async function summarizeReviews(
   }
 
   const payload = reviews
-    .map(
-      (r, i) =>
-        `Evaluación ${i + 1}: Opinión: ${r.opinion}. Sabor: ${tasteLabel(r)}. Rango de precio: ${PRICE_RANGE_LABELS[r.price_range]}.`
-    )
+    .map((r, i) => {
+      const parts = [`Evaluación ${i + 1}: Opinión: ${r.opinion}`];
+      const taste = tasteLabel(r);
+      const price = priceLabel(r);
+      if (taste) parts.push(`Sabor: ${taste}`);
+      if (price) parts.push(`Rango de precio: ${price}`);
+      return parts.join(". ") + ".";
+    })
     .join("\n");
 
   try {
@@ -44,7 +54,7 @@ export async function summarizeReviews(
           {
             role: "system",
             content:
-              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en la opinión de los usuarios, sabor y percepción de precio ($ a $$$$). Sé conciso y objetivo. No des consejo médico.",
+              "Sos un asistente para la comunidad celíaca en Argentina. Resumí en 2-3 oraciones en español rioplatense las evaluaciones de un producto, enfocándote en la opinión de los usuarios, sabor y percepción de precio ($ a $$$$) cuando estén disponibles. Sé conciso y objetivo. No des consejo médico.",
           },
           { role: "user", content: payload },
         ],
@@ -67,13 +77,14 @@ export async function summarizeReviews(
 function buildFallbackSummary(reviews: ReviewSummaryInput[]): string {
   const rangeCounts: Record<string, number> = {};
   for (const r of reviews) {
-    const label = PRICE_RANGE_LABELS[r.price_range];
+    const label = priceLabel(r);
+    if (!label) continue;
     rangeCounts[label] = (rangeCounts[label] ?? 0) + 1;
   }
   const commonRange = Object.entries(rangeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const tastes = reviews
     .map(tasteLabel)
-    .filter((t) => t !== "no indicado")
+    .filter((t): t is string => Boolean(t))
     .slice(0, 3)
     .join("; ");
   return `Basado en ${reviews.length} evaluaciones de la comunidad: los usuarios destacan aspectos variados del producto. ${

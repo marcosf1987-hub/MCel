@@ -48,7 +48,7 @@ export default async function EvaluateProductPage({
         <CardHeader>
           <CardTitle>Evaluar: {product.name}</CardTitle>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            Completá cada paso del asistente y publicá al final.
+            Completá estrellas y tu opinión para publicar. El resto es opcional.
           </p>
         </CardHeader>
         <CardContent>

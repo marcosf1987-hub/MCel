@@ -44,26 +44,23 @@ async function handleUpdate(request: NextRequest, reviewId: string) {
     const body = await request.json();
     const rating = Number(body.rating);
     const opinion = String(body.opinion ?? "").trim();
-    const tasteRating = body.tasteRating as TasteRating | undefined;
-    const priceRange = body.priceRange as PriceRange;
+    const tasteRating = body.tasteRating as TasteRating | undefined | null;
+    const priceRaw = body.priceRange as PriceRange | "" | null | undefined;
     let glutenCert = (body.glutenCertification ?? "desconocido") as GlutenCertification;
     const productSlug = String(body.productSlug ?? "");
 
-    const taste = tasteRating && VALID_TASTE_RATINGS.includes(tasteRating)
-      ? tasteRating
-      : null;
+    const taste =
+      tasteRating && VALID_TASTE_RATINGS.includes(tasteRating) ? tasteRating : null;
+    const price =
+      priceRaw && VALID_PRICE_RANGES.includes(priceRaw as PriceRange)
+        ? (priceRaw as PriceRange)
+        : null;
 
     if (!rating || rating < 1 || rating > 5) {
       return json({ ok: false, error: "Puntuación inválida." }, 400);
     }
     if (!opinion) {
       return json({ ok: false, error: "Escribí tu opinión." }, 400);
-    }
-    if (!taste) {
-      return json({ ok: false, error: "Seleccioná cómo te pareció el sabor." }, 400);
-    }
-    if (!VALID_PRICE_RANGES.includes(priceRange)) {
-      return json({ ok: false, error: "Seleccioná un rango de precio." }, 400);
     }
     if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
 
@@ -86,7 +83,7 @@ async function handleUpdate(request: NextRequest, reviewId: string) {
         general_description: null,
         taste: null,
         taste_rating: taste,
-        price_range: priceRange,
+        price_range: price,
         gluten_certification: glutenCert,
       })
       .eq("id", reviewId)

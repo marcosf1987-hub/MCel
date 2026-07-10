@@ -102,20 +102,8 @@ export function ReviewForm({
       setStatus("error", "Seleccioná una puntuación de 1 a 5 estrellas.");
       return false;
     }
-    if (current === 2 && !tasteRating) {
-      setStatus("error", "Elegí cómo te pareció el sabor (1 a 4 corazones).");
-      return false;
-    }
-    if (current === 3 && !["1", "2", "3", "4"].includes(priceRange)) {
-      setStatus("error", "Seleccioná un rango de precio.");
-      return false;
-    }
     if (current === 4 && !opinion.trim()) {
       setStatus("error", "Escribí tu opinión sobre el producto.");
-      return false;
-    }
-    if (current === 5 && !isEdit && !selectedFile && !hasExistingImages) {
-      setStatus("error", "Subí una foto del producto o volvé atrás si ya la cargaste.");
       return false;
     }
     return true;
@@ -196,23 +184,11 @@ export function ReviewForm({
   };
 
   const submitReview = async () => {
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
-      return;
-    }
-
-    if (!priceRange) {
-      setStatus("error", "Seleccioná un rango de precio.");
-      setStep(3);
+    if (!validateStep(1) || !validateStep(4)) {
       return;
     }
 
     const file = selectedFile;
-    if (!isEdit && !file && !hasExistingImages) {
-      setStatus("error", "Subí una foto del producto.");
-      setStep(5);
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -229,11 +205,11 @@ export function ReviewForm({
         productId,
         productSlug,
         rating,
-        tasteRating,
-        priceRange,
+        tasteRating: tasteRating || null,
+        priceRange: priceRange || null,
         opinion: opinion.trim(),
         glutenCertification: glutenCert,
-        skipImage: isEdit || hasExistingImages || Boolean(file),
+        skipImage: true,
       };
 
       setStatus("loading", isEdit ? "Guardando cambios…" : "Guardando evaluación…");
@@ -332,7 +308,7 @@ export function ReviewForm({
 
       {step === 2 && (
         <div>
-          <Label>¿Cómo te pareció el sabor? *</Label>
+          <Label>¿Cómo te pareció el sabor? (opcional)</Label>
           <div className="mt-3">
             <HeartInput value={tasteRating} onChange={setTasteRating} />
           </div>
@@ -341,7 +317,7 @@ export function ReviewForm({
 
       {step === 3 && (
         <div>
-          <Label>Rango de precio *</Label>
+          <Label>Rango de precio (opcional)</Label>
           <div className="mt-3">
             <PriceRangeInput
               value={priceRange}
@@ -421,14 +397,13 @@ export function ReviewForm({
             </div>
           )}
           <ProductImagePicker
-            label={isEdit ? "Agregar foto" : "Foto del producto"}
-            required={!isEdit && !hasExistingImages}
+            label={isEdit ? "Agregar foto (opcional)" : "Foto del producto (opcional)"}
             disabled={loading}
             imageName={imageName}
             hint={
               isEdit
                 ? "Podés tomar una foto nueva o elegir una del carrete."
-                : "Las fotos se comprimen automáticamente."
+                : "Opcional. Las fotos se comprimen automáticamente."
             }
             onSelect={handleSelectImage}
           />

@@ -55,8 +55,8 @@ interface ReviewPayload {
   productSlug: string;
   rating: number;
   opinion: string;
-  tasteRating?: string;
-  priceRange: string;
+  tasteRating?: string | null;
+  priceRange?: string | null;
   glutenCertification: string;
   skipImage?: boolean;
 }
@@ -96,15 +96,19 @@ export async function POST(request: NextRequest) {
       productSlug,
       rating,
       opinion,
-      tasteRating,
     } = payload;
 
     let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
-    const skipImage = payload.skipImage === true;
-    const priceRange = payload.priceRange as PriceRange;
-    const taste = VALID_TASTE_RATINGS.includes(tasteRating as TasteRating)
-      ? (tasteRating as TasteRating)
-      : null;
+    const tasteRaw = payload.tasteRating;
+    const priceRaw = payload.priceRange;
+    const taste =
+      tasteRaw && VALID_TASTE_RATINGS.includes(tasteRaw as TasteRating)
+        ? (tasteRaw as TasteRating)
+        : null;
+    const price =
+      priceRaw && VALID_PRICE_RANGES.includes(priceRaw as PriceRange)
+        ? (priceRaw as PriceRange)
+        : null;
 
     if (!productId || !productSlug) {
       return json({ ok: false, error: "Producto no identificado." }, 400);
@@ -115,26 +119,7 @@ export async function POST(request: NextRequest) {
     if (!opinion?.trim()) {
       return json({ ok: false, error: "Escribí tu opinión sobre el producto." }, 400);
     }
-    if (!taste) {
-      return json({ ok: false, error: "Seleccioná cómo te pareció el sabor." }, 400);
-    }
-    if (!VALID_PRICE_RANGES.includes(priceRange)) {
-      return json({ ok: false, error: "Seleccioná un rango de precio." }, 400);
-    }
     if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
-
-    if (!skipImage) {
-      const { count } = await supabase
-        .from("product_images")
-        .select("*", { count: "exact", head: true })
-        .eq("product_id", productId);
-      if ((count ?? 0) === 0) {
-        return json({
-          ok: false,
-          error: "Subí una foto del producto (la imagen debe subirse antes de publicar).",
-        }, 400);
-      }
-    }
 
     const { data: existingReview } = await supabase
       .from("reviews")
@@ -155,7 +140,7 @@ export async function POST(request: NextRequest) {
       general_description: null,
       taste: null,
       taste_rating: taste,
-      price_range: priceRange,
+      price_range: price,
       gluten_certification: glutenCert,
     });
 

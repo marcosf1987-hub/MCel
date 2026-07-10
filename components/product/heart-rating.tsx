@@ -44,7 +44,7 @@ export function HeartInput({
   return (
     <WizardScaleField
       selectedLabel={value ? TASTE_RATING_LABELS[value] : null}
-      emptyHint="Elegí de 1 a 4 corazones"
+      emptyHint="Opcional — elegí de 1 a 4 corazones"
     >
       {options.map((n) => {
         const num = Number(n);

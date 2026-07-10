@@ -24,7 +24,7 @@ export interface ReviewCardData {
   general_description: string | null;
   taste: string | null;
   taste_rating: TasteRating | null;
-  price_range: PriceRange;
+  price_range: PriceRange | null;
   gluten_certification: GlutenCertification;
   created_at: string;
   display_name: string | null;
@@ -71,7 +71,9 @@ export function ReviewCard({ review }: { review: ReviewCardData }) {
           </span>
         )}
         {!review.taste_rating && review.taste && <span>Sabor: {review.taste}</span>}
-        <span>Rango de precio: {PRICE_RANGE_LABELS[review.price_range]}</span>
+        {review.price_range && (
+          <span>Rango de precio: {PRICE_RANGE_LABELS[review.price_range]}</span>
+        )}
         <span>{GLUTEN_LABELS[review.gluten_certification]}</span>
       </div>
     </article>
