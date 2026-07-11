@@ -204,3 +204,75 @@ export async function mergeProducts(
 
   return { ok: true, summary, targetSlug: target.slug };
 }
+
+export type BrandMergeSummary = {
+  productsMoved: number;
+};
+
+export async function mergeBrands(
+  supabase: SupabaseClient,
+  actorId: string,
+  sourceId: string,
+  targetId: string
+): Promise<
+  | { ok: true; summary: BrandMergeSummary; targetSlug: string }
+  | { ok: false; error: string }
+> {
+  if (sourceId === targetId) {
+    return { ok: false, error: "Elegí dos marcas distintas." };
+  }
+
+  const { data: brandRows } = await supabase
+    .from("brands")
+    .select("id, name, slug")
+    .in("id", [sourceId, targetId]);
+
+  const source = brandRows?.find((b) => b.id === sourceId);
+  const target = brandRows?.find((b) => b.id === targetId);
+
+  if (!source || !target) {
+    return { ok: false, error: "Una o ambas marcas no existen." };
+  }
+
+  const { data: sourceProducts } = await supabase
+    .from("products")
+    .select("id")
+    .eq("brand_id", sourceId);
+
+  const productIds = (sourceProducts ?? []).map((p) => p.id);
+
+  if (productIds.length > 0) {
+    const { error: moveErr } = await supabase
+      .from("products")
+      .update({ brand_id: targetId })
+      .eq("brand_id", sourceId);
+
+    if (moveErr) return { ok: false, error: moveErr.message };
+  }
+
+  const { error: deleteErr } = await supabase
+    .from("brands")
+    .delete()
+    .eq("id", sourceId);
+
+  if (deleteErr) return { ok: false, error: deleteErr.message };
+
+  await logAdminAction(supabase, {
+    actorId,
+    action: "merge_brands",
+    entityType: "brand",
+    entityId: targetId,
+    metadata: {
+      source_id: sourceId,
+      source_name: source.name,
+      target_name: target.name,
+      products_moved: productIds.length,
+    },
+  });
+
+  return {
+    ok: true,
+    summary: { productsMoved: productIds.length },
+    targetSlug: target.slug,
+  };
+}
