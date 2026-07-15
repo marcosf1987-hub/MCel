@@ -37,7 +37,8 @@ export default async function ProductReviewsPage({
       profiles(display_name, tier)
     `
     )
-    .eq("product_id", product.id);
+    .eq("product_id", product.id)
+    .is("deleted_at", null);
 
   const cards: ReviewCardData[] = (reviews ?? []).map((r) => {
     const profile = getRelation<{

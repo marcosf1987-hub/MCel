@@ -21,12 +21,27 @@ export async function hideModerationTarget(
       .is("deleted_at", null);
     if (error) return { ok: false, error: error.message };
   } else if (targetType === "review") {
+    const { data: review } = await supabase
+      .from("reviews")
+      .select("id, product_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from("reviews")
       .update({ deleted_at: now })
       .eq("id", targetId)
       .is("deleted_at", null);
     if (error) return { ok: false, error: error.message };
+
+    if (review?.product_id) {
+      const { error: ratingErr } = await supabase.rpc("recalculate_product_rating", {
+        p_product_id: review.product_id,
+      });
+      if (ratingErr) {
+        console.error("recalculate_product_rating after hide:", ratingErr);
+      }
+    }
   } else if (targetType === "list") {
     const { error } = await supabase
       .from("product_lists")
@@ -81,11 +96,26 @@ export async function restoreModerationTarget(
       .eq("id", targetId);
     if (error) return { ok: false, error: error.message };
   } else if (targetType === "review") {
+    const { data: review } = await supabase
+      .from("reviews")
+      .select("id, product_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from("reviews")
       .update({ deleted_at: null })
       .eq("id", targetId);
     if (error) return { ok: false, error: error.message };
+
+    if (review?.product_id) {
+      const { error: ratingErr } = await supabase.rpc("recalculate_product_rating", {
+        p_product_id: review.product_id,
+      });
+      if (ratingErr) {
+        console.error("recalculate_product_rating after restore:", ratingErr);
+      }
+    }
   } else if (targetType === "list") {
     const { error } = await supabase
       .from("product_lists")

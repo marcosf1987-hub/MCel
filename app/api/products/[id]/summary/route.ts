@@ -12,7 +12,8 @@ export async function POST(
   const { data: reviews } = await supabase
     .from("reviews")
     .select("opinion, taste, taste_rating, price_range")
-    .eq("product_id", id);
+    .eq("product_id", id)
+    .is("deleted_at", null);
 
   if (!reviews?.length) {
     return NextResponse.json({ summary: null });
