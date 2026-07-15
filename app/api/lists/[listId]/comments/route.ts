@@ -19,6 +19,7 @@ export async function GET(
     `
     )
     .eq("list_id", listId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) return listJson({ ok: false, error: error.message }, 500);

@@ -256,14 +256,17 @@ export interface ListComment {
   list_id: string;
   user_id: string;
   body: string;
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 }
 
+export type ReportTargetType = "product" | "review" | "list" | "list_comment";
+
 export interface Report {
   id: string;
   reporter_id: string;
-  target_type: "product" | "review" | "list";
+  target_type: ReportTargetType;
   target_id: string;
   reason: string;
   status: "pending" | "resolved" | "dismissed";
@@ -272,6 +275,13 @@ export interface Report {
   moderator_note: string | null;
   created_at: string;
 }
+
+export const REPORT_TARGET_TYPES: ReportTargetType[] = [
+  "product",
+  "review",
+  "list",
+  "list_comment",
+];
 
 /** @deprecated Usar lista sistema mis-favoritos */
 export interface Favorite {

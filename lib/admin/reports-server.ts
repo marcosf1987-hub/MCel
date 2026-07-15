@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Report } from "@/types/database";
+import type { Report, ReportTargetType } from "@/types/database";
 
 export type EnrichedReport = Report & {
   reporter_name: string | null;
@@ -8,15 +8,16 @@ export type EnrichedReport = Report & {
   target_deleted: boolean;
 };
 
-export const TARGET_TYPE_LABELS: Record<Report["target_type"], string> = {
+export const TARGET_TYPE_LABELS: Record<ReportTargetType, string> = {
   product: "Producto",
   review: "Evaluación",
   list: "Lista",
+  list_comment: "Comentario de lista",
 };
 
 async function enrichTarget(
   supabase: SupabaseClient,
-  targetType: Report["target_type"],
+  targetType: ReportTargetType,
   targetId: string
 ): Promise<{ label: string; href: string | null; deleted: boolean }> {
   if (targetType === "product") {
@@ -84,6 +85,43 @@ async function enrichTarget(
     };
   }
 
+  if (targetType === "list_comment") {
+    const { data } = await supabase
+      .from("list_comments")
+      .select("body, deleted_at, list_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
+    if (!data) {
+      return { label: "Comentario no encontrado", href: null, deleted: true };
+    }
+
+    const { data: list } = await supabase
+      .from("product_lists")
+      .select("title, slug, user_id")
+      .eq("id", data.list_id)
+      .maybeSingle();
+
+    let href: string | null = null;
+    if (list?.slug) {
+      const { data: owner } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", list.user_id)
+        .maybeSingle();
+      if (owner?.username) {
+        href = `/listas/${owner.username}/${list.slug}`;
+      }
+    }
+
+    const snippet = data.body?.slice(0, 80) ?? "";
+    return {
+      label: list?.title ? `${list.title}: «${snippet}»` : `«${snippet}»`,
+      href,
+      deleted: Boolean(data.deleted_at),
+    };
+  }
+
   return { label: "Desconocido", href: null, deleted: false };
 }
 
@@ -124,14 +162,14 @@ export async function fetchEnrichedReports(
     rows.map(async (row) => {
       const target = await enrichTarget(
         supabase,
-        row.target_type as Report["target_type"],
+        row.target_type as ReportTargetType,
         row.target_id
       );
 
       return {
         id: row.id,
         reporter_id: row.reporter_id,
-        target_type: row.target_type as Report["target_type"],
+        target_type: row.target_type as ReportTargetType,
         target_id: row.target_id,
         reason: row.reason,
         status: row.status as Report["status"],

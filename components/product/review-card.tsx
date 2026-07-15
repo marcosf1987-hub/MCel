@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TierBadge } from "@/components/ui/badge";
 import { StarRating } from "@/components/product/star-rating";
 import { HeartRating } from "@/components/product/heart-rating";
+import { ReportButton } from "@/components/product/report-button";
 import { Button } from "@/components/ui/button";
 import {
   GLUTEN_LABELS,
@@ -31,7 +32,13 @@ export interface ReviewCardData {
   tier: UserTier;
 }
 
-export function ReviewCard({ review }: { review: ReviewCardData }) {
+export function ReviewCard({
+  review,
+  showReport = true,
+}: {
+  review: ReviewCardData;
+  showReport?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const displayText = review.opinion;
   const needsExpand = displayText.length > PREVIEW_LEN;
@@ -76,6 +83,11 @@ export function ReviewCard({ review }: { review: ReviewCardData }) {
         )}
         <span>{GLUTEN_LABELS[review.gluten_certification]}</span>
       </div>
+      {showReport && (
+        <div className="mt-3 border-t border-[var(--color-border)] pt-2">
+          <ReportButton targetType="review" targetId={review.id} />
+        </div>
+      )}
     </article>
   );
 }

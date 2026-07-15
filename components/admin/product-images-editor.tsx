@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ProductImagePicker } from "@/components/product/product-image-picker";
 import type { AdminProductImageRow } from "@/lib/admin/catalog-server";
 import type { ImageAdminAction } from "@/lib/admin/images-admin";
+import { uploadProductImageFromBrowser } from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
 import { Loader2, Star } from "lucide-react";
 
@@ -13,7 +15,11 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
   const [images, setImages] = useState<AdminProductImageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageName, setImageName] = useState<string | null>(null);
+  const [asCover, setAsCover] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const coverId = useMemo(() => {
     const visible = images.filter((img) => !img.is_hidden);
@@ -49,6 +55,7 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
   const runAction = async (imageId: string, action: ImageAdminAction) => {
     setActingId(imageId);
     setError(null);
+    setSuccess(null);
     try {
       const res = await fetch(`/api/admin/images/${imageId}`, {
         method: "PATCH",
@@ -69,6 +76,34 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
     }
   };
 
+  const handleUpload = async (file: File | null) => {
+    if (!file) {
+      setImageName(null);
+      return;
+    }
+    setImageName(file.name);
+    setUploading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await uploadProductImageFromBrowser(productId, file, {
+        official: true,
+        asCover,
+      });
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setSuccess(asCover ? "Imagen subida y fijada como portada." : "Imagen subida.");
+      setImageName(null);
+      await loadImages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
@@ -78,29 +113,57 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
     );
   }
 
-  if (images.length === 0) {
-    return (
-      <p className="text-sm text-[var(--color-muted-foreground)]">
-        Este producto no tiene imágenes cargadas.
-      </p>
-    );
-  }
-
   const visible = images.filter((img) => !img.is_hidden);
   const hidden = images.filter((img) => img.is_hidden);
 
   return (
     <div className="space-y-3">
       <div>
-        <Label>Imagen de portada</Label>
+        <Label>Imágenes del producto</Label>
         <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-          Elegí qué foto se muestra primero en la ficha y listados. Queda fijada
-          manualmente y no la cambia el ranking automático.
+          Subí una foto oficial o elegí cuál se muestra primero (portada). Las
+          portadas manuales no las cambia el ranking automático.
         </p>
       </div>
 
       {error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      )}
+      {success && (
+        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {success}
+        </p>
+      )}
+
+      <div className="rounded-lg border border-[var(--color-border)] bg-white p-3 space-y-3">
+        <ProductImagePicker
+          label="Subir imagen"
+          disabled={uploading}
+          imageName={imageName}
+          hint="Se comprime automáticamente. Queda marcada como oficial."
+          onSelect={(file) => void handleUpload(file)}
+        />
+        <label className="flex items-center gap-2 text-xs text-[var(--color-muted-foreground)]">
+          <input
+            type="checkbox"
+            checked={asCover}
+            disabled={uploading}
+            onChange={(e) => setAsCover(e.target.checked)}
+          />
+          Usar como portada al subir
+        </label>
+        {uploading && (
+          <p className="flex items-center gap-2 text-xs text-[var(--color-muted-foreground)]">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Subiendo…
+          </p>
+        )}
+      </div>
+
+      {images.length === 0 && (
+        <p className="text-sm text-[var(--color-muted-foreground)]">
+          Este producto todavía no tiene imágenes. Subí una arriba.
+        </p>
       )}
 
       {visible.length > 0 && (

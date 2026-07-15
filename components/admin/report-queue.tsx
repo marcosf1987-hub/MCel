@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EnrichedReport } from "@/lib/admin/reports-server";
+import { TARGET_TYPE_LABELS } from "@/lib/admin/reports-server";
 import type { Report } from "@/types/database";
 import { Loader2 } from "lucide-react";
 
@@ -15,12 +16,6 @@ const STATUS_TABS: { value: Report["status"] | "all"; label: string }[] = [
   { value: "dismissed", label: "Descartados" },
   { value: "all", label: "Todos" },
 ];
-
-const TARGET_LABELS: Record<Report["target_type"], string> = {
-  product: "Producto",
-  review: "Evaluación",
-  list: "Lista",
-};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("es-AR", {
@@ -135,7 +130,7 @@ export function ReportQueue({
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <CardTitle className="text-base font-semibold text-[var(--color-brown)]">
-                      {TARGET_LABELS[report.target_type]} reportado
+                      {TARGET_TYPE_LABELS[report.target_type]} reportado
                     </CardTitle>
                     <span className="text-xs text-[var(--color-muted-foreground)]">
                       {formatDate(report.created_at)}

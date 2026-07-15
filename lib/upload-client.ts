@@ -1,11 +1,22 @@
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
-import { insertCommunityProductImage } from "@/lib/product-images";
+import {
+  insertCommunityProductImage,
+  insertOfficialProductImage,
+} from "@/lib/product-images";
+
+type UploadOptions = {
+  /** Marca la imagen como oficial (admin). */
+  official?: boolean;
+  /** Solo aplica a official; default true. */
+  asCover?: boolean;
+};
 
 /** Sube foto directo a Supabase (evita límite 4.5MB de Vercel). */
 export async function uploadProductImageFromBrowser(
   productId: string,
-  file: File
+  file: File,
+  options: UploadOptions = {}
 ): Promise<{ url: string } | { error: string }> {
   const supabase = createClient();
   const {
@@ -39,7 +50,13 @@ export async function uploadProductImageFromBrowser(
     } = supabase.storage.from("product-images").getPublicUrl(path);
 
     try {
-      await insertCommunityProductImage(supabase, productId, user.id, publicUrl);
+      if (options.official) {
+        await insertOfficialProductImage(supabase, productId, user.id, publicUrl, {
+          asCover: options.asCover,
+        });
+      } else {
+        await insertCommunityProductImage(supabase, productId, user.id, publicUrl);
+      }
     } catch (dbError) {
       const msg =
         dbError instanceof Error ? dbError.message : "Error al guardar la imagen";

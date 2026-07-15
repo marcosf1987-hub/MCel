@@ -108,3 +108,33 @@ export async function insertCommunityProductImage(
 
   if (error) throw error;
 }
+
+/** Foto subida por admin/moderación: oficial y protegida del ranking automático. */
+export async function insertOfficialProductImage(
+  supabase: SupabaseClient,
+  productId: string,
+  userId: string,
+  url: string,
+  options: { asCover?: boolean } = {}
+): Promise<void> {
+  const asCover = options.asCover !== false;
+
+  let sortOrder = 0;
+  if (asCover) {
+    await bumpProductImageSortOrders(supabase, productId);
+  } else {
+    sortOrder = await countProductImages(supabase, productId);
+  }
+
+  const { error } = await supabase.from("product_images").insert({
+    product_id: productId,
+    user_id: userId,
+    url,
+    is_official: true,
+    sort_order: sortOrder,
+    image_source: "official",
+    quality_status: "manual",
+  });
+
+  if (error) throw error;
+}

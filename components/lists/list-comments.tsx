@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ReportButton } from "@/components/product/report-button";
 
 type CommentRow = {
   id: string;
@@ -141,15 +142,20 @@ export function ListComments({
                 )}
               </p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--color-neutral)]">{c.body}</p>
-              {canDelete && currentUserId && (
-                <button
-                  type="button"
-                  className="mt-2 text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  onClick={() => void remove(c.id)}
-                >
-                  Eliminar
-                </button>
-              )}
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                {isLoggedIn && currentUserId !== c.userId && (
+                  <ReportButton targetType="list_comment" targetId={c.id} />
+                )}
+                {canDelete && currentUserId && (
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                    onClick={() => void remove(c.id)}
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
             </li>
           );
         })}

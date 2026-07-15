@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const hideResult = await hideModerationTarget(
       supabase,
       session.userId,
-      report.target_type as "product" | "review" | "list",
+      report.target_type as "product" | "review" | "list" | "list_comment",
       report.target_id,
       { report_id: reportId, moderator_note: moderatorNote || null }
     );

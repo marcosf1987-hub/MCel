@@ -20,8 +20,8 @@ export default async function AdminReportsPage() {
           Cola de reportes
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Revisá denuncias de productos, evaluaciones y listas. Podés ocultar
-          contenido (soft delete) o descartar reportes sin acción.
+          Revisá denuncias de productos, evaluaciones, listas y comentarios.
+          Podés ocultar contenido (soft delete) o descartar reportes sin acción.
         </p>
       </div>
 
