@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { searchCatalogSuggestions } from "@/lib/search/catalog";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
@@ -8,6 +9,13 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
+  const suggestions = await searchCatalogSuggestions(supabase, q, 12);
+
+  if (suggestions) {
+    return NextResponse.json({ results: suggestions });
+  }
+
+  // Fallback si la RPC aún no está aplicada
   const pattern = `%${q}%`;
   const results: { type: string; label: string; href: string }[] = [];
 
