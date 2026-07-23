@@ -38,8 +38,6 @@ export async function GET(request: NextRequest) {
       api: true,
       env: true,
       loggedIn: Boolean(user),
-      userId: user?.id ?? null,
-      hasServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     });
   } catch (e) {
     return NextResponse.json({

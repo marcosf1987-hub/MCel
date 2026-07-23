@@ -68,24 +68,10 @@ export async function bumpProductImageSortOrders(
   supabase: SupabaseClient,
   productId: string
 ): Promise<void> {
-  const { data: rows, error: fetchError } = await supabase
-    .from("product_images")
-    .select("id, sort_order")
-    .eq("product_id", productId);
-
-  if (fetchError) throw fetchError;
-  if (!rows?.length) return;
-
-  const updates = rows.map((row) =>
-    supabase
-      .from("product_images")
-      .update({ sort_order: row.sort_order + 1 })
-      .eq("id", row.id)
-  );
-
-  const results = await Promise.all(updates);
-  const failed = results.find((r) => r.error);
-  if (failed?.error) throw failed.error;
+  const { error } = await supabase.rpc("bump_product_images_sort", {
+    p_product_id: productId,
+  });
+  if (error) throw error;
 }
 
 export async function insertCommunityProductImage(
