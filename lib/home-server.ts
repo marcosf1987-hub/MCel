@@ -167,6 +167,7 @@ export async function getTopRatedWithFeaturedReview(
       product_images (url, sort_order, is_hidden)
     `
     )
+    .is("deleted_at", null)
     .gt("review_count", 0)
     .order("weighted_rating", { ascending: false, nullsFirst: false })
     .limit(limit);

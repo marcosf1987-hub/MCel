@@ -24,7 +24,7 @@ export default async function BrandPage({
   const { data: products } = await supabase
     .from("products")
     .select(
-      `id, slug, name, weighted_rating, review_count, product_images(url, sort_order, is_hidden)`
+      `id, slug, name, barcode, deleted_at, weighted_rating, review_count, product_images(url, sort_order, is_hidden)`
     )
     .eq("brand_id", brand.id)
     .order("name");

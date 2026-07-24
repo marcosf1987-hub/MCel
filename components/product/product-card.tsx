@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FavoriteButton } from "@/components/product/favorite-button";
 import type { GlutenCertification } from "@/types/database";
+import { getCatalogVisibilityBadge } from "@/lib/product-visibility";
 import { cn } from "@/lib/utils";
 
 export interface ProductCardData {
@@ -16,11 +17,17 @@ export interface ProductCardData {
   image_url?: string | null;
   brand_name?: string;
   gluten_certification?: GlutenCertification;
+  /** Soft-delete; solo llega a staff vía RLS */
+  deleted_at?: string | null;
+  barcode?: string | null;
 }
 
 function getProductBadge(
   product: ProductCardData
 ): { label: string; className: string } | null {
+  const visibility = getCatalogVisibilityBadge(product);
+  if (visibility) return visibility;
+
   if (product.gluten_certification === "sin_tacc") {
     return {
       label: "Sin TACC",
@@ -55,9 +62,15 @@ export function ProductCard({
 }) {
   const badge = getProductBadge(product);
   const ratingLabel = product.weighted_rating?.toFixed(1) ?? "—";
+  const isSoftDeleted = Boolean(product.deleted_at);
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-[var(--color-border)] bg-white shadow-sm transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]">
+    <Card
+      className={cn(
+        "flex h-full flex-col overflow-hidden border-[var(--color-border)] bg-white shadow-sm transition-all hover:shadow-md hover:ring-2 hover:ring-[var(--color-brand-light)]",
+        isSoftDeleted && "opacity-80 ring-1 ring-amber-300"
+      )}
+    >
       <div className="relative aspect-[4/5] overflow-hidden bg-[var(--color-brand-cream)]">
         <Link href={`/productos/${product.slug}`} className="absolute inset-0">
           {product.image_url ? (
@@ -85,7 +98,7 @@ export function ProductCard({
             {badge.label}
           </span>
         )}
-        {showFavorite && (
+        {showFavorite && !isSoftDeleted && (
           <div className="absolute right-1.5 top-1.5 z-10">
             <FavoriteButton
               productId={product.id}
@@ -118,14 +131,20 @@ export function ProductCard({
         </div>
 
         <div className="mt-3">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="w-full text-[11px] font-semibold uppercase tracking-wide"
-          >
-            <Link href={`/productos/${product.slug}/evaluar`}>Valorar</Link>
-          </Button>
+          {isSoftDeleted ? (
+            <p className="text-center text-[10px] font-medium text-amber-800">
+              Solo visible para staff
+            </p>
+          ) : (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full text-[11px] font-semibold uppercase tracking-wide"
+            >
+              <Link href={`/productos/${product.slug}/evaluar`}>Valorar</Link>
+            </Button>
+          )}
         </div>
       </div>
     </Card>

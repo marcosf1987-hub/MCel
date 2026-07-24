@@ -55,7 +55,8 @@ export default async function ProductsPage({
       brands!inner(name, slug),
       categories!inner(slug),
       subcategories!inner(slug),
-      product_images(url, sort_order, is_hidden)
+      product_images(url, sort_order, is_hidden),
+      barcode, deleted_at
     `
     );
 

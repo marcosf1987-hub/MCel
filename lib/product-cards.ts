@@ -18,6 +18,8 @@ type ProductRowMinimal = {
   name: string;
   weighted_rating: number | null;
   review_count: number;
+  deleted_at?: string | null;
+  barcode?: string | null;
   product_images?: { url: string; sort_order: number; is_hidden?: boolean }[] | null;
   brands?: ProductRowForCard["brands"];
 };
@@ -61,6 +63,8 @@ export function mapRowToProductCard(
     image_url: images[0]?.url ?? null,
     brand_name: getBrandName(p.brands),
     gluten_certification: certMap?.get(p.id),
+    deleted_at: p.deleted_at ?? null,
+    barcode: p.barcode ?? null,
   };
 }
 

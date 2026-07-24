@@ -13,6 +13,7 @@ import { getSiteUrl } from "@/lib/supabase/env";
 import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
 import { visibleProductImages } from "@/lib/product-images-display";
+import { getCatalogVisibilityBadge } from "@/lib/product-visibility";
 
 export async function generateMetadata({
   params,
@@ -117,6 +118,23 @@ export default async function ProductDetailPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      {(() => {
+        const visibility = getCatalogVisibilityBadge(product);
+        if (!visibility) return null;
+        return (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <span
+              className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${visibility.className}`}
+            >
+              {visibility.label}
+            </span>
+            Este producto está oculto para el público y solo lo ves porque sos staff.
+            {visibility.label === "Fusionado"
+              ? " Fue el origen de una fusión; el catálogo público conserva el producto destino."
+              : ""}
+          </div>
+        );
+      })()}
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="relative">
           <div className="absolute right-3 top-3 z-10">

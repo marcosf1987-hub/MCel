@@ -26,7 +26,7 @@ export default async function CategoryPage({
   const { data: products } = await supabase
     .from("products")
     .select(
-      `id, slug, name, weighted_rating, review_count, brands(name), product_images(url, sort_order, is_hidden)`
+      `id, slug, name, barcode, deleted_at, weighted_rating, review_count, brands(name), product_images(url, sort_order, is_hidden)`
     )
     .eq("category_id", category.id);
 

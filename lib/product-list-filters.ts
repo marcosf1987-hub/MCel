@@ -20,6 +20,8 @@ export type ProductRowForCard = {
   name: string;
   weighted_rating: number | null;
   review_count: number;
+  deleted_at?: string | null;
+  barcode?: string | null;
   product_images?: { url: string; sort_order: number; is_hidden?: boolean }[] | null;
   brands?: { name: string; slug?: string } | { name: string; slug?: string }[] | null;
   categories?: { slug: string } | { slug: string }[] | null;
@@ -27,7 +29,7 @@ export type ProductRowForCard = {
 };
 
 const PRODUCT_SELECT = `
-  id, slug, name, weighted_rating, review_count,
+  id, slug, name, barcode, deleted_at, weighted_rating, review_count,
   brands!inner(name, slug),
   categories!inner(slug),
   subcategories!inner(slug),
