@@ -1,6 +1,7 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
+import { safeReturnUrl } from "@/lib/safe-return-url";
 
 export const metadata = { title: "Iniciar sesión" };
 
@@ -11,6 +12,7 @@ export default async function LoginPage({
 }) {
   const { returnUrl, error } = await searchParams;
   const env = getSupabasePublicEnv();
+  const safeReturn = safeReturnUrl(returnUrl);
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-12">
@@ -32,7 +34,7 @@ export default async function LoginPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm returnUrl={returnUrl ?? "/"} />
+          <LoginForm returnUrl={safeReturn} />
         </CardContent>
       </Card>
     </div>

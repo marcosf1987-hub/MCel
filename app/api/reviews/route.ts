@@ -14,38 +14,9 @@ const VALID_CERTS: GlutenCertification[] = [
 const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
 const VALID_TASTE_RATINGS: TasteRating[] = ["1", "2", "3", "4"];
 
-/** GET = diagnóstico */
-export async function GET(request: NextRequest) {
-  try {
-    const env = getSupabasePublicEnv();
-    if (!env.ok) {
-      return NextResponse.json({
-        ok: false,
-        api: true,
-        env: false,
-        error: env.error,
-      });
-    }
-
-    const diagResponse = NextResponse.json({ ok: true });
-    const supabase = createClientFromRequest(request, diagResponse);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    return NextResponse.json({
-      ok: true,
-      api: true,
-      env: true,
-      loggedIn: Boolean(user),
-    });
-  } catch (e) {
-    return NextResponse.json({
-      ok: false,
-      api: true,
-      error: e instanceof Error ? e.message : "Error",
-    });
-  }
+/** GET: sin diagnóstico (no filtrar estado de env/sesión). */
+export async function GET() {
+  return NextResponse.json({ ok: true });
 }
 
 interface ReviewPayload {

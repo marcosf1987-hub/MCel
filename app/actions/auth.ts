@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
+import { safeReturnUrl } from "@/lib/safe-return-url";
 
 export async function signUpWithEmail(
   email: string,
@@ -15,12 +16,13 @@ export async function signUpWithEmail(
 
   const supabase = await createClient();
   const siteUrl = getSiteUrl();
+  const safeReturn = safeReturnUrl(returnUrl);
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
+      emailRedirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`,
     },
   });
 
@@ -50,7 +52,7 @@ export async function signInWithEmail(
     await ensureProfile(data.user.id, data.user.email, data.user.user_metadata);
   }
 
-  redirect(returnUrl.startsWith("/") ? returnUrl : "/");
+  redirect(safeReturnUrl(returnUrl));
 }
 
 export async function getGoogleSignInUrl(
@@ -61,11 +63,12 @@ export async function getGoogleSignInUrl(
 
   const supabase = await createClient();
   const siteUrl = getSiteUrl();
+  const safeReturn = safeReturnUrl(returnUrl);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
+      redirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`,
     },
   });
 
