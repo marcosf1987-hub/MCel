@@ -2,12 +2,22 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedSupabase, listJson, withCookies } from "@/lib/api/lists-auth";
 import { createListNotification } from "@/lib/list-notifications";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  createCommentSchema,
+  uuidSchema,
+  zodErrorMessage,
+} from "@/lib/validation/api-schemas";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
+  if (!uuidSchema.safeParse(listId).success) {
+    return listJson({ ok: false, error: "Lista inválida." }, 400);
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -48,12 +58,21 @@ export async function POST(
   const { supabase, user, response } = auth;
   const { listId } = await params;
 
-  const body = (await request.json()) as { text?: string };
-  const text = String(body.text ?? "").trim();
-  if (!text) return listJson({ ok: false, error: "Escribí un comentario." }, 400);
-  if (text.length > 2000) {
-    return listJson({ ok: false, error: "Máximo 2000 caracteres." }, 400);
+  if (!uuidSchema.safeParse(listId).success) {
+    return listJson({ ok: false, error: "Lista inválida." }, 400);
   }
+
+  const limited = rateLimit(`comments:create:${user.id}:${clientIp(request)}`, 20, 60_000);
+  if (!limited.ok) {
+    const r = rateLimitResponse(limited.retryAfterSec);
+    return listJson(r.body, r.status);
+  }
+
+  const parsed = createCommentSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return listJson({ ok: false, error: zodErrorMessage(parsed.error) }, 400);
+  }
+  const text = parsed.data.text;
 
   const { data: list } = await supabase
     .from("product_lists")

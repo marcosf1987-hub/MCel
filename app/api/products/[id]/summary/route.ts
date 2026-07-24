@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session-profile";
-import { summarizeReviews } from "@/lib/ai/summarize";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { refreshProductAiSummary } from "@/lib/ai/refresh-product-summary";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { uuidSchema } from "@/lib/validation/api-schemas";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) {
+  if (!uuidSchema.safeParse(id).success) {
     return NextResponse.json({ error: "ID inválido." }, { status: 400 });
   }
 
@@ -22,6 +21,12 @@ export async function POST(
 
   if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const limited = rateLimit(`summary:${user.id}:${clientIp(request)}`, 10, 60_000);
+  if (!limited.ok) {
+    const r = rateLimitResponse(limited.retryAfterSec);
+    return NextResponse.json(r.body, { status: r.status, headers: r.headers });
   }
 
   const force = request.nextUrl.searchParams.get("force") === "1";
@@ -35,44 +40,19 @@ export async function POST(
     }
   }
 
-  const { data: product } = await supabase
-    .from("products")
-    .select("id, ai_summary")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!product) {
+  const result = await refreshProductAiSummary(supabase, id, { force });
+  if (result.error === "not_found") {
     return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
   }
-
-  if (product.ai_summary && !force) {
-    return NextResponse.json({ summary: product.ai_summary, cached: true });
-  }
-
-  const { data: reviews } = await supabase
-    .from("reviews")
-    .select("opinion, taste, taste_rating, price_range")
-    .eq("product_id", id)
-    .is("deleted_at", null);
-
-  if (!reviews?.length) {
-    return NextResponse.json({ summary: null });
-  }
-
-  const summary = await summarizeReviews(reviews);
-
-  const { error } = await supabase.rpc("set_product_ai_summary", {
-    p_product_id: id,
-    p_summary: summary,
-  });
-
-  if (error) {
-    console.error("set_product_ai_summary:", error.message);
+  if (result.error) {
     return NextResponse.json(
       { error: "No se pudo guardar el resumen." },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ summary });
+  return NextResponse.json({
+    summary: result.summary,
+    ...(result.cached ? { cached: true } : {}),
+  });
 }

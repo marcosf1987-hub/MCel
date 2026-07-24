@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import type { GlutenCertification, PriceRange, TasteRating } from "@/types/database";
-
-const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
-const VALID_TASTE_RATINGS: TasteRating[] = ["1", "2", "3", "4"];
-
-const VALID_CERTS: GlutenCertification[] = [
-  "sin_tacc",
-  "sin_gluten",
-  "con_trazas",
-  "no_certificado",
-  "desconocido",
-];
+import { refreshProductAiSummary } from "@/lib/ai/refresh-product-summary";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  updateReviewSchema,
+  uuidSchema,
+  zodErrorMessage,
+} from "@/lib/validation/api-schemas";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -27,42 +22,45 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 }
 
 async function handleUpdate(request: NextRequest, reviewId: string) {
-  const json = (body: object, status = 200) =>
-    NextResponse.json(body, { status });
+  const json = (body: object, status = 200, headers?: HeadersInit) =>
+    NextResponse.json(body, { status, headers });
 
   try {
     const env = getSupabasePublicEnv();
     if (!env.ok) return json({ ok: false, error: env.error }, 500);
+
+    if (!uuidSchema.safeParse(reviewId).success) {
+      return json({ ok: false, error: "ID inválido." }, 400);
+    }
 
     const response = NextResponse.next();
     const supabase = createClientFromRequest(request, response);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return json({ ok: false, error: "Sesión requerida.", needsLogin: true }, 401);
-
-    const body = await request.json();
-    const rating = Number(body.rating);
-    const opinion = String(body.opinion ?? "").trim();
-    const tasteRating = body.tasteRating as TasteRating | undefined | null;
-    const priceRaw = body.priceRange as PriceRange | "" | null | undefined;
-    let glutenCert = (body.glutenCertification ?? "desconocido") as GlutenCertification;
-    const productSlug = String(body.productSlug ?? "");
-
-    const taste =
-      tasteRating && VALID_TASTE_RATINGS.includes(tasteRating) ? tasteRating : null;
-    const price =
-      priceRaw && VALID_PRICE_RANGES.includes(priceRaw as PriceRange)
-        ? (priceRaw as PriceRange)
-        : null;
-
-    if (!rating || rating < 1 || rating > 5) {
-      return json({ ok: false, error: "Puntuación inválida." }, 400);
+    if (!user) {
+      return json({ ok: false, error: "Sesión requerida.", needsLogin: true }, 401);
     }
-    if (!opinion) {
-      return json({ ok: false, error: "Escribí tu opinión." }, 400);
+
+    const limited = rateLimit(`reviews:update:${user.id}:${clientIp(request)}`, 20, 60_000);
+    if (!limited.ok) {
+      const r = rateLimitResponse(limited.retryAfterSec);
+      return json(r.body, r.status, r.headers);
     }
-    if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
+
+    const parsed = updateReviewSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return json({ ok: false, error: zodErrorMessage(parsed.error) }, 400);
+    }
+
+    const {
+      rating,
+      opinion,
+      tasteRating,
+      priceRange,
+      glutenCertification,
+      productSlug,
+    } = parsed.data;
 
     const { data: existing } = await supabase
       .from("reviews")
@@ -82,23 +80,18 @@ async function handleUpdate(request: NextRequest, reviewId: string) {
         opinion,
         general_description: null,
         taste: null,
-        taste_rating: taste,
-        price_range: price,
-        gluten_certification: glutenCert,
+        taste_rating: tasteRating ?? null,
+        price_range: priceRange,
+        gluten_certification: glutenCertification,
       })
       .eq("id", reviewId)
       .eq("user_id", user.id);
 
     if (error) return json({ ok: false, error: error.message }, 500);
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-    fetch(`${siteUrl}/api/products/${existing.product_id}/summary`, {
-      method: "POST",
-    }).catch(() => {});
+    void refreshProductAiSummary(supabase, existing.product_id).catch(() => {});
 
-    const result = NextResponse.json({ ok: true, slug: productSlug });
+    const result = NextResponse.json({ ok: true, slug: productSlug ?? "" });
     response.cookies.getAll().forEach((c) => result.cookies.set(c.name, c.value));
     return result;
   } catch (e) {
@@ -117,6 +110,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const env = getSupabasePublicEnv();
     if (!env.ok) return json({ ok: false, error: env.error }, 500);
+
+    if (!uuidSchema.safeParse(reviewId).success) {
+      return json({ ok: false, error: "ID inválido." }, 400);
+    }
 
     const response = NextResponse.next();
     const supabase = createClientFromRequest(request, response);

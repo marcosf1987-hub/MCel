@@ -1,38 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClientFromRequest } from "@/lib/supabase/route-handler";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import type { GlutenCertification, PriceRange, TasteRating } from "@/types/database";
+import { refreshProductAiSummary } from "@/lib/ai/refresh-product-summary";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  createReviewSchema,
+  zodErrorMessage,
+} from "@/lib/validation/api-schemas";
 
-const VALID_CERTS: GlutenCertification[] = [
-  "sin_tacc",
-  "sin_gluten",
-  "con_trazas",
-  "no_certificado",
-  "desconocido",
-];
-
-const VALID_PRICE_RANGES: PriceRange[] = ["1", "2", "3", "4"];
-const VALID_TASTE_RATINGS: TasteRating[] = ["1", "2", "3", "4"];
-
-/** GET: sin diagnóstico (no filtrar estado de env/sesión). */
+/** GET: sin diagnóstico. */
 export async function GET() {
   return NextResponse.json({ ok: true });
 }
 
-interface ReviewPayload {
-  productId: string;
-  productSlug: string;
-  rating: number;
-  opinion: string;
-  tasteRating?: string | null;
-  priceRange?: string | null;
-  glutenCertification: string;
-  skipImage?: boolean;
-}
-
 export async function POST(request: NextRequest) {
-  const json = (body: object, status = 200) =>
-    NextResponse.json(body, { status });
+  const json = (body: object, status = 200, headers?: HeadersInit) =>
+    NextResponse.json(body, { status, headers });
 
   try {
     const env = getSupabasePublicEnv();
@@ -58,37 +41,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payload = (await request.json()) as ReviewPayload;
+    const limited = rateLimit(`reviews:create:${user.id}:${clientIp(request)}`, 10, 60_000);
+    if (!limited.ok) {
+      const r = rateLimitResponse(limited.retryAfterSec);
+      return json(r.body, r.status, r.headers);
+    }
+
+    const parsed = createReviewSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return json({ ok: false, error: zodErrorMessage(parsed.error) }, 400);
+    }
 
     const {
       productId,
       productSlug,
       rating,
       opinion,
-    } = payload;
-
-    let glutenCert = (payload.glutenCertification ?? "desconocido") as GlutenCertification;
-    const tasteRaw = payload.tasteRating;
-    const priceRaw = payload.priceRange;
-    const taste =
-      tasteRaw && VALID_TASTE_RATINGS.includes(tasteRaw as TasteRating)
-        ? (tasteRaw as TasteRating)
-        : null;
-    const price =
-      priceRaw && VALID_PRICE_RANGES.includes(priceRaw as PriceRange)
-        ? (priceRaw as PriceRange)
-        : null;
-
-    if (!productId || !productSlug) {
-      return json({ ok: false, error: "Producto no identificado." }, 400);
-    }
-    if (!rating || rating < 1 || rating > 5) {
-      return json({ ok: false, error: "Seleccioná una puntuación del 1 al 5." }, 400);
-    }
-    if (!opinion?.trim()) {
-      return json({ ok: false, error: "Escribí tu opinión sobre el producto." }, 400);
-    }
-    if (!VALID_CERTS.includes(glutenCert)) glutenCert = "desconocido";
+      tasteRating,
+      priceRange,
+      glutenCertification,
+    } = parsed.data;
 
     const { data: existingReview } = await supabase
       .from("reviews")
@@ -105,12 +77,12 @@ export async function POST(request: NextRequest) {
       product_id: productId,
       user_id: user.id,
       rating,
-      opinion: opinion.trim(),
+      opinion,
       general_description: null,
       taste: null,
-      taste_rating: taste,
-      price_range: price,
-      gluten_certification: glutenCert,
+      taste_rating: tasteRating ?? null,
+      price_range: priceRange,
+      gluten_certification: glutenCertification,
     });
 
     if (reviewError) {
@@ -118,13 +90,7 @@ export async function POST(request: NextRequest) {
       return json({ ok: false, error: reviewError.message }, 500);
     }
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
-    fetch(`${siteUrl}/api/products/${productId}/summary`, { method: "POST" }).catch(
-      () => {}
-    );
+    void refreshProductAiSummary(supabase, productId).catch(() => {});
 
     const result = NextResponse.json({
       ok: true,

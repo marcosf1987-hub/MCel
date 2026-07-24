@@ -4,20 +4,16 @@ import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import { getOrCreateBrand } from "@/lib/catalog";
 import { validateCategoryPair } from "@/lib/catalog/validate-category";
 import { insertOffProductImage } from "@/lib/product-images";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  createProductSchema,
+  zodErrorMessage,
+} from "@/lib/validation/api-schemas";
 import { slugify } from "@/lib/utils";
 
-interface CreateProductPayload {
-  barcode: string;
-  brand: string;
-  name: string;
-  category_id: string;
-  subcategory_id: string;
-  offImageUrl?: string;
-}
-
 export async function POST(request: NextRequest) {
-  const json = (body: object, status = 200) =>
-    NextResponse.json(body, { status });
+  const json = (body: object, status = 200, headers?: HeadersInit) =>
+    NextResponse.json(body, { status, headers });
 
   try {
     const env = getSupabasePublicEnv();
@@ -37,21 +33,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as CreateProductPayload;
-    const barcode = String(body.barcode ?? "").trim();
-    const brandName = String(body.brand ?? "").trim();
-    const productName = String(body.name ?? "").trim();
-    const categoryId = String(body.category_id ?? "").trim();
-    const subcategoryId = String(body.subcategory_id ?? "").trim();
-    const offImageUrl = String(body.offImageUrl ?? "").trim();
-
-    if (!barcode) return json({ ok: false, error: "Falta el código de barras." }, 400);
-    if (!brandName || !productName) {
-      return json(
-        { ok: false, error: "Completá marca y nombre." },
-        400
-      );
+    const limited = rateLimit(`products:create:${user.id}:${clientIp(request)}`, 8, 10 * 60_000);
+    if (!limited.ok) {
+      const r = rateLimitResponse(limited.retryAfterSec);
+      return json(r.body, r.status, r.headers);
     }
+
+    const parsed = createProductSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return json({ ok: false, error: zodErrorMessage(parsed.error) }, 400);
+    }
+
+    const {
+      barcode,
+      brand: brandName,
+      name: productName,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      offImageUrl,
+    } = parsed.data;
 
     const categoryCheck = await validateCategoryPair(
       supabase,
@@ -105,11 +105,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (error.code === "23505") {
-        return json({
-          ok: false,
-          error:
-            "Este código de barras ya está registrado. Buscá el producto para evaluarlo.",
-        }, 409);
+        return json(
+          {
+            ok: false,
+            error:
+              "Este código de barras ya está registrado. Buscá el producto para evaluarlo.",
+          },
+          409
+        );
       }
       return json({ ok: false, error: error.message }, 500);
     }
