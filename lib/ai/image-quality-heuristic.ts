@@ -26,11 +26,11 @@ export async function scoreImageHeuristic(url: string): Promise<HeuristicScoreRe
   const buffer = await loadImageBuffer(url);
   if (!buffer) {
     return {
-      overall_score: 30,
+      overall_score: 0,
       details: {
         scorer: "heuristic",
         issues: ["no_se_pudo_cargar"],
-        confidence: 0.2,
+        confidence: 1,
       },
     };
   }

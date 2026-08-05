@@ -1,9 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
 import { Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FavoriteButton } from "@/components/product/favorite-button";
+import { ProductCoverImage } from "@/components/product/product-cover-image";
 import type { GlutenCertification } from "@/types/database";
 import { getCatalogVisibilityBadge } from "@/lib/product-visibility";
 import { cn } from "@/lib/utils";
@@ -73,20 +75,7 @@ export function ProductCard({
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-[var(--color-brand-cream)]">
         <Link href={`/productos/${product.slug}`} className="absolute inset-0">
-          {product.image_url ? (
-            <Image
-              src={product.image_url}
-              alt={product.name}
-              fill
-              className="object-contain p-3"
-              sizes="(max-width: 640px) 50vw, 25vw"
-              unoptimized={product.image_url.includes("openfoodfacts")}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-xs text-[var(--color-muted-foreground)]">
-              Sin foto
-            </div>
-          )}
+          <ProductCoverImage src={product.image_url} alt={product.name} />
         </Link>
         {badge && (
           <span

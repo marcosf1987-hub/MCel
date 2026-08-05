@@ -1,10 +1,10 @@
 "use client";
 
 import useEmblaCarousel from "embla-carousel-react";
-import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ProductCoverImage } from "@/components/product/product-cover-image";
 
 export function ProductCarousel({ images }: { images: { url: string; id: string }[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -38,13 +38,11 @@ export function ProductCarousel({ images }: { images: { url: string; id: string 
           {images.map((img) => (
             <div key={img.id} className="min-w-0 flex-[0_0_100%]">
               <div className="relative aspect-square bg-white">
-                <Image
+                <ProductCoverImage
                   src={img.url}
                   alt="Producto"
-                  fill
-                  className="object-contain p-4"
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  unoptimized={img.url.includes("openfoodfacts")}
+                  className="p-4"
                 />
               </div>
             </div>

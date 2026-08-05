@@ -22,10 +22,34 @@ const SOURCE_PRIORITY: Record<ImageSource, number> = {
   off: 1,
 };
 
+function isUnloadable(details: ProductImageQualityDetails | undefined, score: number) {
+  if (score <= 0) return true;
+  return Boolean(details?.issues?.includes("no_se_pudo_cargar"));
+}
+
 function compareRank(
-  a: { score: number; image_source: ImageSource; created_at: string },
-  b: { score: number; image_source: ImageSource; created_at: string }
+  a: {
+    score: number;
+    image_source: ImageSource;
+    created_at: string;
+    details?: ProductImageQualityDetails;
+  },
+  b: {
+    score: number;
+    image_source: ImageSource;
+    created_at: string;
+    details?: ProductImageQualityDetails;
+  }
 ) {
+  const aBroken = isUnloadable(a.details, a.score);
+  const bBroken = isUnloadable(b.details, b.score);
+  if (aBroken !== bBroken) return aBroken ? 1 : -1;
+
+  // Preferir community/official sobre OFF para la portada
+  const aOff = a.image_source === "off" ? 1 : 0;
+  const bOff = b.image_source === "off" ? 1 : 0;
+  if (aOff !== bOff) return aOff - bOff;
+
   if (b.score !== a.score) return b.score - a.score;
   if (SOURCE_PRIORITY[b.image_source] !== SOURCE_PRIORITY[a.image_source]) {
     return SOURCE_PRIORITY[b.image_source] - SOURCE_PRIORITY[a.image_source];
@@ -72,17 +96,24 @@ export async function rankProductImages(
   supabase: SupabaseClient,
   productId: string
 ): Promise<{ ok: boolean; ranked: number; error?: string }> {
-  const { data: rows, error } = await supabase
+  const { data: allRows, error } = await supabase
     .from("product_images")
-    .select("id, url, sort_order, image_source, quality_status, created_at")
+    .select("id, url, sort_order, image_source, quality_status, created_at, is_hidden")
     .eq("product_id", productId)
-    .neq("quality_status", "manual")
     .order("sort_order", { ascending: true });
 
   if (error) return { ok: false, ranked: 0, error: error.message };
-  if (!rows?.length) return { ok: true, ranked: 0 };
+  if (!allRows?.length) return { ok: true, ranked: 0 };
 
-  const images = rows as RankableImage[];
+  const manualVisible = allRows.filter(
+    (r) => r.quality_status === "manual" && r.is_hidden !== true
+  );
+  const images = allRows.filter(
+    (r) => r.quality_status !== "manual"
+  ) as RankableImage[];
+
+  if (!images.length) return { ok: true, ranked: 0 };
+
   const visionPool = await buildVisionPool(images);
   const poolIds = new Set(visionPool.map((i) => i.id));
 
@@ -123,25 +154,72 @@ export async function rankProductImages(
     })
     .sort(compareRank);
 
-  let hideCandidates = ranked.filter(
-    (img) =>
-      img.image_source === "off" && img.score < OFF_HIDE_THRESHOLD
-  );
-  const wouldRemain = ranked.length - hideCandidates.length;
-  if (wouldRemain < 1) hideCandidates = [];
+  const hideCandidates = new Map<string, (typeof ranked)[number]>();
+  const loadableAuto = ranked.filter((img) => !isUnloadable(img.details, img.score));
+  const hasAlternative =
+    loadableAuto.some((img) => img.image_source !== "off") ||
+    manualVisible.some((img) => img.image_source !== "off") ||
+    loadableAuto.length + manualVisible.length > 1;
 
-  const hiddenIds = new Set(hideCandidates.map((i) => i.id));
+  // URLs rotas: ocultar si hay alternativa cargable (auto o manual)
+  if (loadableAuto.length + manualVisible.length > 0) {
+    for (const img of ranked) {
+      if (isUnloadable(img.details, img.score)) hideCandidates.set(img.id, img);
+    }
+  }
+
+  // OFF flojas: ocultar si hay otra imagen usable
+  for (const img of ranked) {
+    if (img.image_source !== "off") continue;
+    if (img.score >= OFF_HIDE_THRESHOLD && !isUnloadable(img.details, img.score)) {
+      continue;
+    }
+    if (hasAlternative || loadableAuto.length + manualVisible.length > 1) {
+      hideCandidates.set(img.id, img);
+    }
+  }
+
+  // Si preferimos no-OFF y hay community/official visible, demorar OFF buenas
+  // no hace falta ocultarlas: el sort las pone después. Ocultar solo flojas/rotas.
+
+  const wouldRemain =
+    ranked.length - hideCandidates.size + manualVisible.length;
+  if (wouldRemain < 1) {
+    hideCandidates.clear();
+  }
+
+  const hiddenIds = new Set(hideCandidates.keys());
   const visibleRanked = ranked.filter((img) => !hiddenIds.has(img.id));
 
   const now = new Date().toISOString();
   let needsReview = false;
-  if (visibleRanked.length === 1 && visibleRanked[0].score < OFF_HIDE_THRESHOLD) {
+  if (
+    visibleRanked.length + manualVisible.length === 1 &&
+    visibleRanked[0] &&
+    (visibleRanked[0].score < OFF_HIDE_THRESHOLD ||
+      isUnloadable(visibleRanked[0].details, visibleRanked[0].score))
+  ) {
     needsReview = true;
   }
 
-  let order = 0;
+  // Orden final: portadas manuales primero (0..n-1), luego automáticas.
+  // Así una OFF no queda delante de community/official elegidas a mano.
+  const manualsOrdered = [...manualVisible].sort(
+    (a, b) => a.sort_order - b.sort_order
+  );
+  for (let i = 0; i < manualsOrdered.length; i++) {
+    const { error: upErr } = await supabase
+      .from("product_images")
+      .update({ sort_order: i })
+      .eq("id", manualsOrdered[i].id);
+    if (upErr) return { ok: false, ranked: 0, error: upErr.message };
+  }
+
+  const orderOffset = manualsOrdered.length;
+
+  let order = orderOffset;
   for (const img of visibleRanked) {
-    const status = needsReview && order === 0 ? "needs_review" : "scored";
+    const status = needsReview && order === orderOffset ? "needs_review" : "scored";
     const { error: upErr } = await supabase
       .from("product_images")
       .update({
@@ -157,7 +235,7 @@ export async function rankProductImages(
     order++;
   }
 
-  for (const img of hideCandidates) {
+  for (const img of hideCandidates.values()) {
     const { error: upErr } = await supabase
       .from("product_images")
       .update({
