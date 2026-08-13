@@ -30,6 +30,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...   # opcional, hay resumen fallback sin IA
+GOOGLE_PLACES_API_KEY=...  # opcional: búsqueda Google en admin de locales
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 

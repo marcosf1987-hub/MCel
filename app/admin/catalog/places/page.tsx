@@ -16,7 +16,7 @@ export default async function AdminCatalogPlacesPage() {
           Locales
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Alta manual de comercios y restaurantes para el mapa. Solo admin.
+          Buscá en Google Places para prellenar, o cargá a mano. Solo admin.
         </p>
       </div>
 

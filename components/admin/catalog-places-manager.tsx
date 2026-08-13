@@ -15,6 +15,10 @@ import {
   type PlaceType,
 } from "@/types/database";
 import { Loader2, MapPin } from "lucide-react";
+import {
+  GooglePlaceSearch,
+  type GooglePlacePrefill,
+} from "@/components/admin/google-place-search";
 
 type PlaceFormState = {
   name: string;
@@ -98,6 +102,23 @@ export function CatalogPlacesManager({
   const startEdit = (place: Place) => {
     setEditingId(place.id);
     setForm(formFromPlace(place));
+    setError(null);
+  };
+
+  const applyGooglePlace = (place: GooglePlacePrefill) => {
+    setForm((prev) => ({
+      ...prev,
+      name: place.name,
+      place_type: place.suggestedPlaceType,
+      lat: String(place.lat),
+      lng: String(place.lng),
+      address: place.address ?? "",
+      city: place.city ?? "",
+      phone: place.phone ?? "",
+      website: place.website ?? "",
+      cover_image_url: place.coverImageUrl ?? "",
+      google_place_id: place.googlePlaceId,
+    }));
     setError(null);
   };
 
@@ -205,6 +226,10 @@ export function CatalogPlacesManager({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <GooglePlaceSearch
+            onSelect={applyGooglePlace}
+            onError={(message) => setError(message)}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="place-name">Nombre *</Label>
