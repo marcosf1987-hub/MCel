@@ -16,7 +16,8 @@ export default async function AdminCatalogPlacesPage() {
           Locales
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Buscá en Google Places para prellenar, o cargá a mano. Solo admin.
+          Buscá dirección con OpenStreetMap o fijá el pin en el mapa. Google
+          Places queda opcional para enriquecer después.
         </p>
       </div>
 

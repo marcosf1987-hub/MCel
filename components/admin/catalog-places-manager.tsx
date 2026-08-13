@@ -16,6 +16,10 @@ import {
 } from "@/types/database";
 import { Loader2, MapPin } from "lucide-react";
 import {
+  PlaceLocationPicker,
+  type PlaceLocationValue,
+} from "@/components/admin/place-location-picker";
+import {
   GooglePlaceSearch,
   type GooglePlacePrefill,
 } from "@/components/admin/google-place-search";
@@ -118,6 +122,20 @@ export function CatalogPlacesManager({
       website: place.website ?? "",
       cover_image_url: place.coverImageUrl ?? "",
       google_place_id: place.googlePlaceId,
+    }));
+    setError(null);
+  };
+
+  const applyLocation = (value: PlaceLocationValue) => {
+    setForm((prev) => ({
+      ...prev,
+      lat: String(value.lat),
+      lng: String(value.lng),
+      ...(value.address != null ? { address: value.address } : {}),
+      ...(value.city != null ? { city: value.city } : {}),
+      ...(value.fillName && value.name
+        ? { name: prev.name.trim() ? prev.name : value.name }
+        : {}),
     }));
     setError(null);
   };
@@ -226,10 +244,6 @@ export function CatalogPlacesManager({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <GooglePlaceSearch
-            onSelect={applyGooglePlace}
-            onError={(message) => setError(message)}
-          />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="place-name">Nombre *</Label>
@@ -240,6 +254,14 @@ export function CatalogPlacesManager({
                 placeholder="Ej. Panadería Sin TACC Centro"
               />
             </div>
+
+            <PlaceLocationPicker
+              lat={form.lat}
+              lng={form.lng}
+              onChange={applyLocation}
+              onError={(message) => setError(message)}
+            />
+
             <div className="space-y-1.5">
               <Label htmlFor="place-type">Tipo</Label>
               <select
@@ -336,14 +358,6 @@ export function CatalogPlacesManager({
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="place-gpid">Google Place ID (opcional)</Label>
-              <Input
-                id="place-gpid"
-                value={form.google_place_id}
-                onChange={(e) => setField("google_place_id", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="place-desc">Descripción</Label>
               <Textarea
                 id="place-desc"
@@ -361,6 +375,33 @@ export function CatalogPlacesManager({
                 rows={2}
               />
             </div>
+
+            <details className="sm:col-span-2 rounded-lg border border-[var(--color-border)] px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium text-[var(--color-brown)]">
+                Opcional: Google Places (enriquecimiento futuro)
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-[var(--color-muted-foreground)]">
+                  Requiere billing de Google. Hoy la ubicación se resuelve con
+                  OSM. Si hay API key, podés prellenar contacto/foto; el Place
+                  ID queda listo para enriquecer después.
+                </p>
+                <GooglePlaceSearch
+                  onSelect={applyGooglePlace}
+                  onError={(message) => setError(message)}
+                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="place-gpid">Google Place ID</Label>
+                  <Input
+                    id="place-gpid"
+                    value={form.google_place_id}
+                    onChange={(e) =>
+                      setField("google_place_id", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </details>
           </div>
 
           {error && (
