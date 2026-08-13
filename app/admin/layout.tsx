@@ -10,6 +10,7 @@ const BASE_NAV = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin/analytics", label: "Métricas" },
   { href: "/admin/reports", label: "Reportes" },
+  { href: "/admin/places", label: "Locales" },
 ];
 
 const USERS_NAV = [{ href: "/admin/users", label: "Usuarios" }];

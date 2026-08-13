@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fetchPlaceBySlug } from "@/lib/places-server";
+import {
+  fetchPlaceBySlug,
+  fetchPlaceItems,
+  fetchPlaceReviews,
+  fetchUserPlaceReview,
+} from "@/lib/places-server";
 import { PlacesMapClient } from "@/components/places/places-map-client";
+import { PlaceReviewsSection } from "@/components/places/place-reviews-section";
+import { PlaceItemsSection } from "@/components/places/place-items-section";
 import {
   PLACE_CELIAC_LABELS,
   PLACE_TYPE_LABELS,
 } from "@/types/database";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, MapPin, Phone } from "lucide-react";
+import { ExternalLink, MapPin, Phone, Star } from "lucide-react";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -31,6 +38,18 @@ export default async function LocalDetailPage({ params }: PageProps) {
   const place = await fetchPlaceBySlug(supabase, slug);
   if (!place) notFound();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [reviews, items, userReview] = await Promise.all([
+    fetchPlaceReviews(supabase, place.id),
+    fetchPlaceItems(supabase, place.id),
+    user
+      ? fetchUserPlaceReview(supabase, place.id, user.id)
+      : Promise.resolve(null),
+  ]);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-8">
       <Link
@@ -46,6 +65,12 @@ export default async function LocalDetailPage({ params }: PageProps) {
             {PLACE_TYPE_LABELS[place.place_type]}
           </Badge>
           <Badge>{PLACE_CELIAC_LABELS[place.celiac_level]}</Badge>
+          {place.review_count > 0 && place.weighted_rating != null && (
+            <span className="inline-flex items-center gap-1 text-sm text-[var(--color-muted-foreground)]">
+              <Star className="h-3.5 w-3.5 fill-[var(--color-accent)] text-[var(--color-accent)]" />
+              {place.weighted_rating.toFixed(1)} ({place.review_count})
+            </span>
+          )}
         </div>
         <h1 className="font-[family-name:var(--font-headline)] text-3xl font-bold text-[var(--color-brown)]">
           {place.name}
@@ -111,6 +136,23 @@ export default async function LocalDetailPage({ params }: PageProps) {
         </h2>
         <PlacesMapClient places={[place]} />
       </div>
+
+      <PlaceReviewsSection
+        placeId={place.id}
+        placeSlug={place.slug}
+        initialReviews={reviews}
+        userReview={userReview}
+        isLoggedIn={Boolean(user)}
+        reviewCount={place.review_count}
+        weightedRating={place.weighted_rating}
+      />
+
+      <PlaceItemsSection
+        placeId={place.id}
+        placeSlug={place.slug}
+        initialItems={items}
+        isLoggedIn={Boolean(user)}
+      />
     </div>
   );
 }

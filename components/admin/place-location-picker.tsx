@@ -43,11 +43,13 @@ export function PlaceLocationPicker({
   lng,
   onChange,
   onError,
+  geocodeUrl = "/api/admin/catalog/places/geocode",
 }: {
   lat: string;
   lng: string;
   onChange: (value: PlaceLocationValue) => void;
   onError: (message: string) => void;
+  geocodeUrl?: string;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimHit[]>([]);
@@ -69,7 +71,7 @@ export function PlaceLocationPicker({
     }
     setSearching(true);
     try {
-      const res = await fetch("/api/admin/catalog/places/geocode", {
+      const res = await fetch(geocodeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -114,7 +116,7 @@ export function PlaceLocationPicker({
   const reverseFill = async (coords: { lat: number; lng: number }) => {
     setReversing(true);
     try {
-      const res = await fetch("/api/admin/catalog/places/geocode", {
+      const res = await fetch(geocodeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

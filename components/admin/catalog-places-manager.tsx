@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PLACE_CELIAC_LABELS,
+  PLACE_STATUS_LABELS,
   PLACE_TYPE_LABELS,
   type Place,
   type PlaceCeliacLevel,
@@ -448,6 +449,11 @@ export function CatalogPlacesManager({
                       {place.deleted_at && (
                         <span className="ml-2 text-xs font-normal text-amber-700">
                           (oculto)
+                        </span>
+                      )}
+                      {place.status && place.status !== "published" && (
+                        <span className="ml-2 text-xs font-normal text-amber-700">
+                          ({PLACE_STATUS_LABELS[place.status]})
                         </span>
                       )}
                     </p>

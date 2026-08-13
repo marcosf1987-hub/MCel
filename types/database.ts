@@ -269,6 +269,8 @@ export type PlaceCeliacLevel =
   | "certificado"
   | "desconocido";
 
+export type PlaceStatus = "pending" | "published" | "rejected";
+
 export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
   comercio: "Comercio",
   restaurante: "Restaurante",
@@ -279,6 +281,12 @@ export const PLACE_CELIAC_LABELS: Record<PlaceCeliacLevel, string> = {
   dedicado: "Dedicado sin TACC",
   certificado: "Certificado",
   desconocido: "Sin info",
+};
+
+export const PLACE_STATUS_LABELS: Record<PlaceStatus, string> = {
+  pending: "Pendiente",
+  published: "Publicado",
+  rejected: "Rechazado",
 };
 
 export interface Place {
@@ -297,7 +305,49 @@ export interface Place {
   google_place_id: string | null;
   celiac_level: PlaceCeliacLevel;
   celiac_notes: string | null;
+  status: PlaceStatus;
+  rejection_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  weighted_rating: number | null;
+  review_count: number;
   created_by: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlaceReview {
+  id: string;
+  place_id: string;
+  user_id: string;
+  rating: number;
+  opinion: string;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<Profile, "display_name" | "username" | "avatar_url" | "tier">;
+}
+
+export interface PlaceItem {
+  id: string;
+  place_id: string;
+  name: string;
+  description: string | null;
+  created_by: string | null;
+  deleted_at: string | null;
+  weighted_rating: number | null;
+  review_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlaceItemReview {
+  id: string;
+  place_item_id: string;
+  user_id: string;
+  rating: number;
+  opinion: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

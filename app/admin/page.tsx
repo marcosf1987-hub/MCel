@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/roles";
 import { countReviewImages } from "@/lib/admin/catalog-server";
 import { countSuspendedUsers } from "@/lib/admin/users-server";
+import { countPendingPlaces } from "@/lib/places-server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AdminPage() {
@@ -27,6 +28,7 @@ export default async function AdminPage() {
     { count: pendingReports },
     pendingImages,
     suspendedUsers,
+    pendingPlaces,
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase
@@ -43,6 +45,7 @@ export default async function AdminPage() {
       .eq("status", "pending"),
     showCatalog ? countReviewImages(supabase) : Promise.resolve(0),
     showUsers ? countSuspendedUsers(supabase) : Promise.resolve(0),
+    countPendingPlaces(supabase),
   ]);
 
   const permissions = [
@@ -67,12 +70,27 @@ export default async function AdminPage() {
         >
           Ver métricas y evolución →
         </Link>
+        <Link
+          href="/admin/places"
+          className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          Locales pendientes{pendingPlaces > 0 ? ` (${pendingPlaces})` : ""} →
+        </Link>
         {(pendingReports ?? 0) > 0 && (
           <Link
             href="/admin/reports"
             className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
           >
             Ver {pendingReports} reporte{(pendingReports ?? 0) !== 1 ? "s" : ""} pendiente{(pendingReports ?? 0) !== 1 ? "s" : ""} →
+          </Link>
+        )}
+        {pendingPlaces > 0 && (
+          <Link
+            href="/admin/places"
+            className="mt-2 mr-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+          >
+            Ver {pendingPlaces} local{pendingPlaces !== 1 ? "es" : ""} pendiente
+            {pendingPlaces !== 1 ? "s" : ""} →
           </Link>
         )}
         {showUsers && (suspendedUsers ?? 0) > 0 && (

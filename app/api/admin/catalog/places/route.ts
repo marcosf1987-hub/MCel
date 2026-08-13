@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
       celiac_level: celiacLevel,
       celiac_notes: optionalText(body.celiac_notes),
       created_by: session.userId,
+      status: "published",
     })
     .select(
-      "id, name, slug, place_type, description, address, city, lat, lng, phone, website, cover_image_url, google_place_id, celiac_level, celiac_notes, created_by, deleted_at, created_at, updated_at"
+      "id, name, slug, place_type, description, address, city, lat, lng, phone, website, cover_image_url, google_place_id, celiac_level, celiac_notes, status, rejection_note, reviewed_by, reviewed_at, weighted_rating, review_count, created_by, deleted_at, created_at, updated_at"
     )
     .single();
 

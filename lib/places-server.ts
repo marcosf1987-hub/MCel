@@ -1,8 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Place } from "@/types/database";
+import type {
+  Place,
+  PlaceItem,
+  PlaceReview,
+  PlaceStatus,
+} from "@/types/database";
 
-const PLACE_SELECT =
-  "id, name, slug, place_type, description, address, city, lat, lng, phone, website, cover_image_url, google_place_id, celiac_level, celiac_notes, created_by, deleted_at, created_at, updated_at";
+export const PLACE_SELECT =
+  "id, name, slug, place_type, description, address, city, lat, lng, phone, website, cover_image_url, google_place_id, celiac_level, celiac_notes, status, rejection_note, reviewed_by, reviewed_at, weighted_rating, review_count, created_by, deleted_at, created_at, updated_at";
 
 export type PlaceListItem = Pick<
   Place,
@@ -16,6 +21,8 @@ export type PlaceListItem = Pick<
   | "lng"
   | "celiac_level"
   | "cover_image_url"
+  | "weighted_rating"
+  | "review_count"
 >;
 
 export async function fetchPublicPlaces(
@@ -24,8 +31,9 @@ export async function fetchPublicPlaces(
   const { data, error } = await supabase
     .from("places")
     .select(
-      "id, name, slug, place_type, address, city, lat, lng, celiac_level, cover_image_url"
+      "id, name, slug, place_type, address, city, lat, lng, celiac_level, cover_image_url, weighted_rating, review_count"
     )
+    .eq("status", "published")
     .is("deleted_at", null)
     .order("name", { ascending: true });
 
@@ -44,6 +52,7 @@ export async function fetchPlaceBySlug(
     .from("places")
     .select(PLACE_SELECT)
     .eq("slug", slug)
+    .eq("status", "published")
     .is("deleted_at", null)
     .maybeSingle();
 
@@ -68,3 +77,112 @@ export async function fetchAdminPlaces(
   }
   return (data ?? []) as Place[];
 }
+
+export async function fetchPendingPlaces(
+  supabase: SupabaseClient
+): Promise<Place[]> {
+  const { data, error } = await supabase
+    .from("places")
+    .select(PLACE_SELECT)
+    .eq("status", "pending")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("fetchPendingPlaces:", error.message);
+    return [];
+  }
+  return (data ?? []) as Place[];
+}
+
+export async function countPendingPlaces(
+  supabase: SupabaseClient
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("places")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending")
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("countPendingPlaces:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+export async function fetchPlaceReviews(
+  supabase: SupabaseClient,
+  placeId: string,
+  limit = 20
+): Promise<PlaceReview[]> {
+  const { data, error } = await supabase
+    .from("place_reviews")
+    .select(
+      "id, place_id, user_id, rating, opinion, deleted_at, created_at, updated_at, profiles(display_name, username, avatar_url, tier)"
+    )
+    .eq("place_id", placeId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("fetchPlaceReviews:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const raw = row as Record<string, unknown>;
+    const profileRaw = raw.profiles;
+    const profile = Array.isArray(profileRaw)
+      ? profileRaw[0]
+      : profileRaw;
+    const { profiles: _p, ...rest } = raw;
+    return {
+      ...(rest as Omit<PlaceReview, "profile">),
+      profile: (profile as PlaceReview["profile"]) ?? undefined,
+    };
+  });
+}
+
+export async function fetchPlaceItems(
+  supabase: SupabaseClient,
+  placeId: string
+): Promise<PlaceItem[]> {
+  const { data, error } = await supabase
+    .from("place_items")
+    .select(
+      "id, place_id, name, description, created_by, deleted_at, weighted_rating, review_count, created_at, updated_at"
+    )
+    .eq("place_id", placeId)
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("fetchPlaceItems:", error.message);
+    return [];
+  }
+  return (data ?? []) as PlaceItem[];
+}
+
+export async function fetchUserPlaceReview(
+  supabase: SupabaseClient,
+  placeId: string,
+  userId: string
+): Promise<PlaceReview | null> {
+  const { data } = await supabase
+    .from("place_reviews")
+    .select(
+      "id, place_id, user_id, rating, opinion, deleted_at, created_at, updated_at"
+    )
+    .eq("place_id", placeId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return (data as PlaceReview | null) ?? null;
+}
+
+export type PlaceModerationAction = Extract<
+  PlaceStatus,
+  "published" | "rejected"
+>;
