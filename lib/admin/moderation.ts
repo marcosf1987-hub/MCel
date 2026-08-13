@@ -2,7 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { notifyModerationAction } from "@/lib/user-notifications";
 
-export type ModerationTargetType = "product" | "review" | "list" | "list_comment";
+export type ModerationTargetType =
+  | "product"
+  | "review"
+  | "list"
+  | "list_comment"
+  | "place"
+  | "place_review";
 
 export async function hideModerationTarget(
   supabase: SupabaseClient,
@@ -56,6 +62,35 @@ export async function hideModerationTarget(
       .eq("id", targetId)
       .is("deleted_at", null);
     if (error) return { ok: false, error: error.message };
+  } else if (targetType === "place") {
+    const { error } = await supabase
+      .from("places")
+      .update({ deleted_at: now })
+      .eq("id", targetId)
+      .is("deleted_at", null);
+    if (error) return { ok: false, error: error.message };
+  } else if (targetType === "place_review") {
+    const { data: review } = await supabase
+      .from("place_reviews")
+      .select("id, place_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("place_reviews")
+      .update({ deleted_at: now })
+      .eq("id", targetId)
+      .is("deleted_at", null);
+    if (error) return { ok: false, error: error.message };
+
+    if (review?.place_id) {
+      const { error: ratingErr } = await supabase.rpc("recalculate_place_rating", {
+        p_place_id: review.place_id,
+      });
+      if (ratingErr) {
+        console.error("recalculate_place_rating after hide:", ratingErr);
+      }
+    }
   } else {
     return { ok: false, error: "Tipo de contenido no soportado." };
   }
@@ -128,6 +163,33 @@ export async function restoreModerationTarget(
       .update({ deleted_at: null })
       .eq("id", targetId);
     if (error) return { ok: false, error: error.message };
+  } else if (targetType === "place") {
+    const { error } = await supabase
+      .from("places")
+      .update({ deleted_at: null })
+      .eq("id", targetId);
+    if (error) return { ok: false, error: error.message };
+  } else if (targetType === "place_review") {
+    const { data: review } = await supabase
+      .from("place_reviews")
+      .select("id, place_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("place_reviews")
+      .update({ deleted_at: null })
+      .eq("id", targetId);
+    if (error) return { ok: false, error: error.message };
+
+    if (review?.place_id) {
+      const { error: ratingErr } = await supabase.rpc("recalculate_place_rating", {
+        p_place_id: review.place_id,
+      });
+      if (ratingErr) {
+        console.error("recalculate_place_rating after restore:", ratingErr);
+      }
+    }
   } else {
     return { ok: false, error: "Tipo de contenido no soportado." };
   }

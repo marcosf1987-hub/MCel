@@ -5,11 +5,13 @@ import {
   fetchPlaceBySlug,
   fetchPlaceItems,
   fetchPlaceReviews,
+  fetchUserPlaceItemReviewsMap,
   fetchUserPlaceReview,
 } from "@/lib/places-server";
 import { PlacesMapClient } from "@/components/places/places-map-client";
 import { PlaceReviewsSection } from "@/components/places/place-reviews-section";
 import { PlaceItemsSection } from "@/components/places/place-items-section";
+import { ReportButton } from "@/components/product/report-button";
 import {
   PLACE_CELIAC_LABELS,
   PLACE_TYPE_LABELS,
@@ -42,12 +44,15 @@ export default async function LocalDetailPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [reviews, items, userReview] = await Promise.all([
+  const [reviews, items, userReview, userItemReviews] = await Promise.all([
     fetchPlaceReviews(supabase, place.id),
     fetchPlaceItems(supabase, place.id),
     user
       ? fetchUserPlaceReview(supabase, place.id, user.id)
       : Promise.resolve(null),
+    user
+      ? fetchUserPlaceItemReviewsMap(supabase, place.id, user.id)
+      : Promise.resolve({}),
   ]);
 
   return (
@@ -107,7 +112,7 @@ export default async function LocalDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-4 text-sm">
+      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
         {place.phone && (
           <a
             href={`tel:${place.phone}`}
@@ -128,6 +133,9 @@ export default async function LocalDetailPage({ params }: PageProps) {
             Sitio web
           </a>
         )}
+        {user && (
+          <ReportButton targetType="place" targetId={place.id} />
+        )}
       </div>
 
       <div className="mt-8">
@@ -143,6 +151,7 @@ export default async function LocalDetailPage({ params }: PageProps) {
         initialReviews={reviews}
         userReview={userReview}
         isLoggedIn={Boolean(user)}
+        currentUserId={user?.id ?? null}
         reviewCount={place.review_count}
         weightedRating={place.weighted_rating}
       />
@@ -152,6 +161,7 @@ export default async function LocalDetailPage({ params }: PageProps) {
         placeSlug={place.slug}
         initialItems={items}
         isLoggedIn={Boolean(user)}
+        initialUserReviews={userItemReviews}
       />
     </div>
   );

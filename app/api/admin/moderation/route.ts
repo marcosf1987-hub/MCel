@@ -15,6 +15,8 @@ const VALID_TYPES = new Set<ModerationTargetType>([
   "review",
   "list",
   "list_comment",
+  "place",
+  "place_review",
 ]);
 
 export async function POST(request: NextRequest) {

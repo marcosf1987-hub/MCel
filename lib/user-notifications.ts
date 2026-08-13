@@ -72,6 +72,8 @@ const TARGET_LABELS: Record<ModerationTargetType, string> = {
   review: "evaluación",
   list: "lista",
   list_comment: "comentario",
+  place: "local",
+  place_review: "evaluación de local",
 };
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -147,6 +149,33 @@ export async function resolveModerationTargetOwner(
       userId: data?.user_id ?? null,
       label: list?.title ?? "comentario",
       linkHref: href,
+    };
+  }
+
+  if (targetType === "place") {
+    const { data } = await supabase
+      .from("places")
+      .select("created_by, name, slug")
+      .eq("id", targetId)
+      .maybeSingle();
+    return {
+      userId: data?.created_by ?? null,
+      label: data?.name ?? "local",
+      linkHref: data?.slug ? `/locales/${data.slug}` : "/locales",
+    };
+  }
+
+  if (targetType === "place_review") {
+    const { data } = await supabase
+      .from("place_reviews")
+      .select("user_id, place_id, places(name, slug)")
+      .eq("id", targetId)
+      .maybeSingle();
+    const place = firstRelation(data?.places);
+    return {
+      userId: data?.user_id ?? null,
+      label: place?.name ?? "evaluación de local",
+      linkHref: place?.slug ? `/locales/${place.slug}` : "/locales",
     };
   }
 

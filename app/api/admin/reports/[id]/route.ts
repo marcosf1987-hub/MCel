@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/admin-auth";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { hideModerationTarget } from "@/lib/admin/moderation";
+import type { ModerationTargetType } from "@/lib/admin/moderation";
 import type { Report } from "@/types/database";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -54,7 +55,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const hideResult = await hideModerationTarget(
       supabase,
       session.userId,
-      report.target_type as "product" | "review" | "list" | "list_comment",
+      report.target_type as ModerationTargetType,
       report.target_id,
       { report_id: reportId, moderator_note: moderatorNote || null }
     );

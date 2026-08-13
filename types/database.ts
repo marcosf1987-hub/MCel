@@ -355,7 +355,13 @@ export interface PlaceItemReview {
   updated_at: string;
 }
 
-export type ReportTargetType = "product" | "review" | "list" | "list_comment";
+export type ReportTargetType =
+  | "product"
+  | "review"
+  | "list"
+  | "list_comment"
+  | "place"
+  | "place_review";
 
 export interface Report {
   id: string;
@@ -375,6 +381,8 @@ export const REPORT_TARGET_TYPES: ReportTargetType[] = [
   "review",
   "list",
   "list_comment",
+  "place",
+  "place_review",
 ];
 
 /** @deprecated Usar lista sistema mis-favoritos */

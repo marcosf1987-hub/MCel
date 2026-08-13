@@ -182,6 +182,42 @@ export async function fetchUserPlaceReview(
   return (data as PlaceReview | null) ?? null;
 }
 
+/** Mapa place_item_id → valoración propia */
+export async function fetchUserPlaceItemReviewsMap(
+  supabase: SupabaseClient,
+  placeId: string,
+  userId: string
+): Promise<Record<string, { id: string; rating: number; opinion: string | null }>> {
+  const { data: items } = await supabase
+    .from("place_items")
+    .select("id")
+    .eq("place_id", placeId)
+    .is("deleted_at", null);
+
+  const itemIds = (items ?? []).map((i) => i.id);
+  if (itemIds.length === 0) return {};
+
+  const { data: reviews } = await supabase
+    .from("place_item_reviews")
+    .select("id, place_item_id, rating, opinion")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .in("place_item_id", itemIds);
+
+  const map: Record<
+    string,
+    { id: string; rating: number; opinion: string | null }
+  > = {};
+  for (const r of reviews ?? []) {
+    map[r.place_item_id] = {
+      id: r.id,
+      rating: r.rating,
+      opinion: r.opinion,
+    };
+  }
+  return map;
+}
+
 export async function fetchUserPlaceProposals(
   supabase: SupabaseClient,
   userId: string

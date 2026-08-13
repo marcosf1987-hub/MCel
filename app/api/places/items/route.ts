@@ -72,15 +72,19 @@ export async function POST(request: NextRequest) {
         return json({ ok: false, error: "Ya evaluaste este ítem." }, 409);
       }
 
-      const { error } = await supabase.from("place_item_reviews").insert({
-        place_item_id: placeItemId,
-        user_id: user.id,
-        rating,
-        opinion: opinion?.trim() || null,
-      });
+      const { data: created, error } = await supabase
+        .from("place_item_reviews")
+        .insert({
+          place_item_id: placeItemId,
+          user_id: user.id,
+          rating,
+          opinion: opinion?.trim() || null,
+        })
+        .select("id")
+        .single();
 
       if (error) return json({ ok: false, error: error.message }, 500);
-      return json({ ok: true });
+      return json({ ok: true, reviewId: created.id });
     }
 
     const limited = rateLimit(

@@ -13,6 +13,8 @@ export const TARGET_TYPE_LABELS: Record<ReportTargetType, string> = {
   review: "Evaluación",
   list: "Lista",
   list_comment: "Comentario de lista",
+  place: "Local",
+  place_review: "Evaluación de local",
 };
 
 async function enrichTarget(
@@ -118,6 +120,48 @@ async function enrichTarget(
     return {
       label: list?.title ? `${list.title}: «${snippet}»` : `«${snippet}»`,
       href,
+      deleted: Boolean(data.deleted_at),
+    };
+  }
+
+  if (targetType === "place") {
+    const { data } = await supabase
+      .from("places")
+      .select("name, slug, deleted_at")
+      .eq("id", targetId)
+      .maybeSingle();
+    return {
+      label: data?.name ?? "Local eliminado o no encontrado",
+      href: data?.slug && !data.deleted_at ? `/locales/${data.slug}` : null,
+      deleted: Boolean(data?.deleted_at),
+    };
+  }
+
+  if (targetType === "place_review") {
+    const { data } = await supabase
+      .from("place_reviews")
+      .select("opinion, deleted_at, place_id")
+      .eq("id", targetId)
+      .maybeSingle();
+
+    if (!data) {
+      return {
+        label: "Evaluación de local no encontrada",
+        href: null,
+        deleted: true,
+      };
+    }
+
+    const { data: place } = await supabase
+      .from("places")
+      .select("slug, name")
+      .eq("id", data.place_id)
+      .maybeSingle();
+
+    const snippet = data.opinion?.slice(0, 80) ?? "";
+    return {
+      label: place?.name ? `${place.name}: «${snippet}»` : snippet,
+      href: place?.slug ? `/locales/${place.slug}` : null,
       deleted: Boolean(data.deleted_at),
     };
   }

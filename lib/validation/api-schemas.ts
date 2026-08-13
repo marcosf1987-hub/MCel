@@ -67,7 +67,14 @@ export const updateReviewSchema = z.object({
 });
 
 export const createReportSchema = z.object({
-  target_type: z.enum(["product", "review", "list", "list_comment"]),
+  target_type: z.enum([
+    "product",
+    "review",
+    "list",
+    "list_comment",
+    "place",
+    "place_review",
+  ]),
   target_id: uuidSchema,
   reason: z.string().trim().min(1, "Datos incompletos").max(2000),
 });
@@ -107,6 +114,11 @@ export const createPlaceReviewSchema = z.object({
   opinion: z.string().trim().min(1, "Escribí tu opinión.").max(4000),
 });
 
+export const updatePlaceReviewSchema = z.object({
+  rating: z.coerce.number().int().min(1, "Seleccioná una puntuación.").max(5),
+  opinion: z.string().trim().min(1, "Escribí tu opinión.").max(4000),
+});
+
 export const createPlaceItemSchema = z.object({
   placeId: uuidSchema,
   name: z.string().trim().min(1, "Nombre del plato/producto requerido.").max(200),
@@ -115,6 +127,11 @@ export const createPlaceItemSchema = z.object({
 
 export const createPlaceItemReviewSchema = z.object({
   placeItemId: uuidSchema,
+  rating: z.coerce.number().int().min(1).max(5),
+  opinion: z.string().trim().max(2000).optional().nullable(),
+});
+
+export const updatePlaceItemReviewSchema = z.object({
   rating: z.coerce.number().int().min(1).max(5),
   opinion: z.string().trim().max(2000).optional().nullable(),
 });
