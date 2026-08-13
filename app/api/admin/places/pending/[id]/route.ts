@@ -5,6 +5,7 @@ import {
   withAdminCookies,
 } from "@/lib/api/admin-auth";
 import { logAdminAction } from "@/lib/admin/audit-log";
+import { createUserNotification } from "@/lib/user-notifications";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -33,6 +34,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
+  const { data: place, error: fetchError } = await supabase
+    .from("places")
+    .select("id, name, slug, created_by, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError || !place) {
+    return withAdminCookies(
+      response,
+      adminJson({ ok: false, error: "Local no encontrado." }, 404)
+    );
+  }
+
   const updates =
     action === "publish"
       ? {
@@ -55,6 +69,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       response,
       adminJson({ ok: false, error: error.message }, 500)
     );
+  }
+
+  if (place.created_by) {
+    if (action === "publish") {
+      await createUserNotification(supabase, {
+        userId: place.created_by,
+        actorId: session.userId,
+        type: "place_published",
+        title: "Local publicado",
+        message: `Tu propuesta “${place.name}” ya está visible en el mapa.`,
+        linkHref: `/locales/${place.slug}`,
+      });
+    } else {
+      await createUserNotification(supabase, {
+        userId: place.created_by,
+        actorId: session.userId,
+        type: "place_rejected",
+        title: "Local no aprobado",
+        message: `Tu propuesta “${place.name}” fue rechazada. Motivo: ${note}`,
+        linkHref: "/locales/mis-propuestas",
+      });
+    }
   }
 
   await logAdminAction(supabase, {

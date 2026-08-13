@@ -182,6 +182,24 @@ export async function fetchUserPlaceReview(
   return (data as PlaceReview | null) ?? null;
 }
 
+export async function fetchUserPlaceProposals(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Place[]> {
+  const { data, error } = await supabase
+    .from("places")
+    .select(PLACE_SELECT)
+    .eq("created_by", userId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("fetchUserPlaceProposals:", error.message);
+    return [];
+  }
+  return (data ?? []) as Place[];
+}
+
 export type PlaceModerationAction = Extract<
   PlaceStatus,
   "published" | "rejected"

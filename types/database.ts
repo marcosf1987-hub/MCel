@@ -174,7 +174,9 @@ export type UserNotificationType =
   | "content_hidden"
   | "content_restored"
   | "account_suspended"
-  | "account_unsuspended";
+  | "account_unsuspended"
+  | "place_published"
+  | "place_rejected";
 
 export interface UserNotification {
   id: string;

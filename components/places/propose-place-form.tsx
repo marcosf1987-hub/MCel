@@ -138,9 +138,14 @@ export function ProposePlaceForm() {
         <p className="mt-2 text-sm text-[var(--color-muted-foreground)]">
           Cuando un moderador lo apruebe, va a aparecer en el mapa.
         </p>
-        <Button asChild className="mt-4" variant="accent">
-          <Link href="/locales">Volver al mapa</Link>
-        </Button>
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          <Button asChild variant="accent">
+            <Link href="/locales">Volver al mapa</Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="/locales/mis-propuestas">Ver mis propuestas</Link>
+          </Button>
+        </div>
       </div>
     );
   }

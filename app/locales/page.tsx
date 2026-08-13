@@ -38,6 +38,15 @@ export default async function LocalesPage() {
         </Button>
       </div>
 
+      <p className="mb-4 text-sm">
+        <Link
+          href="/locales/mis-propuestas"
+          className="font-medium text-[var(--color-primary)] hover:underline"
+        >
+          Ver mis propuestas →
+        </Link>
+      </p>
+
       <LocalesExplorer places={places} />
     </div>
   );

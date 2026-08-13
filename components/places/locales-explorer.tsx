@@ -252,6 +252,9 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
                       <p className="text-xs text-[var(--color-muted-foreground)]">
                         {PLACE_TYPE_LABELS[place.place_type]} ·{" "}
                         {PLACE_CELIAC_LABELS[place.celiac_level]}
+                        {place.review_count > 0 &&
+                          place.weighted_rating != null &&
+                          ` · ${place.weighted_rating.toFixed(1)}★ (${place.review_count})`}
                       </p>
                       {(place.address || place.city) && (
                         <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)] line-clamp-1">

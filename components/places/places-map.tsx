@@ -131,6 +131,10 @@ export function PlacesMap({
                 <p className="text-xs text-neutral-600">
                   {PLACE_TYPE_LABELS[place.place_type]} ·{" "}
                   {PLACE_CELIAC_LABELS[place.celiac_level]}
+                  {"review_count" in place &&
+                    place.review_count > 0 &&
+                    place.weighted_rating != null &&
+                    ` · ${place.weighted_rating.toFixed(1)}★`}
                 </p>
                 {place.city && (
                   <p className="text-xs text-neutral-500">{place.city}</p>
