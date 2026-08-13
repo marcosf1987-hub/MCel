@@ -19,6 +19,11 @@ const SECTIONS = [
     title: "Categorías",
     description: "Gestionar categorías y subcategorías del catálogo.",
   },
+  {
+    href: "/admin/catalog/places",
+    title: "Locales",
+    description: "Alta manual de comercios y restaurantes para el mapa.",
+  },
 ];
 
 export default function AdminCatalogPage() {
@@ -29,11 +34,11 @@ export default function AdminCatalogPage() {
           Catálogo
         </h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          ABM de productos, marcas y categorías. Solo admin y superadmin.
+          ABM de productos, marcas, categorías y locales. Solo admin y superadmin.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {SECTIONS.map((section) => (
           <Link key={section.href} href={section.href}>
             <Card className="h-full transition-shadow hover:shadow-md">

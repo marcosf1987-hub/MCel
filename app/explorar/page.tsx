@@ -4,7 +4,7 @@ import { getTopPublicLists } from "@/lib/lists-server";
 import { createClient } from "@/lib/supabase/server";
 import { ExploreCategoryAccordion } from "@/components/explore/category-accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Compass, ListMusic, ThumbsUp } from "lucide-react";
+import { Compass, ListMusic, MapPin, ThumbsUp } from "lucide-react";
 
 export const metadata = { title: "Explorar" };
 
@@ -22,6 +22,26 @@ export default async function ExplorePage() {
       <p className="mb-6 text-sm text-[var(--color-muted-foreground)]">
         Tocá una categoría para ver subcategorías o descubrí listas curadas por la comunidad.
       </p>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MapPin className="h-5 w-5 text-[var(--color-accent)]" />
+            Locales y mapa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-sm text-[var(--color-muted-foreground)]">
+            Comercios y restaurantes con opciones sin TACC.
+          </p>
+          <Link
+            href="/locales"
+            className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+          >
+            Abrir mapa de locales →
+          </Link>
+        </CardContent>
+      </Card>
 
       {topLists.length > 0 && (
         <Card className="mb-6">

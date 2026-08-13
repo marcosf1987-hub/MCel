@@ -12,7 +12,7 @@ import { countAllUnreadNotifications } from "@/lib/notifications";
 import { canAccessAdminPanel } from "@/lib/auth/roles";
 import { AdminPanelLink } from "@/components/admin/admin-panel-link";
 import type { AppRole } from "@/types/database";
-import { Wheat, Heart, User, ListMusic } from "lucide-react";
+import { Wheat, Heart, User, ListMusic, MapPin } from "lucide-react";
 
 type HeaderProfile = {
   display_name: string | null;
@@ -107,6 +107,12 @@ export async function Header() {
           </div>
 
           <nav className="ml-auto flex shrink-0 items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/locales" className="gap-1.5">
+                <MapPin className="h-4 w-4" />
+                Locales
+              </Link>
+            </Button>
             {user ? (
               <>
                 <NotificationBellLink unreadCount={unreadNotifications} />

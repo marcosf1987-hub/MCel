@@ -261,6 +261,48 @@ export interface ListComment {
   updated_at: string;
 }
 
+export type PlaceType = "comercio" | "restaurante";
+
+export type PlaceCeliacLevel =
+  | "opciones"
+  | "dedicado"
+  | "certificado"
+  | "desconocido";
+
+export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
+  comercio: "Comercio",
+  restaurante: "Restaurante",
+};
+
+export const PLACE_CELIAC_LABELS: Record<PlaceCeliacLevel, string> = {
+  opciones: "Opciones sin TACC",
+  dedicado: "Dedicado sin TACC",
+  certificado: "Certificado",
+  desconocido: "Sin info",
+};
+
+export interface Place {
+  id: string;
+  name: string;
+  slug: string;
+  place_type: PlaceType;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  lat: number;
+  lng: number;
+  phone: string | null;
+  website: string | null;
+  cover_image_url: string | null;
+  google_place_id: string | null;
+  celiac_level: PlaceCeliacLevel;
+  celiac_notes: string | null;
+  created_by: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ReportTargetType = "product" | "review" | "list" | "list_comment";
 
 export interface Report {
