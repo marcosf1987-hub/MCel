@@ -8,21 +8,14 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import {
+  leafletMarkerIcon,
+  MAP_TILE_ATTRIBUTION,
+  MAP_TILE_URL,
+} from "@/lib/map-leaflet";
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
-
-const markerIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
 
 function Recenter({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -62,12 +55,13 @@ export function PlacePinMap({
       <MapContainer
         center={center}
         zoom={hasPin ? 15 : 12}
-        className="h-full w-full"
+        className="h-full w-full z-0"
         scrollWheelZoom
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={MAP_TILE_ATTRIBUTION}
+          url={MAP_TILE_URL}
+          crossOrigin="anonymous"
         />
         <ClickHandler onChange={onChange} />
         {hasPin && (
@@ -75,11 +69,11 @@ export function PlacePinMap({
             <Recenter lat={lat} lng={lng} />
             <Marker
               position={[lat, lng]}
-              icon={markerIcon}
+              icon={leafletMarkerIcon}
               draggable
               eventHandlers={{
                 dragend: (e) => {
-                  const m = e.target as L.Marker;
+                  const m = e.target;
                   const p = m.getLatLng();
                   onChange({ lat: p.lat, lng: p.lng });
                 },

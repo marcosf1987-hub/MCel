@@ -1,10 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Circle,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PlaceListItem } from "@/lib/places-server";
+import {
+  MAP_TILE_ATTRIBUTION,
+  MAP_TILE_URL,
+  placeDivIcon,
+  userDivIcon,
+} from "@/lib/map-leaflet";
 import {
   PLACE_CELIAC_LABELS,
   PLACE_TYPE_LABELS,
@@ -12,24 +25,6 @@ import {
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
 const DEFAULT_ZOOM = 12;
-
-const markerIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const userIcon = L.divIcon({
-  className: "places-user-marker",
-  html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 2px #2563eb66"></span>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
 
 function FitBounds({
   places,
@@ -91,19 +86,20 @@ export function PlacesMap({
       <MapContainer
         center={center}
         zoom={DEFAULT_ZOOM}
-        className="h-full w-full"
+        className="h-full w-full z-0"
         scrollWheelZoom
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={MAP_TILE_ATTRIBUTION}
+          url={MAP_TILE_URL}
+          crossOrigin="anonymous"
         />
         <FitBounds places={places} userLocation={userLocation} />
         {userLocation && (
           <>
             <Marker
               position={[userLocation.lat, userLocation.lng]}
-              icon={userIcon}
+              icon={userDivIcon}
             >
               <Popup>Estás acá</Popup>
             </Marker>
@@ -123,7 +119,7 @@ export function PlacesMap({
           <Marker
             key={place.id}
             position={[place.lat, place.lng]}
-            icon={markerIcon}
+            icon={placeDivIcon}
           >
             <Popup>
               <div className="min-w-[140px] text-sm">
