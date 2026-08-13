@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PlaceListItem } from "@/lib/places-server";
@@ -24,10 +24,36 @@ const markerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-function FitBounds({ places }: { places: PlaceListItem[] }) {
+const userIcon = L.divIcon({
+  className: "places-user-marker",
+  html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 2px #2563eb66"></span>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
+function FitBounds({
+  places,
+  userLocation,
+}: {
+  places: PlaceListItem[];
+  userLocation: { lat: number; lng: number } | null;
+}) {
   const map = useMap();
 
   useEffect(() => {
+    if (userLocation) {
+      if (places.length === 0) {
+        map.setView([userLocation.lat, userLocation.lng], 13);
+        return;
+      }
+      const bounds = L.latLngBounds([
+        [userLocation.lat, userLocation.lng],
+        ...places.map((p) => [p.lat, p.lng] as [number, number]),
+      ]);
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+      return;
+    }
+
     if (places.length === 0) {
       map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
       return;
@@ -40,7 +66,7 @@ function FitBounds({ places }: { places: PlaceListItem[] }) {
       places.map((p) => [p.lat, p.lng] as [number, number])
     );
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
-  }, [map, places]);
+  }, [map, places, userLocation]);
 
   return null;
 }
@@ -48,12 +74,15 @@ function FitBounds({ places }: { places: PlaceListItem[] }) {
 export function PlacesMap({
   places,
   className,
+  userLocation = null,
 }: {
   places: PlaceListItem[];
   className?: string;
+  userLocation?: { lat: number; lng: number } | null;
 }) {
-  const center: [number, number] =
-    places.length === 1
+  const center: [number, number] = userLocation
+    ? [userLocation.lat, userLocation.lng]
+    : places.length === 1
       ? [places[0].lat, places[0].lng]
       : DEFAULT_CENTER;
 
@@ -69,7 +98,27 @@ export function PlacesMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds places={places} />
+        <FitBounds places={places} userLocation={userLocation} />
+        {userLocation && (
+          <>
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={userIcon}
+            >
+              <Popup>Estás acá</Popup>
+            </Marker>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={80}
+              pathOptions={{
+                color: "#2563eb",
+                fillColor: "#2563eb",
+                fillOpacity: 0.12,
+                weight: 1,
+              }}
+            />
+          </>
+        )}
         {places.map((place) => (
           <Marker
             key={place.id}

@@ -16,6 +16,18 @@ const PlacesMap = dynamic(
   }
 );
 
-export function PlacesMapClient({ places }: { places: PlaceListItem[] }) {
-  return <PlacesMap places={places} className="h-[420px] w-full overflow-hidden rounded-xl border border-[var(--color-border)]" />;
+export function PlacesMapClient({
+  places,
+  userLocation = null,
+}: {
+  places: PlaceListItem[];
+  userLocation?: { lat: number; lng: number } | null;
+}) {
+  return (
+    <PlacesMap
+      places={places}
+      userLocation={userLocation}
+      className="h-[420px] w-full overflow-hidden rounded-xl border border-[var(--color-border)]"
+    />
+  );
 }
