@@ -6,7 +6,7 @@ import {
   Home,
   Compass,
   PlusCircle,
-  MapPin,
+  Map as MapIcon,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -23,7 +23,7 @@ const items: NavItem[] = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/explorar", label: "Explorar", icon: Compass },
   { href: "/productos/nuevo", label: "Cargar", icon: PlusCircle, accent: true },
-  { href: "/locales", label: "Locales", icon: MapPin },
+  { href: "/locales", label: "Mapa", icon: MapIcon },
   { href: "/cuenta/preferencias", label: "Cuenta", icon: User },
 ];
 

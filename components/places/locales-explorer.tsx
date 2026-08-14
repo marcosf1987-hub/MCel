@@ -13,9 +13,7 @@ import {
   type PlaceType,
 } from "@/types/database";
 import {
-  List,
   Loader2,
-  Map as MapIcon,
   MapPin,
   Navigation,
   PlusCircle,
@@ -25,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 
 type UserLocation = { lat: number; lng: number };
-type MobilePane = "map" | "list";
 
 const RADIUS_OPTIONS = [
   { value: 0, label: "Sin límite" },
@@ -35,7 +32,7 @@ const RADIUS_OPTIONS = [
 ] as const;
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-[var(--color-border)] bg-white px-3 text-sm";
+  "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 text-sm md:h-10 md:px-3";
 
 export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
   const [typeFilter, setTypeFilter] = useState<"all" | PlaceType>("all");
@@ -48,7 +45,6 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobilePane, setMobilePane] = useState<MobilePane>("map");
   const listItemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const filtersActive =
@@ -70,7 +66,6 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
         setNearMe(true);
         if (radiusKm === 0) setRadiusKm(10);
         setGeoLoading(false);
-        setMobilePane("list");
       },
       (err) => {
         setGeoLoading(false);
@@ -136,15 +131,29 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
 
   const onSelectPlace = (id: string) => {
     setSelectedId(id);
-    setMobilePane("map");
   };
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <div className="sticky top-[57px] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-brand-cream)]/95 px-4 py-3 backdrop-blur-md md:static md:mx-0 md:rounded-xl md:border md:bg-white md:px-3 md:py-3 md:backdrop-blur-none">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="min-w-[140px] flex-1 space-y-1">
+    <div className="space-y-3 md:space-y-4">
+      {/* Filtros compactos */}
+      <div className="sticky top-[57px] z-30 -mx-4 border-b border-[var(--color-border)] bg-white/95 px-4 py-2.5 backdrop-blur-md md:static md:mx-0 md:rounded-xl md:border md:bg-white md:px-3 md:py-3 md:backdrop-blur-none">
+        <div className="mb-2 flex items-center justify-between gap-2 md:hidden">
+          <Link
+            href="/locales/mis-propuestas"
+            className="text-xs font-medium text-[var(--color-primary)]"
+          >
+            Mis propuestas
+          </Link>
+          <Button asChild variant="accent" size="sm" className="h-8 gap-1 px-2.5 text-xs">
+            <Link href="/locales/nuevo">
+              <PlusCircle className="h-3.5 w-3.5" />
+              Agregar Local
+            </Link>
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="min-w-0 flex-1 space-y-1">
             <label
               htmlFor="filter-type"
               className="text-xs font-medium text-[var(--color-muted-foreground)]"
@@ -168,7 +177,7 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
             </select>
           </div>
 
-          <div className="min-w-[160px] flex-1 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1">
             <label
               htmlFor="filter-celiac"
               className="text-xs font-medium text-[var(--color-muted-foreground)]"
@@ -195,7 +204,7 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
           </div>
 
           {nearMe && (
-            <div className="min-w-[120px] space-y-1">
+            <div className="min-w-[110px] space-y-1">
               <label
                 htmlFor="filter-radius"
                 className="text-xs font-medium text-[var(--color-muted-foreground)]"
@@ -217,7 +226,8 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          {/* Cerca mío en desktop (en mobile va flotante sobre el mapa) */}
+          <div className="hidden flex-wrap gap-2 md:flex">
             {!nearMe ? (
               <Button
                 type="button"
@@ -257,6 +267,18 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
               </Button>
             )}
           </div>
+
+          {filtersActive && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={clearFilters}
+            >
+              Limpiar filtros
+            </Button>
+          )}
         </div>
 
         {geoError && (
@@ -264,62 +286,54 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
             {geoError}
           </p>
         )}
-
-        {/* Toggle mobile mapa / lista */}
-        <div className="mt-3 flex gap-1 rounded-lg bg-white p-1 md:hidden border border-[var(--color-border)]">
-          <button
-            type="button"
-            onClick={() => setMobilePane("map")}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
-              mobilePane === "map"
-                ? "bg-[var(--color-accent)] text-white"
-                : "text-[var(--color-muted-foreground)]"
-            )}
-          >
-            <MapIcon className="h-4 w-4" />
-            Mapa
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobilePane("list")}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
-              mobilePane === "list"
-                ? "bg-[var(--color-accent)] text-white"
-                : "text-[var(--color-muted-foreground)]"
-            )}
-          >
-            <List className="h-4 w-4" />
-            Lista ({visible.length})
-          </button>
-        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.45fr_1fr] lg:items-start">
-        <div
-          className={cn(
-            mobilePane === "map" ? "block" : "hidden md:block"
-          )}
-        >
+        <div className="relative">
           <PlacesMapClient
             places={mapPlaces}
             userLocation={nearMe ? userLocation : null}
             selectedId={selectedId}
             onSelect={onSelectPlace}
+            className="h-[min(52vh,440px)] md:h-[min(70vh,560px)]"
           />
-          {selectedId && (
-            <p className="mt-2 hidden text-xs text-[var(--color-muted-foreground)] md:block">
-              Tocá un marcador o un ítem de la lista para enfocarlo.
-            </p>
-          )}
+
+          {/* Cerca mío flotante — mobile */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[500] flex justify-center px-3 md:hidden">
+            <div className="pointer-events-auto">
+              {!nearMe ? (
+                <Button
+                  type="button"
+                  variant="accent"
+                  size="sm"
+                  onClick={requestNearMe}
+                  disabled={geoLoading}
+                  className="gap-1.5 rounded-full px-4 shadow-lg"
+                >
+                  {geoLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Navigation className="h-4 w-4" />
+                  )}
+                  Cerca mío
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={clearNearMe}
+                  className="gap-1.5 rounded-full bg-white/95 px-4 shadow-lg backdrop-blur"
+                >
+                  <X className="h-4 w-4" />
+                  Quitar cerca
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
-        <section
-          className={cn(
-            mobilePane === "list" ? "block" : "hidden md:block"
-          )}
-        >
+        <section>
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
               {nearMe ? "Cerca tuyo" : "Locales"} · {visible.length}
@@ -333,12 +347,12 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
                 Todavía no hay locales publicados
               </p>
               <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-                Sé el primero en proponer un comercio o restaurante.
+                Sé el primero en agregar un comercio o restaurante.
               </p>
               <Button asChild variant="accent" size="sm" className="mt-4 gap-1.5">
                 <Link href="/locales/nuevo">
                   <PlusCircle className="h-4 w-4" />
-                  Proponer local
+                  Agregar Local
                 </Link>
               </Button>
             </div>
