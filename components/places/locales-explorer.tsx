@@ -8,6 +8,7 @@ import { distanceKm, formatDistanceKm } from "@/lib/places-geo";
 import type { PlaceListItem } from "@/lib/places-server";
 import {
   PLACE_CELIAC_LABELS,
+  PLACE_CELIAC_LEVELS_USER,
   PLACE_TYPE_LABELS,
   type PlaceCeliacLevel,
   type PlaceType,
@@ -137,13 +138,7 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
     <div className="space-y-3 md:space-y-4">
       {/* Filtros compactos */}
       <div className="sticky top-[57px] z-30 -mx-4 border-b border-[var(--color-border)] bg-white/95 px-4 py-2.5 backdrop-blur-md md:static md:mx-0 md:rounded-xl md:border md:bg-white md:px-3 md:py-3 md:backdrop-blur-none">
-        <div className="mb-2 flex items-center justify-between gap-2 md:hidden">
-          <Link
-            href="/locales/mis-propuestas"
-            className="text-xs font-medium text-[var(--color-primary)]"
-          >
-            Mis propuestas
-          </Link>
+        <div className="mb-2 flex justify-end md:hidden">
           <Button asChild variant="accent" size="sm" className="h-8 gap-1 px-2.5 text-xs">
             <Link href="/locales/nuevo">
               <PlusCircle className="h-3.5 w-3.5" />
@@ -193,13 +188,11 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
               }
             >
               <option value="all">Todos</option>
-              {(Object.keys(PLACE_CELIAC_LABELS) as PlaceCeliacLevel[]).map(
-                (k) => (
-                  <option key={k} value={k}>
-                    {PLACE_CELIAC_LABELS[k]}
-                  </option>
-                )
-              )}
+              {PLACE_CELIAC_LEVELS_USER.map((k) => (
+                <option key={k} value={k}>
+                  {PLACE_CELIAC_LABELS[k]}
+                </option>
+              ))}
             </select>
           </div>
 

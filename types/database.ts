@@ -285,6 +285,13 @@ export const PLACE_CELIAC_LABELS: Record<PlaceCeliacLevel, string> = {
   desconocido: "Sin info",
 };
 
+/** Niveles elegibles en UI de usuario (sin “certificado”). */
+export const PLACE_CELIAC_LEVELS_USER: PlaceCeliacLevel[] = [
+  "opciones",
+  "dedicado",
+  "desconocido",
+];
+
 export const PLACE_STATUS_LABELS: Record<PlaceStatus, string> = {
   pending: "Pendiente",
   published: "Publicado",

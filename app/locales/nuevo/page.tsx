@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProposePlaceForm } from "@/components/places/propose-place-form";
+import { ArrowLeft } from "lucide-react";
 
-export const metadata = { title: "Proponer local" };
+export const metadata = { title: "Agregar Local" };
 
 export default async function ProposePlacePage() {
   const supabase = await createClient();
@@ -16,20 +17,17 @@ export default async function ProposePlacePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 md:py-8">
+    <div className="mx-auto max-w-lg px-4 py-6 md:max-w-2xl md:py-8">
       <Link
         href="/locales"
-        className="text-sm font-medium text-[var(--color-primary)] hover:underline"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:underline"
       >
-        ← Volver al mapa
+        <ArrowLeft className="h-4 w-4" />
+        Volver al mapa
       </Link>
       <h1 className="mt-4 font-[family-name:var(--font-headline)] text-2xl font-bold text-[var(--color-brown)]">
-        Proponer un local
+        Agregar Local
       </h1>
-      <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-        Completá ubicación e info celíaca. Un moderador lo revisará antes de
-        publicarlo en el mapa.
-      </p>
       <div className="mt-6">
         <ProposePlaceForm />
       </div>

@@ -103,9 +103,11 @@ export const proposePlaceSchema = z.object({
     z.string().trim().url().max(2000).nullable().optional()
   ),
   celiac_level: z
-    .enum(["opciones", "dedicado", "certificado", "desconocido"])
+    .enum(["opciones", "dedicado", "desconocido"])
     .default("desconocido"),
   celiac_notes: z.string().trim().max(2000).optional().nullable(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  opinion: z.string().trim().max(4000).optional().nullable(),
 });
 
 export const createPlaceReviewSchema = z.object({

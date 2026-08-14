@@ -17,7 +17,6 @@ export default async function LocalesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-3 md:pb-8 md:pt-8">
-      {/* Header solo desktop — en mobile van directo filtros + mapa */}
       <div className="mb-5 hidden flex-wrap items-end justify-between gap-3 md:flex">
         <div className="min-w-0">
           <h1 className="font-[family-name:var(--font-headline)] text-3xl font-bold text-[var(--color-brown)]">
@@ -26,12 +25,6 @@ export default async function LocalesPage() {
           <p className="mt-1 max-w-xl text-sm text-[var(--color-muted-foreground)]">
             Comercios y restaurantes con opciones para celíacos cerca tuyo.
           </p>
-          <Link
-            href="/locales/mis-propuestas"
-            className="mt-2 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
-          >
-            Mis propuestas →
-          </Link>
         </div>
         <Button asChild variant="accent" size="sm">
           <Link href="/locales/nuevo" className="gap-1.5">

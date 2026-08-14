@@ -81,6 +81,18 @@ export async function POST(request: NextRequest) {
       return json({ ok: false, error: error.message }, 500);
     }
 
+    if (d.rating != null && data?.id) {
+      const { error: reviewErr } = await supabase.from("place_reviews").insert({
+        place_id: data.id,
+        user_id: user.id,
+        rating: d.rating,
+        opinion: emptyToNull(d.opinion) ?? "",
+      });
+      if (reviewErr) {
+        console.error("propose place review:", reviewErr);
+      }
+    }
+
     return json({ ok: true, place: data });
   } catch (e) {
     console.error("propose place:", e);
