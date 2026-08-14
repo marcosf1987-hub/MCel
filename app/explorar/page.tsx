@@ -23,25 +23,25 @@ export default async function ExplorePage() {
         Tocá una categoría para ver subcategorías o descubrí listas curadas por la comunidad.
       </p>
 
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="h-5 w-5 text-[var(--color-accent)]" />
+      <Link
+        href="/locales"
+        className="mb-6 flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm transition-colors hover:border-[var(--color-accent)]"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+          <MapPin className="h-5 w-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-base font-semibold text-[var(--color-brown)]">
             Locales y mapa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-sm text-[var(--color-muted-foreground)]">
-            Comercios y restaurantes con opciones sin TACC.
-          </p>
-          <Link
-            href="/locales"
-            className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-          >
-            Abrir mapa de locales →
-          </Link>
-        </CardContent>
-      </Card>
+          </span>
+          <span className="mt-0.5 block text-sm text-[var(--color-muted-foreground)]">
+            Comercios y restaurantes con opciones sin TACC cerca tuyo.
+          </span>
+          <span className="mt-2 inline-block text-sm font-medium text-[var(--color-accent)]">
+            Abrir mapa →
+          </span>
+        </span>
+      </Link>
 
       {topLists.length > 0 && (
         <Card className="mb-6">

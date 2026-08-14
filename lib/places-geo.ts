@@ -20,3 +20,14 @@ export function formatDistanceKm(km: number): string {
   if (km < 10) return `${km.toFixed(1)} km`;
   return `${Math.round(km)} km`;
 }
+
+export function googleMapsUrl(lat: number, lng: number, name?: string): string {
+  const q = name
+    ? encodeURIComponent(`${name}@${lat},${lng}`)
+    : `${lat},${lng}`;
+  return `https://www.google.com/maps/search/?api=1&query=${q}`;
+}
+
+export function osmDirectionsUrl(lat: number, lng: number): string {
+  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=;${lat}%2C${lng}#map=16/${lat}/${lng}`;
+}

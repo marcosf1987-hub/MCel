@@ -16,6 +16,7 @@ import {
   MAP_TILE_ATTRIBUTION,
   MAP_TILE_URL,
   placeDivIcon,
+  placeDivIconSelected,
   userDivIcon,
 } from "@/lib/map-leaflet";
 import {
@@ -29,13 +30,31 @@ const DEFAULT_ZOOM = 12;
 function FitBounds({
   places,
   userLocation,
+  selectedId,
 }: {
   places: PlaceListItem[];
   userLocation: { lat: number; lng: number } | null;
+  selectedId: string | null;
 }) {
   const map = useMap();
 
   useEffect(() => {
+    // Invalidar tamaño tras layouts responsive / tabs
+    const t = window.setTimeout(() => map.invalidateSize(), 80);
+    return () => window.clearTimeout(t);
+  }, [map, places.length, selectedId]);
+
+  useEffect(() => {
+    if (selectedId) {
+      const selected = places.find((p) => p.id === selectedId);
+      if (selected) {
+        map.flyTo([selected.lat, selected.lng], Math.max(map.getZoom(), 15), {
+          duration: 0.45,
+        });
+        return;
+      }
+    }
+
     if (userLocation) {
       if (places.length === 0) {
         map.setView([userLocation.lat, userLocation.lng], 13);
@@ -61,7 +80,7 @@ function FitBounds({
       places.map((p) => [p.lat, p.lng] as [number, number])
     );
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
-  }, [map, places, userLocation]);
+  }, [map, places, userLocation, selectedId]);
 
   return null;
 }
@@ -70,10 +89,14 @@ export function PlacesMap({
   places,
   className,
   userLocation = null,
+  selectedId = null,
+  onSelect,
 }: {
   places: PlaceListItem[];
   className?: string;
   userLocation?: { lat: number; lng: number } | null;
+  selectedId?: string | null;
+  onSelect?: (placeId: string) => void;
 }) {
   const center: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
@@ -94,7 +117,11 @@ export function PlacesMap({
           url={MAP_TILE_URL}
           crossOrigin="anonymous"
         />
-        <FitBounds places={places} userLocation={userLocation} />
+        <FitBounds
+          places={places}
+          userLocation={userLocation}
+          selectedId={selectedId}
+        />
         {userLocation && (
           <>
             <Marker
@@ -119,16 +146,22 @@ export function PlacesMap({
           <Marker
             key={place.id}
             position={[place.lat, place.lng]}
-            icon={placeDivIcon}
+            icon={
+              selectedId === place.id ? placeDivIconSelected : placeDivIcon
+            }
+            eventHandlers={{
+              click: () => onSelect?.(place.id),
+            }}
           >
             <Popup>
-              <div className="min-w-[140px] text-sm">
-                <p className="font-semibold">{place.name}</p>
+              <div className="min-w-[150px] text-sm">
+                <p className="font-semibold text-[var(--color-brown)]">
+                  {place.name}
+                </p>
                 <p className="text-xs text-neutral-600">
                   {PLACE_TYPE_LABELS[place.place_type]} ·{" "}
                   {PLACE_CELIAC_LABELS[place.celiac_level]}
-                  {"review_count" in place &&
-                    place.review_count > 0 &&
+                  {place.review_count > 0 &&
                     place.weighted_rating != null &&
                     ` · ${place.weighted_rating.toFixed(1)}★`}
                 </p>
@@ -137,7 +170,7 @@ export function PlacesMap({
                 )}
                 <a
                   href={`/locales/${place.slug}`}
-                  className="mt-1 inline-block text-xs font-medium text-emerald-700 underline"
+                  className="mt-1.5 inline-block text-xs font-medium text-[#ed6c52] underline"
                 >
                   Ver ficha
                 </a>

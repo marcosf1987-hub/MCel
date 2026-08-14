@@ -3,7 +3,7 @@ import { fetchPublicPlaces } from "@/lib/places-server";
 import { LocalesExplorer } from "@/components/places/locales-explorer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PlusCircle, Store } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 
 export const metadata = {
   title: "Locales",
@@ -16,36 +16,29 @@ export default async function LocalesPage() {
   const places = await fetchPublicPlaces(supabase);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Store className="mt-0.5 h-7 w-7 shrink-0 text-[var(--color-accent)]" />
-          <div>
-            <h1 className="font-[family-name:var(--font-headline)] text-2xl font-bold text-[var(--color-brown)]">
-              Locales
-            </h1>
-            <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-              Comercios y restaurantes con opciones para celíacos. Filtrá, usá
-              “Cerca mío” o tocá un marcador para ver la ficha.
-            </p>
-          </div>
+    <div className="mx-auto max-w-6xl px-4 pb-24 pt-5 md:pb-8 md:pt-8">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-[family-name:var(--font-headline)] text-2xl font-bold text-[var(--color-brown)] md:text-3xl">
+            Locales
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-[var(--color-muted-foreground)]">
+            Comercios y restaurantes con opciones para celíacos cerca tuyo.
+          </p>
+          <Link
+            href="/locales/mis-propuestas"
+            className="mt-2 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+          >
+            Mis propuestas →
+          </Link>
         </div>
         <Button asChild variant="accent" size="sm">
           <Link href="/locales/nuevo" className="gap-1.5">
             <PlusCircle className="h-4 w-4" />
-            Proponer local
+            Proponer
           </Link>
         </Button>
       </div>
-
-      <p className="mb-4 text-sm">
-        <Link
-          href="/locales/mis-propuestas"
-          className="font-medium text-[var(--color-primary)] hover:underline"
-        >
-          Ver mis propuestas →
-        </Link>
-      </p>
 
       <LocalesExplorer places={places} />
     </div>

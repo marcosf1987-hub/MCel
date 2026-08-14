@@ -8,7 +8,7 @@ export const MAP_TILE_URL =
 export const MAP_TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-/** Marcador clásico desde /public (no CSP externo). */
+/** Marcador clásico desde /public (admin pin). */
 export const leafletMarkerIcon = L.icon({
   iconUrl: "/leaflet/marker-icon.png",
   iconRetinaUrl: "/leaflet/marker-icon-2x.png",
@@ -19,21 +19,36 @@ export const leafletMarkerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-/** Pin de marca CeliApp (divIcon, sin imagen remota). */
-export const placeDivIcon = L.divIcon({
-  className: "celiapp-place-marker",
-  html: `<span style="
+function pinHtml(selected: boolean): string {
+  const size = selected ? 28 : 22;
+  const ring = selected
+    ? "box-shadow:0 0 0 3px rgba(237,108,82,.45),0 2px 6px rgba(0,0,0,.35);"
+    : "box-shadow:0 1px 4px rgba(0,0,0,.35);";
+  return `<span style="
     display:block;
-    width:22px;height:22px;
+    width:${size}px;height:${size}px;
     border-radius:50% 50% 50% 0;
     transform:rotate(-45deg);
-    background:var(--color-accent,#c45c26);
+    background:#ed6c52;
     border:2px solid #fff;
-    box-shadow:0 1px 4px rgba(0,0,0,.35);
-  "></span>`,
+    ${ring}
+  "></span>`;
+}
+
+export const placeDivIcon = L.divIcon({
+  className: "celiapp-place-marker",
+  html: pinHtml(false),
   iconSize: [22, 22],
   iconAnchor: [11, 22],
   popupAnchor: [0, -18],
+});
+
+export const placeDivIconSelected = L.divIcon({
+  className: "celiapp-place-marker-selected",
+  html: pinHtml(true),
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -22],
 });
 
 export const userDivIcon = L.divIcon({

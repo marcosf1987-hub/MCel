@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, PlusCircle, Heart, User, type LucideIcon } from "lucide-react";
+import {
+  Home,
+  Compass,
+  PlusCircle,
+  MapPin,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -16,7 +23,7 @@ const items: NavItem[] = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/explorar", label: "Explorar", icon: Compass },
   { href: "/productos/nuevo", label: "Cargar", icon: PlusCircle, accent: true },
-  { href: "/cuenta/listas/mis-favoritos", label: "Favoritos", icon: Heart },
+  { href: "/locales", label: "Locales", icon: MapPin },
   { href: "/cuenta/preferencias", label: "Cuenta", icon: User },
 ];
 
