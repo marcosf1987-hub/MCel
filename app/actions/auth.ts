@@ -54,26 +54,3 @@ export async function signInWithEmail(
 
   redirect(safeReturnUrl(returnUrl));
 }
-
-export async function getGoogleSignInUrl(
-  returnUrl: string
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  const env = getSupabasePublicEnv();
-  if (!env.ok) return { ok: false, error: env.error };
-
-  const supabase = await createClient();
-  const siteUrl = getSiteUrl();
-  const safeReturn = safeReturnUrl(returnUrl);
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`,
-    },
-  });
-
-  if (error) return { ok: false, error: error.message };
-  if (!data.url) return { ok: false, error: "No se pudo iniciar sesión con Google." };
-
-  return { ok: true, url: data.url };
-}
