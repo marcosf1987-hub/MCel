@@ -18,6 +18,11 @@ export function AuthedHome({ data }: { data: HomePageData }) {
         <LatestReviewsSection reviews={data.latestReviews} />
         <TopListsSection lists={data.topLists} />
         <TopRatedSection products={data.topRated} />
+        <TopRatedSection
+          products={data.mostReviewed}
+          title="Más evaluados"
+          description="Los productos con más evaluaciones de la comunidad."
+        />
         <ScanCtaBanner variant="authed" />
       </div>
     </>

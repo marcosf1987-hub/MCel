@@ -50,19 +50,27 @@ export type HomePageData = {
   avatarProfiles: HomeAvatarProfile[];
   latestReviews: HomeLatestReview[];
   topRated: HomeTopRatedProduct[];
+  mostReviewed: HomeTopRatedProduct[];
   featuredProduct: HomeFeaturedProduct | null;
   topLists: Awaited<ReturnType<typeof getTopPublicLists>>;
 };
 
 export async function getHomePageData(supabase: SupabaseClient): Promise<HomePageData> {
-  const [collaboratorCount, avatarProfiles, latestReviews, topRated, topLists] =
-    await Promise.all([
-      getCollaboratorCount(supabase),
-      getAvatarStripProfiles(supabase),
-      getLatestReviews(supabase, 3),
-      getTopRatedWithFeaturedReview(supabase, 3),
-      getTopPublicLists(supabase, 3),
-    ]);
+  const [
+    collaboratorCount,
+    avatarProfiles,
+    latestReviews,
+    topRated,
+    mostReviewed,
+    topLists,
+  ] = await Promise.all([
+    getCollaboratorCount(supabase),
+    getAvatarStripProfiles(supabase),
+    getLatestReviews(supabase, 3),
+    getTopRatedWithFeaturedReview(supabase, 10),
+    getMostReviewedWithFeaturedReview(supabase, 10),
+    getTopPublicLists(supabase, 3),
+  ]);
 
   const featuredProduct = await buildFeaturedProduct(supabase, topRated[0] ?? null);
 
@@ -71,6 +79,7 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     avatarProfiles,
     latestReviews,
     topRated,
+    mostReviewed,
     featuredProduct,
     topLists,
   };
@@ -158,7 +167,22 @@ export async function getTopRatedWithFeaturedReview(
   supabase: SupabaseClient,
   limit = 3
 ): Promise<HomeTopRatedProduct[]> {
-  const { data: products, error } = await supabase
+  return getProductsWithFeaturedReview(supabase, limit, "weighted_rating");
+}
+
+export async function getMostReviewedWithFeaturedReview(
+  supabase: SupabaseClient,
+  limit = 10
+): Promise<HomeTopRatedProduct[]> {
+  return getProductsWithFeaturedReview(supabase, limit, "review_count");
+}
+
+async function getProductsWithFeaturedReview(
+  supabase: SupabaseClient,
+  limit: number,
+  orderBy: "weighted_rating" | "review_count"
+): Promise<HomeTopRatedProduct[]> {
+  let query = supabase
     .from("products")
     .select(
       `
@@ -168,9 +192,17 @@ export async function getTopRatedWithFeaturedReview(
     `
     )
     .is("deleted_at", null)
-    .gt("review_count", 0)
-    .order("weighted_rating", { ascending: false, nullsFirst: false })
-    .limit(limit);
+    .gt("review_count", 0);
+
+  if (orderBy === "review_count") {
+    query = query
+      .order("review_count", { ascending: false })
+      .order("weighted_rating", { ascending: false, nullsFirst: false });
+  } else {
+    query = query.order("weighted_rating", { ascending: false, nullsFirst: false });
+  }
+
+  const { data: products, error } = await query.limit(limit);
 
   if (error) throw error;
   if (!products?.length) return [];

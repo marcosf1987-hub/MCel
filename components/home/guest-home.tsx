@@ -36,6 +36,11 @@ export function GuestHome({ data }: { data: HomePageData }) {
         </section>
 
         <TopRatedSection products={data.topRated} />
+        <TopRatedSection
+          products={data.mostReviewed}
+          title="Más evaluados"
+          description="Los productos con más evaluaciones de la comunidad."
+        />
         <ScanCtaBanner variant="guest" />
       </div>
     </>

@@ -15,6 +15,7 @@ export function MobileAuthedHome({ data }: { data: HomePageData }) {
         <MobileReviewsCarousel reviews={data.latestReviews} />
         <HomeRankedListRows lists={data.topLists} title="Listas destacadas" />
         <MobileTopRatedCarousel products={data.topRated} title="Mejor puntuados" />
+        <MobileTopRatedCarousel products={data.mostReviewed} title="Más evaluados" />
         <ScanCtaBanner variant="authed" />
       </div>
     </div>

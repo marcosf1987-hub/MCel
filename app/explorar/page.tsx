@@ -11,7 +11,7 @@ export const metadata = { title: "Explorar" };
 export default async function ExplorePage() {
   const data = await getCategoriesNavData();
   const supabase = await createClient();
-  const topLists = await getTopPublicLists(supabase, 5);
+  const topLists = await getTopPublicLists(supabase, 3);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6 md:max-w-2xl md:py-8">
@@ -19,9 +19,6 @@ export default async function ExplorePage() {
         <Compass className="h-7 w-7 text-[var(--color-accent)]" />
         <h1 className="text-2xl font-bold text-[var(--color-brown)]">Explorar</h1>
       </div>
-      <p className="mb-6 text-sm text-[var(--color-muted-foreground)]">
-        Tocá una categoría para ver subcategorías o descubrí listas curadas por la comunidad.
-      </p>
 
       <Link
         href="/locales"

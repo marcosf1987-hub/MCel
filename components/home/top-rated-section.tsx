@@ -11,12 +11,20 @@ function excerpt(text: string | null, max = 120): string {
   return `${t.slice(0, max).trim()}…`;
 }
 
-export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] }) {
+export function TopRatedSection({
+  products,
+  title = "Mejor puntuados",
+  description = "Descubrí lo que la comunidad valora. Las puntuaciones ponderan la reputación de cada colaborador.",
+}: {
+  products: HomeTopRatedProduct[];
+  title?: string;
+  description?: string | null;
+}) {
   if (!products.length) {
     return (
       <section className="mb-10 md:mb-14">
         <h2 className="mb-4 font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
-          Mejor puntuados
+          {title}
         </h2>
         <p className="text-[var(--color-muted-foreground)]">
           Aún no hay productos evaluados. ¡Sé el primero en cargar uno!
@@ -29,12 +37,11 @@ export function TopRatedSection({ products }: { products: HomeTopRatedProduct[] 
     <section className="mb-10 md:mb-14">
       <div className="mb-2">
         <h2 className="font-[family-name:var(--font-headline)] text-xl font-bold italic text-[var(--color-brown)] md:text-2xl">
-          Mejor puntuados
+          {title}
         </h2>
-        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Descubrí lo que la comunidad valora. Las puntuaciones ponderan la reputación de
-          cada colaborador.
-        </p>
+        {description && (
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{description}</p>
+        )}
       </div>
       <div className="mt-6 flex flex-wrap justify-center gap-6">
         {products.map((product) => (

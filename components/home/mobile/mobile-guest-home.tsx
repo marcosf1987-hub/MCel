@@ -14,8 +14,9 @@ export function MobileGuestHome({ data }: { data: HomePageData }) {
       />
       <div className="px-4 pb-6">
         <MobileTopRatedCarousel products={data.topRated} title="Mejor puntuados" />
+        <MobileTopRatedCarousel products={data.mostReviewed} title="Más evaluados" />
         <HomeRankedProductRows
-          products={data.topRated}
+          products={data.topRated.slice(0, 3)}
           title="Mejores puntuados de la semana"
         />
         <ScanCtaBanner variant="guest" />
