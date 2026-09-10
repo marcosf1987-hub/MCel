@@ -19,6 +19,17 @@ function isMapTileRequest(url: URL): boolean {
   );
 }
 
+function isAnalyticsRequest(url: URL): boolean {
+  const h = url.hostname;
+  return (
+    h === "www.googletagmanager.com" ||
+    h === "www.google-analytics.com" ||
+    h.endsWith(".google-analytics.com") ||
+    h === "analytics.google.com" ||
+    h.endsWith(".analytics.google.com")
+  );
+}
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
@@ -26,7 +37,7 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     {
-      matcher: ({ url }) => isMapTileRequest(url),
+      matcher: ({ url }) => isMapTileRequest(url) || isAnalyticsRequest(url),
       handler: new NetworkOnly(),
     },
     ...defaultCache,

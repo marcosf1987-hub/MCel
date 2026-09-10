@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -73,6 +74,7 @@ export default async function RootLayout({
       className={`${libreCaslon.variable} ${dmSans.variable}`}
     >
       <body className="flex min-h-screen flex-col antialiased font-[family-name:var(--font-body)]">
+        <GoogleAnalytics />
         {isAdmin ? (
           children
         ) : (
