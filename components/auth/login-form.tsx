@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { signUpWithEmail, signInWithEmail } from "@/app/actions/auth";
-import { createClient } from "@/lib/supabase/client";
-import { safeReturnUrl } from "@/lib/safe-return-url";
+import {
+  signUpWithEmail,
+  signInWithEmail,
+  getGoogleSignInUrl,
+} from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,31 +52,13 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
     setMessage(null);
 
     try {
-      const supabase = createClient();
-      const safeReturn = safeReturnUrl(returnUrl);
-      // Mismo origen que la pestaña actual (www vs apex) → la cookie PKCE coincide en el callback
-      const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`;
-
-      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (oauthError) {
-        setError(oauthError.message);
+      const result = await getGoogleSignInUrl(returnUrl);
+      if (!result.ok) {
+        setError(result.error);
         setLoading(false);
         return;
       }
-      if (!data.url) {
-        setError("No se pudo iniciar sesión con Google.");
-        setLoading(false);
-        return;
-      }
-
-      window.location.assign(data.url);
+      window.location.href = result.url;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error de conexión";
       setError(msg);
@@ -99,9 +83,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-[var(--color-muted-foreground)]">
-            o
-          </span>
+          <span className="bg-white px-2 text-[var(--color-muted-foreground)]">o</span>
         </div>
       </div>
 
@@ -151,9 +133,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           setMessage(null);
         }}
       >
-        {isSignUp
-          ? "¿Ya tenés cuenta? Iniciá sesión"
-          : "¿No tenés cuenta? Registrate"}
+        {isSignUp ? "¿Ya tenés cuenta? Iniciá sesión" : "¿No tenés cuenta? Registrate"}
       </button>
     </div>
   );
