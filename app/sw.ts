@@ -30,10 +30,6 @@ function isAnalyticsRequest(url: URL): boolean {
   );
 }
 
-function isSupabaseRequest(url: URL): boolean {
-  return url.hostname.endsWith(".supabase.co");
-}
-
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
@@ -41,10 +37,7 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     {
-      matcher: ({ url }) =>
-        isMapTileRequest(url) ||
-        isAnalyticsRequest(url) ||
-        isSupabaseRequest(url),
+      matcher: ({ url }) => isMapTileRequest(url) || isAnalyticsRequest(url),
       handler: new NetworkOnly(),
     },
     ...defaultCache,

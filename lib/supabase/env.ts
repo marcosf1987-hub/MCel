@@ -29,13 +29,3 @@ export function getSiteUrl() {
   }
   return "http://localhost:3000";
 }
-
-/** Origen del request actual (www/apex/localhost). Evita mismatch PKCE post-redirect. */
-export function originFromHeaders(h: Headers): string {
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = (h.get("x-forwarded-proto") ?? "https").split(",")[0].trim();
-  if (host) {
-    return `${proto}://${host.split(",")[0].trim()}`;
-  }
-  return getSiteUrl();
-}

@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  signUpWithEmail,
-  signInWithEmail,
-  getGoogleSignInUrl,
-} from "@/app/actions/auth";
+import { signUpWithEmail, signInWithEmail } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
+import { safeReturnUrl } from "@/lib/safe-return-url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,14 +50,31 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
     setMessage(null);
 
     try {
-      const result = await getGoogleSignInUrl(returnUrl);
-      if (!result.ok) {
-        setError(result.error);
+      const supabase = createClient();
+      const safeReturn = safeReturnUrl(returnUrl);
+      // Mismo origen que la pestaña actual (www vs apex) → la cookie PKCE coincide en el callback
+      const redirectTo = `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`;
+
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
         setLoading(false);
         return;
       }
-      // Navegación full-page; no hace falta re-habilitar el botón
-      window.location.assign(result.url);
+      if (!data.url) {
+        setError("No se pudo iniciar sesión con Google.");
+        setLoading(false);
+        return;
+      }
+
+      window.location.assign(data.url);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error de conexión";
       setError(msg);
@@ -76,7 +91,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
         onClick={handleGoogle}
         disabled={loading}
       >
-        {loading ? "Redirigiendo…" : "Continuar con Google"}
+        Continuar con Google
       </Button>
 
       <div className="relative">
