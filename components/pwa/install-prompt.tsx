@@ -9,21 +9,35 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const SHOW_DELAY_MS = 5000;
+
+function isPreviewMode(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("pwaPreview") === "1";
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [delayDone, setDelayDone] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const previewMode = isPreviewMode();
+    setPreview(previewMode);
 
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
 
-    const dismissedBefore = localStorage.getItem("pwa-install-dismissed");
-    if (dismissedBefore) setDismissed(true);
+    if (!previewMode) {
+      const dismissedBefore = localStorage.getItem("pwa-install-dismissed");
+      if (dismissedBefore) setDismissed(true);
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -31,51 +45,94 @@ export function InstallPrompt() {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+
+    const timer = window.setTimeout(() => setDelayDone(true), SHOW_DELAY_MS);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.clearTimeout(timer);
+    };
   }, []);
 
-  if (isStandalone || dismissed || !deferred) return null;
+  const canShow = preview || Boolean(deferred);
+  const visible =
+    delayDone && canShow && !dismissed && (preview || !isStandalone);
+
+  useEffect(() => {
+    if (!visible) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [visible]);
+
+  if (!visible) return null;
 
   const handleInstall = async () => {
+    if (!deferred) return;
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
     if (outcome === "accepted") {
       setDeferred(null);
+      setDismissed(true);
     }
   };
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem("pwa-install-dismissed", "1");
+    if (!preview) {
+      localStorage.setItem("pwa-install-dismissed", "1");
+    }
     setDeferred(null);
   };
 
   return (
     <div
-      role="region"
+      role="dialog"
+      aria-modal="true"
       aria-label="Instalar aplicación"
-      className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-[var(--color-brand-light)] bg-white p-4 shadow-lg md:bottom-4 sm:left-auto sm:right-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
     >
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <p className="font-semibold text-[var(--color-brown)]">Instalá CeliApp</p>
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            Accedé más rápido desde tu pantalla de inicio, como una app.
-          </p>
-        </div>
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        aria-label="Cerrar"
+        onClick={handleDismiss}
+      />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--color-brand-light)] bg-white p-6 shadow-xl">
         <button
           type="button"
           onClick={handleDismiss}
-          className="shrink-0 text-[var(--color-muted-foreground)]"
+          className="absolute right-3 top-3 text-[var(--color-muted-foreground)] hover:text-[var(--color-brown)]"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5" />
         </button>
+        <div className="pr-6">
+          <p className="font-[family-name:var(--font-headline)] text-xl font-bold text-[var(--color-brown)]">
+            Instalá CeliApp
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+            Accedé más rápido desde tu pantalla de inicio, como una app.
+          </p>
+          {preview && !deferred && (
+            <p className="mt-2 text-xs text-[var(--color-accent)]">
+              Preview local — el botón de instalar solo funciona si el navegador
+              ofrece instalación PWA.
+            </p>
+          )}
+        </div>
+        <Button
+          className="mt-5 w-full gap-2"
+          variant="accent"
+          onClick={handleInstall}
+          disabled={!deferred}
+        >
+          <Download className="h-4 w-4" />
+          Agregar a inicio
+        </Button>
       </div>
-      <Button className="mt-3 w-full gap-2" variant="accent" onClick={handleInstall}>
-        <Download className="h-4 w-4" />
-        Agregar a inicio
-      </Button>
     </div>
   );
 }
