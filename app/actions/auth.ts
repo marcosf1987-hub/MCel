@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
-import { safeReturnUrl } from "@/lib/safe-return-url";
+import { appendGaQuery, safeReturnUrl } from "@/lib/safe-return-url";
 
 export async function signUpWithEmail(
   email: string,
@@ -52,7 +52,7 @@ export async function signInWithEmail(
     await ensureProfile(data.user.id, data.user.email, data.user.user_metadata);
   }
 
-  redirect(safeReturnUrl(returnUrl));
+  redirect(appendGaQuery(safeReturnUrl(returnUrl), "login", "email"));
 }
 
 export async function getGoogleSignInUrl(

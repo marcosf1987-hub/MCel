@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 type UserLocation = { lat: number; lng: number };
 
@@ -67,6 +68,7 @@ export function LocalesExplorer({ places }: { places: PlaceListItem[] }) {
         setNearMe(true);
         if (radiusKm === 0) setRadiusKm(10);
         setGeoLoading(false);
+        trackEvent("nearme_shop");
       },
       (err) => {
         setGeoLoading(false);

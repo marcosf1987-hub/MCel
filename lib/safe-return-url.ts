@@ -25,3 +25,16 @@ export function safeReturnUrl(
     return fallback;
   }
 }
+
+/** Agrega query de analytics post-auth (?ga=login&ga_method=email). */
+export function appendGaQuery(
+  path: string,
+  event: "login" | "sign_up",
+  method?: string
+): string {
+  const sep = path.includes("?") ? "&" : "?";
+  const methodPart = method
+    ? `&ga_method=${encodeURIComponent(method)}`
+    : "";
+  return `${path}${sep}ga=${event}${methodPart}`;
+}

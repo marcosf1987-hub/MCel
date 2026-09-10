@@ -6,6 +6,7 @@ import {
   signInWithEmail,
   getGoogleSignInUrl,
 } from "@/app/actions/auth";
+import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,10 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
       if (isSignUp) {
         const result = await signUpWithEmail(email, password, returnUrl);
         if (!result.ok) setError(result.error);
-        else setMessage(result.message);
+        else {
+          trackEvent("sign_up", { method: "email" });
+          setMessage(result.message);
+        }
       } else {
         const result = await signInWithEmail(email, password, returnUrl);
         if (result?.ok === false) setError(result.error);
@@ -57,6 +61,11 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
         setError(result.error);
         setLoading(false);
         return;
+      }
+      try {
+        sessionStorage.setItem("ga_auth_method", "google");
+      } catch {
+        /* private mode */
       }
       window.location.href = result.url;
     } catch (err) {

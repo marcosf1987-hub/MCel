@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
-import { safeReturnUrl } from "@/lib/safe-return-url";
+import { appendGaQuery, safeReturnUrl } from "@/lib/safe-return-url";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,5 +39,7 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.redirect(`${siteUrl}${safeReturn}`);
+  return NextResponse.redirect(
+    `${siteUrl}${appendGaQuery(safeReturn, "login")}`
+  );
 }

@@ -24,6 +24,7 @@ import {
   mapOffToTaxonomy,
 } from "@/lib/off/map-to-taxonomy";
 import type { OffProductData } from "@/lib/off/parse";
+import { trackEvent } from "@/lib/analytics";
 
 const LOAD_STEPS = 3;
 
@@ -38,6 +39,10 @@ export function NewProductForm() {
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [statusType, setStatusType] = useState<StatusType>("idle");
+
+  useEffect(() => {
+    trackEvent("scan", { method: "wizard" });
+  }, []);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [barcode, setBarcode] = useState("");
   const [brand, setBrand] = useState("");
@@ -238,6 +243,7 @@ export function NewProductForm() {
         return;
       }
 
+      trackEvent("new_prod", { product_id: productId, slug });
       const hasOffImage = Boolean(offImageUrl);
       setCreatedProduct({ slug, productId, hasOffImage });
 

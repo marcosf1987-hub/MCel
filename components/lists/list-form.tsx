@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LIST_VISIBILITY_LABELS } from "@/lib/lists";
 import type { ListVisibility } from "@/types/database";
+import { trackEvent } from "@/lib/analytics";
 
 export function ListForm({
   mode,
@@ -53,6 +54,7 @@ export function ListForm({
       if (!res.ok || !data.ok) throw new Error(data.error ?? "Error al guardar");
 
       if (mode === "create" && data.list?.slug) {
+        trackEvent("new_list", { list_slug: data.list.slug });
         router.push(`/cuenta/listas/${data.list.slug}/editar`);
         router.refresh();
         return;

@@ -2,6 +2,7 @@
 
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 
 function whatsAppShareUrl(text: string) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -17,9 +18,10 @@ export function ShareWhatsAppButton({
   rating?: number | null;
 }) {
   const handleShare = () => {
+    trackEvent("share_prod", { method: "whatsapp" });
     const ratingLine =
       rating != null && rating > 0 ? `⭐ ${Number(rating).toFixed(1)}/5 · ` : "";
-    const text = `${ratingLine}${productName}\nMirá la ficha en MCel: ${productUrl}`;
+    const text = `${ratingLine}${productName}\nMirá la ficha en CeliApp: ${productUrl}`;
     window.open(whatsAppShareUrl(text), "_blank", "noopener,noreferrer");
   };
 

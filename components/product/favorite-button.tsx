@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 export function FavoriteButton({
   productId,
@@ -55,6 +56,9 @@ export function FavoriteButton({
       }
 
       setFavorited(Boolean(data.favorited));
+      if (data.favorited) {
+        trackEvent("fav_prod", { product_id: productId });
+      }
       router.refresh();
     } catch (err) {
       console.error("Favorite toggle:", err);

@@ -20,6 +20,7 @@ import { ShareListButton } from "@/components/lists/share-list-button";
 import { ReportButton } from "@/components/product/report-button";
 import type { ListVisibility } from "@/types/database";
 import type { ProductListParams } from "@/lib/product-list-filters";
+import { TrackOnce } from "@/components/analytics/track-once";
 
 export async function generateMetadata({
   params,
@@ -74,6 +75,10 @@ export default async function PublicListPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <TrackOnce
+        event="view_list"
+        params={{ list_slug: listSlug, username }}
+      />
       <p className="text-sm text-[var(--color-muted-foreground)]">
         <Link href={`/perfil/${username}`} className="hover:underline">
           {profile.display_name ?? profile.username}

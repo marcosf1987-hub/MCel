@@ -27,6 +27,7 @@ import {
   type TasteRating,
 } from "@/types/database";
 import { uploadProductImageFromBrowser } from "@/lib/upload-client";
+import { trackEvent } from "@/lib/analytics";
 import { Send, Trash2, X } from "lucide-react";
 
 type ReviewInitialValues = {
@@ -265,6 +266,9 @@ export function ReviewForm({
           ? "¡Cambios guardados! Abriendo la ficha…"
           : "¡Evaluación publicada correctamente! Abriendo la ficha…"
       );
+      if (!isEdit) {
+        trackEvent("rate_prod", { slug: data.slug ?? productSlug });
+      }
       setTimeout(() => {
         router.push(`/productos/${data.slug ?? productSlug}`);
         router.refresh();

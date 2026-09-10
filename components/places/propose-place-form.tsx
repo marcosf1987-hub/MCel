@@ -23,6 +23,7 @@ import {
   type PlaceType,
 } from "@/types/database";
 import { CheckCircle2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const TOTAL_STEPS = 3;
 
@@ -118,6 +119,10 @@ export function ProposePlaceForm() {
         }
         setError(data.error ?? "No se pudo enviar la propuesta.");
         return;
+      }
+      trackEvent("new_shop", { place_type: placeType });
+      if (rating >= 1) {
+        trackEvent("rate_shop", { source: "propose", rating });
       }
       setDone(true);
     } catch {

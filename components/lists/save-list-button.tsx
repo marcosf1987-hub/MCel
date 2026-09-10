@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 export function SaveListButton({
   listId,
@@ -46,6 +47,9 @@ export function SaveListButton({
       if (!res.ok || !data.ok) throw new Error(data.error ?? "Error al guardar");
       setSaved(Boolean(data.saved));
       setCount(data.saveCount ?? count);
+      if (data.saved) {
+        trackEvent("fav_list", { list_id: listId });
+      }
     } catch (e) {
       window.alert(e instanceof Error ? e.message : "No se pudo guardar");
     } finally {

@@ -26,6 +26,7 @@ import {
   Phone,
   Star,
 } from "lucide-react";
+import { TrackOnce } from "@/components/analytics/track-once";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -67,6 +68,7 @@ export default async function LocalDetailPage({ params }: PageProps) {
 
   return (
     <div className="pb-10">
+      <TrackOnce event="view_shop" params={{ slug: place.slug }} />
       {place.cover_image_url ? (
         <div className="relative h-48 w-full md:h-64">
           {/* eslint-disable-next-line @next/next/no-img-element */}

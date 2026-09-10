@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { getBrand, getRelation } from "@/lib/utils";
 import { visibleProductImages } from "@/lib/product-images-display";
 import { getCatalogVisibilityBadge } from "@/lib/product-visibility";
+import { TrackOnce } from "@/components/analytics/track-once";
 
 export async function generateMetadata({
   params,
@@ -118,6 +119,7 @@ export default async function ProductDetailPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <TrackOnce event="view_prod" params={{ slug }} />
       {(() => {
         const visibility = getCatalogVisibilityBadge(product);
         if (!visibility) return null;

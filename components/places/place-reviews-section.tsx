@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ReportButton } from "@/components/product/report-button";
 import type { PlaceReview } from "@/types/database";
 import { Loader2, Star } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export function PlaceReviewsSection({
   placeId,
@@ -70,6 +71,10 @@ export function PlaceReviewsSection({
       if (!res.ok || !data.ok) {
         setError(data.error ?? "No se pudo guardar.");
         return;
+      }
+
+      if (!isUpdate) {
+        trackEvent("rate_shop", { place_id: placeId, rating });
       }
 
       const next: PlaceReview = {
