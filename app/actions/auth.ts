@@ -1,9 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
-import { getSiteUrl, getSupabasePublicEnv } from "@/lib/supabase/env";
+import {
+  getSupabasePublicEnv,
+  originFromHeaders,
+} from "@/lib/supabase/env";
 import { safeReturnUrl } from "@/lib/safe-return-url";
 
 export async function signUpWithEmail(
@@ -15,7 +19,8 @@ export async function signUpWithEmail(
   if (!env.ok) return { ok: false, error: env.error };
 
   const supabase = await createClient();
-  const siteUrl = getSiteUrl();
+  const hdrs = await headers();
+  const siteUrl = originFromHeaders(hdrs);
   const safeReturn = safeReturnUrl(returnUrl);
 
   const { error } = await supabase.auth.signUp({
@@ -44,7 +49,10 @@ export async function signInWithEmail(
   if (!env.ok) return { ok: false, error: env.error };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) return { ok: false, error: error.message };
 
@@ -53,4 +61,35 @@ export async function signInWithEmail(
   }
 
   redirect(safeReturnUrl(returnUrl));
+}
+
+/**
+ * OAuth en server action: setea code verifier en cookies del response.
+ * redirectTo usa el host real de la pestaña (www/apex), no SITE_URL fijo.
+ */
+export async function getGoogleSignInUrl(
+  returnUrl: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const env = getSupabasePublicEnv();
+  if (!env.ok) return { ok: false, error: env.error };
+
+  const supabase = await createClient();
+  const hdrs = await headers();
+  const origin = originFromHeaders(hdrs);
+  const safeReturn = safeReturnUrl(returnUrl);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback?returnUrl=${encodeURIComponent(safeReturn)}`,
+      skipBrowserRedirect: true,
+    },
+  });
+
+  if (error) return { ok: false, error: error.message };
+  if (!data.url) {
+    return { ok: false, error: "No se pudo iniciar sesión con Google." };
+  }
+
+  return { ok: true, url: data.url };
 }
