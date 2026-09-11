@@ -37,9 +37,7 @@ export function GuestHome({ data }: { data: HomePageData }) {
           </div>
         </section>
 
-        <div className="mb-10 max-w-xl md:px-0 [&_section]:px-0">
-          <GuestScanBanner />
-        </div>
+        <GuestScanBanner />
 
         <TopRatedSection products={data.topRated} />
         <TopRatedSection
