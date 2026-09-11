@@ -11,6 +11,20 @@ function excerpt(text: string | null, max = 120): string {
   return `${t.slice(0, max).trim()}…`;
 }
 
+function publicAuthorName(
+  displayName: string | null | undefined,
+  username: string | null | undefined
+): string | null {
+  const name = displayName?.trim();
+  if (name) return name;
+
+  const handle = username?.trim().replace(/^@/, "");
+  if (!handle) return null;
+  // Usernames autogenerados tipo user_<uuid> no se muestran
+  if (/^user[_-]/i.test(handle) || handle.length > 24) return null;
+  return handle;
+}
+
 export function VeredictoSemanaCard({ product }: { product: HomeFeaturedProduct }) {
   const cert = product.gluten_certification
     ? GLUTEN_LABELS[product.gluten_certification]
@@ -20,9 +34,9 @@ export function VeredictoSemanaCard({ product }: { product: HomeFeaturedProduct 
     product.ai_summary?.trim() ||
     null;
   const author =
-    product.featured_username?.replace(/^@/, "") ||
-    product.featured_display_name ||
-    null;
+    publicAuthorName(product.featured_display_name, product.featured_username) ??
+    "Colaborador";
+
 
   return (
     <section className="mb-9 px-4">
