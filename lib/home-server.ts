@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { visibleProductImages } from "@/lib/product-images-display";
 import { getTopPublicLists } from "@/lib/lists-server";
 import { getBrandName } from "@/lib/utils";
-import type { UserTier } from "@/types/database";
+import type { GlutenCertification, UserTier } from "@/types/database";
 
 export type HomeAvatarProfile = {
   id: string;
@@ -35,14 +35,24 @@ export type HomeTopRatedProduct = {
   review_count: number;
   image_url: string | null;
   brand_name: string | null;
+  gluten_certification: GlutenCertification | null;
   featured_opinion: string | null;
   featured_rating: number | null;
   featured_display_name: string | null;
+  featured_username: string | null;
   featured_tier: UserTier | null;
 };
 
 export type HomeFeaturedProduct = HomeTopRatedProduct & {
   ai_summary: string | null;
+};
+
+export type HomeLatestPlace = {
+  id: string;
+  name: string;
+  slug: string;
+  city: string | null;
+  created_at: string;
 };
 
 export type HomePageData = {
@@ -53,6 +63,7 @@ export type HomePageData = {
   mostReviewed: HomeTopRatedProduct[];
   featuredProduct: HomeFeaturedProduct | null;
   topLists: Awaited<ReturnType<typeof getTopPublicLists>>;
+  latestPlaces: HomeLatestPlace[];
 };
 
 export async function getHomePageData(supabase: SupabaseClient): Promise<HomePageData> {
@@ -63,6 +74,7 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     topRated,
     mostReviewed,
     topLists,
+    latestPlaces,
   ] = await Promise.all([
     getCollaboratorCount(supabase),
     getAvatarStripProfiles(supabase),
@@ -70,6 +82,7 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     getTopRatedWithFeaturedReview(supabase, 10),
     getMostReviewedWithFeaturedReview(supabase, 10),
     getTopPublicLists(supabase, 3),
+    getLatestPlaces(supabase, 3),
   ]);
 
   const featuredProduct = await buildFeaturedProduct(supabase, topRated[0] ?? null);
@@ -82,6 +95,7 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     mostReviewed,
     featuredProduct,
     topLists,
+    latestPlaces,
   };
 }
 
@@ -101,6 +115,25 @@ async function buildFeaturedProduct(
     ...top,
     ai_summary: product?.ai_summary ?? null,
   };
+}
+
+async function getLatestPlaces(
+  supabase: SupabaseClient,
+  limit = 3
+): Promise<HomeLatestPlace[]> {
+  const { data, error } = await supabase
+    .from("places")
+    .select("id, name, slug, city, created_at")
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getLatestPlaces:", error.message);
+    return [];
+  }
+  return (data ?? []) as HomeLatestPlace[];
 }
 
 async function getCollaboratorCount(supabase: SupabaseClient): Promise<number> {
@@ -212,8 +245,8 @@ async function getProductsWithFeaturedReview(
     .from("reviews")
     .select(
       `
-      product_id, rating, opinion,
-      profiles (display_name, tier)
+      product_id, rating, opinion, gluten_certification,
+      profiles (display_name, username, tier)
     `
     )
     .in("product_id", productIds)
@@ -225,18 +258,38 @@ async function getProductsWithFeaturedReview(
       opinion: string;
       rating: number;
       display_name: string | null;
+      username: string | null;
       tier: UserTier;
+      gluten_certification: GlutenCertification | null;
     }
   >();
 
+  const certPriority: Record<GlutenCertification, number> = {
+    sin_tacc: 5,
+    sin_gluten: 4,
+    con_trazas: 2,
+    no_certificado: 1,
+    desconocido: 0,
+  };
+  const bestCertByProduct = new Map<string, GlutenCertification>();
+
   for (const r of reviews ?? []) {
+    const cert = r.gluten_certification as GlutenCertification | null;
+    if (cert) {
+      const current = bestCertByProduct.get(r.product_id);
+      if (!current || certPriority[cert] > certPriority[current]) {
+        bestCertByProduct.set(r.product_id, cert);
+      }
+    }
     if (bestByProduct.has(r.product_id)) continue;
     const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
     bestByProduct.set(r.product_id, {
       opinion: r.opinion,
       rating: r.rating,
       display_name: (profile as { display_name: string | null })?.display_name ?? null,
+      username: (profile as { username: string | null })?.username ?? null,
       tier: ((profile as { tier?: UserTier })?.tier ?? "none") as UserTier,
+      gluten_certification: cert,
     });
   }
 
@@ -255,9 +308,11 @@ async function getProductsWithFeaturedReview(
       brand_name:
         getBrandName((p as { brands?: { name: string } | { name: string }[] }).brands) ??
         null,
+      gluten_certification: bestCertByProduct.get(p.id) ?? featured?.gluten_certification ?? null,
       featured_opinion: featured?.opinion ?? null,
       featured_rating: featured?.rating ?? null,
       featured_display_name: featured?.display_name ?? null,
+      featured_username: featured?.username ?? null,
       featured_tier: featured?.tier ?? null,
     };
   });
