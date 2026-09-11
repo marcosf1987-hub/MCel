@@ -11,7 +11,13 @@ interface SearchResult {
   href: string;
 }
 
-export function SearchBar({ compact = false }: { compact?: boolean }) {
+export function SearchBar({
+  compact = false,
+  placeholder,
+}: {
+  compact?: boolean;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -60,7 +66,8 @@ export function SearchBar({ compact = false }: { compact?: boolean }) {
             compact ? "h-9 pl-8 text-sm" : "pl-11"
           }`}
           placeholder={
-            compact ? "Buscar…" : "Buscar marca, categoría o producto..."
+            placeholder ??
+            (compact ? "Buscar…" : "Buscar marca, categoría o producto...")
           }
           value={query}
           onChange={(e) => {

@@ -6,7 +6,7 @@ const INSTAGRAM_URL = "https://www.instagram.com/celiappok";
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-[var(--color-border)] bg-white">
+    <footer className="mt-auto border-t border-[var(--color-border)] bg-white pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
         <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between md:gap-6 md:pb-6">
           <div>
@@ -50,7 +50,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-[var(--color-brand-light)] bg-[var(--color-brand-cream)] px-3 py-2 text-[10px] leading-snug text-[var(--color-brown)] md:text-[8px]">
+        <div className="rounded-xl border border-[var(--color-brand-light)] bg-[var(--color-brand-cream)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--color-brown)] md:text-[10px]">
           <strong>Aviso médico:</strong> La información en este sitio proviene de
           la experiencia de la comunidad celíaca y no reemplaza el consejo de un
           médico o nutricionista. Verificá siempre las etiquetas y
@@ -59,11 +59,11 @@ export function Footer() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <Link
             href="/privacidad"
-            className="text-[10px] text-[var(--color-neutral)] hover:text-[var(--color-accent)] hover:underline md:text-[8px]"
+            className="text-[11px] text-[var(--color-neutral)] hover:text-[var(--color-accent)] hover:underline md:text-[10px]"
           >
             Privacidad
           </Link>
-          <p className="text-[10px] leading-snug text-[var(--color-muted-foreground)] md:text-[7px]">
+          <p className="text-[11px] leading-snug text-[var(--color-muted-foreground)] md:text-[10px]">
             © {new Date().getFullYear()} CeliApp — Comunidad de productos sin
             gluten
           </p>
