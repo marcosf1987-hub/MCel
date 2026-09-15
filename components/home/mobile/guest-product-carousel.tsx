@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
 import type { HomeTopRatedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 import { cn } from "@/lib/utils";
 
 function productTag(rating: number | null): string {
@@ -82,8 +83,8 @@ export function GuestProductCarousel({
                   alt={product.name}
                   fill
                   className="object-contain p-2"
-                  sizes="180px"
-                  unoptimized={product.image_url.includes("openfoodfacts")}
+                  sizes={IMAGE_SIZE.card}
+                  unoptimized={nextImageUnoptimized(product.image_url)}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-[var(--color-muted-foreground)]">

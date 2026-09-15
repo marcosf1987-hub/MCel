@@ -4,6 +4,7 @@ import { Award, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/product/star-rating";
 import type { HomeFeaturedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 function excerpt(text: string | null, max = 140): string {
   if (!text?.trim()) return "";
@@ -36,9 +37,9 @@ export function FeaturedProductHero({ product }: { product: HomeFeaturedProduct 
               alt={product.name}
               fill
               className="object-contain p-5"
-              sizes="(max-width: 1024px) 280px, 300px"
+              sizes={IMAGE_SIZE.hero}
               priority
-              unoptimized={product.image_url.includes("openfoodfacts")}
+              unoptimized={nextImageUnoptimized(product.image_url)}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-[var(--color-muted-foreground)]">

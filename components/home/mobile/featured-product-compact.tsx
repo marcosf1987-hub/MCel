@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Award } from "lucide-react";
 import { StarRating } from "@/components/product/star-rating";
 import type { HomeFeaturedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 import { cn } from "@/lib/utils";
 
 function excerpt(text: string | null, max = 80): string {
@@ -39,9 +40,9 @@ export function FeaturedProductCompact({
               alt={product.name}
               fill
               className="object-cover"
-              sizes="58vw"
+              sizes={IMAGE_SIZE.card}
               priority
-              unoptimized={product.image_url.includes("openfoodfacts")}
+              unoptimized={nextImageUnoptimized(product.image_url)}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-[var(--color-muted-foreground)]">

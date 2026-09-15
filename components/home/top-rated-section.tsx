@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import { tierContributorLabel } from "@/lib/avatar";
 import type { HomeTopRatedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 function excerpt(text: string | null, max = 120): string {
   if (!text?.trim()) return "";
@@ -59,8 +60,8 @@ export function TopRatedSection({
                   alt={product.name}
                   fill
                   className="object-contain p-4"
-                  sizes="280px"
-                  unoptimized={product.image_url.includes("openfoodfacts")}
+                  sizes={IMAGE_SIZE.card}
+                  unoptimized={nextImageUnoptimized(product.image_url)}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-[var(--color-muted-foreground)]">

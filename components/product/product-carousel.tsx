@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ProductCoverImage } from "@/components/product/product-cover-image";
+import { IMAGE_SIZE } from "@/lib/next-image";
 
 export function ProductCarousel({ images }: { images: { url: string; id: string }[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -41,7 +42,7 @@ export function ProductCarousel({ images }: { images: { url: string; id: string 
                 <ProductCoverImage
                   src={img.url}
                   alt="Producto"
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes={IMAGE_SIZE.hero}
                   className="p-4"
                 />
               </div>

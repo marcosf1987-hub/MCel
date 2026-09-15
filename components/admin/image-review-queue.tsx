@@ -78,7 +78,7 @@ export function ImageReviewQueue({
                 alt={img.product_name}
                 fill
                 className="object-contain"
-                sizes="200px"
+                sizes="256px"
                 unoptimized
               />
             </div>

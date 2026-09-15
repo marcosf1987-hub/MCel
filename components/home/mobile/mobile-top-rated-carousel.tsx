@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { HomeCarousel, HomeCarouselSlide } from "@/components/home/mobile/home-carousel";
 import { HomeSectionHeader } from "@/components/home/mobile/home-section-header";
 import type { HomeTopRatedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 function excerpt(text: string | null, max = 80): string {
   if (!text?.trim()) return "";
@@ -51,8 +52,8 @@ export function MobileTopRatedCarousel({
                     alt={product.name}
                     fill
                     className="object-contain p-4"
-                    sizes="85vw"
-                    unoptimized={product.image_url.includes("openfoodfacts")}
+                    sizes={IMAGE_SIZE.card}
+                    unoptimized={nextImageUnoptimized(product.image_url)}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-[var(--color-muted-foreground)]">

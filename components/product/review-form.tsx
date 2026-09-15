@@ -383,7 +383,7 @@ export function ReviewForm({
                       alt="Tu foto del producto"
                       fill
                       className="object-cover"
-                      sizes="120px"
+                      sizes="128px"
                       unoptimized={img.url.includes("supabase")}
                     />
                     <button

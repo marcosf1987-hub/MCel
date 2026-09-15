@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, ListMusic, Star } from "lucide-react";
 import type { HomePageData, HomeTopRatedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 import { cn } from "@/lib/utils";
 
 function productBadge(rating: number | null): { label: string; className: string } {
@@ -46,8 +47,8 @@ export function HomeRankedProductRows({
                       alt={product.name}
                       fill
                       className="object-contain p-1.5"
-                      sizes="56px"
-                      unoptimized={product.image_url.includes("openfoodfacts")}
+                      sizes={IMAGE_SIZE.thumbSm}
+                      unoptimized={nextImageUnoptimized(product.image_url)}
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-[10px] text-[var(--color-muted-foreground)]">

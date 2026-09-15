@@ -186,7 +186,7 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
                     alt="Imagen del producto"
                     fill
                     className="object-contain p-1"
-                    sizes="160px"
+                    sizes="128px"
                     unoptimized={img.url.includes("supabase")}
                   />
                   {isCover && (
@@ -255,7 +255,7 @@ export function AdminProductImagesEditor({ productId }: { productId: string }) {
                     alt="Imagen oculta"
                     fill
                     className="object-contain p-1 grayscale"
-                    sizes="160px"
+                    sizes="128px"
                     unoptimized={img.url.includes("supabase")}
                   />
                 </div>

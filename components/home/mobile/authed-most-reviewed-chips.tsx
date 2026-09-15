@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
 import type { HomeTopRatedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 /** Carrusel compacto horizontal para “Más evaluados” (chips con foto + conteo). */
 export function AuthedMostReviewedChips({ products }: { products: HomeTopRatedProduct[] }) {
@@ -31,8 +32,8 @@ export function AuthedMostReviewedChips({ products }: { products: HomeTopRatedPr
                   alt={product.name}
                   fill
                   className="object-contain p-1"
-                  sizes="48px"
-                  unoptimized={product.image_url.includes("openfoodfacts")}
+                  sizes={IMAGE_SIZE.thumbSm}
+                  unoptimized={nextImageUnoptimized(product.image_url)}
                 />
               ) : null}
             </div>

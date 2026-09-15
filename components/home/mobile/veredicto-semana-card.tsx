@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Sparkles, Star } from "lucide-react";
 import { GLUTEN_LABELS } from "@/types/database";
 import type { HomeFeaturedProduct } from "@/lib/home-server";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 function excerpt(text: string | null, max = 120): string {
   if (!text?.trim()) return "";
@@ -60,9 +61,9 @@ export function VeredictoSemanaCard({ product }: { product: HomeFeaturedProduct 
                 alt={product.name}
                 fill
                 className="object-contain p-1"
-                sizes="96px"
+                sizes={IMAGE_SIZE.thumbSm}
                 priority
-                unoptimized={product.image_url.includes("openfoodfacts")}
+                unoptimized={nextImageUnoptimized(product.image_url)}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-[var(--color-muted-foreground)]">

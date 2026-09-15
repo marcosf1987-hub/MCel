@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { IMAGE_SIZE, nextImageUnoptimized } from "@/lib/next-image";
 
 /** Portada con fallback a «Sin foto» si la URL no carga. */
 export function ProductCoverImage({
   src,
   alt,
   className,
-  sizes = "(max-width: 640px) 50vw, 25vw",
+  sizes = IMAGE_SIZE.card,
   fill = true,
   width,
   height,
@@ -47,7 +48,7 @@ export function ProductCoverImage({
       height={fill ? undefined : height}
       className={cn("object-contain p-3", className)}
       sizes={sizes}
-      unoptimized={src!.includes("openfoodfacts")}
+      unoptimized={nextImageUnoptimized(src)}
       onError={() => setFailed(true)}
     />
   );

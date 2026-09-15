@@ -43,6 +43,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   images: {
+    // Menos anchos = menos variantes únicas (transformaciones).
+    deviceSizes: [640, 750, 1080, 1280],
+    imageSizes: [64, 96, 128, 256],
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "images.openfoodfacts.org" },
