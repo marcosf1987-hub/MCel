@@ -13,6 +13,7 @@ En Vercel → proyecto → **Settings** → **Environment Variables**, agregá:
 | `OPENAI_API_KEY` | opcional (resúmenes de evaluaciones) |
 | `GEMINI_API_KEY` | opcional (ranking estético de fotos; sin key usa solo heurísticas) |
 | `GOOGLE_PLACES_API_KEY` | opcional (autocomplete de locales en admin; Places API New) |
+| `NEXT_PUBLIC_CARTO_API_KEY` | opcional (tiles CARTO Voyager; sin esto usamos OSM gratis) |
 | `CRON_SECRET` | secreto para el cron nocturno de ranking de fotos (`/api/cron/rank-images`, 00:15 ART) |
 
 Marcá las cuatro primeras para **Production**, **Preview** y **Development**.

@@ -2,11 +2,20 @@
 
 import L from "leaflet";
 
-export const MAP_TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+/**
+ * CARTO Voyager ahora exige API key (watermark "API KEY REQUIRED").
+ * Por defecto usamos tiles OSM (sin key). Opcional: NEXT_PUBLIC_CARTO_API_KEY
+ * para volver a Voyager con ?key=… (gratis en carto.com/basemaps/apikey).
+ */
+const cartoKey = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim();
 
-export const MAP_TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+export const MAP_TILE_URL = cartoKey
+  ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`
+  : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+export const MAP_TILE_ATTRIBUTION = cartoKey
+  ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /** Marcador clásico desde /public (admin pin). */
 export const leafletMarkerIcon = L.icon({
