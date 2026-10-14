@@ -65,6 +65,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     updates.deleted_at = null;
   } else if (body.hide === true) {
     updates.deleted_at = new Date().toISOString();
+    updates.is_home_featured = false;
+  }
+
+  if (typeof body.is_home_featured === "boolean") {
+    updates.is_home_featured = body.is_home_featured;
   }
 
   if (Object.keys(updates).length === 0) {
@@ -72,6 +77,21 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       response,
       adminJson({ ok: false, error: "Sin cambios." }, 400)
     );
+  }
+
+  // Solo un Veredicto a la vez: desmarcar el anterior antes de destacar
+  if (updates.is_home_featured === true) {
+    const { error: clearErr } = await supabase
+      .from("products")
+      .update({ is_home_featured: false })
+      .eq("is_home_featured", true)
+      .neq("id", productId);
+    if (clearErr) {
+      return withAdminCookies(
+        response,
+        adminJson({ ok: false, error: clearErr.message }, 500)
+      );
+    }
   }
 
   const { error } = await supabase

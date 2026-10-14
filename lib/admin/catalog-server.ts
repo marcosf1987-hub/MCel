@@ -21,6 +21,7 @@ export type AdminProductRow = {
   subcategory_name: string;
   review_count: number;
   weighted_rating: number | null;
+  is_home_featured: boolean;
   deleted_at: string | null;
   created_at: string;
 };
@@ -66,7 +67,7 @@ export async function fetchAdminProducts(
     .select(
       `
       id, name, slug, barcode, brand_id, category_id, subcategory_id,
-      review_count, weighted_rating, deleted_at, created_at,
+      review_count, weighted_rating, is_home_featured, deleted_at, created_at,
       brands(name),
       categories(name, name_es),
       subcategories(name, name_es)
@@ -108,6 +109,9 @@ export async function fetchAdminProducts(
       subcategory_name: subcategory?.name_es ?? subcategory?.name ?? "—",
       review_count: row.review_count,
       weighted_rating: row.weighted_rating,
+      is_home_featured: Boolean(
+        (row as { is_home_featured?: boolean }).is_home_featured
+      ),
       deleted_at: row.deleted_at ?? null,
       created_at: row.created_at,
     };

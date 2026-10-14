@@ -302,6 +302,22 @@ export function CatalogProductsManager({
                         <Button
                           type="button"
                           size="sm"
+                          variant={product.is_home_featured ? "accent" : "outline"}
+                          disabled={actingId === product.id}
+                          title="Veredicto de la Semana en la home"
+                          onClick={() =>
+                            void patchProduct(product.id, {
+                              is_home_featured: !product.is_home_featured,
+                            })
+                          }
+                        >
+                          {product.is_home_featured
+                            ? "★ Destacado"
+                            : "Destacar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
                           variant="ghost"
                           disabled={actingId === product.id}
                           onClick={() => void patchProduct(product.id, { hide: true })}
@@ -357,6 +373,11 @@ export function CatalogProductsManager({
                   {product.review_count} evaluaciones
                   {product.weighted_rating != null &&
                     ` · ★ ${product.weighted_rating.toFixed(1)}`}
+                  {product.is_home_featured && (
+                    <span className="ml-2 font-semibold text-[var(--color-accent)]">
+                      Veredicto home
+                    </span>
+                  )}
                   {product.deleted_at && (
                     <span className="ml-2 text-red-600">Oculto</span>
                   )}

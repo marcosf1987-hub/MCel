@@ -11,6 +11,7 @@ import {
   AuthedLatestPlaces,
 } from "@/components/home/mobile/authed-lists-places";
 import { AuthedMostReviewedChips } from "@/components/home/mobile/authed-most-reviewed-chips";
+import { AuthedTopPlacesCarousel } from "@/components/home/mobile/authed-top-places-carousel";
 import type { HomePageData } from "@/lib/home-server";
 
 export function MobileAuthedHome({
@@ -28,11 +29,12 @@ export function MobileAuthedHome({
       <GuestProductCarousel
         products={data.topRated}
         title="Mejor puntuados"
-        subtitle="Favoritos con puntuación ponderada"
+        subtitle="Con al menos 3 evaluaciones"
       />
       <AuthedReviewsFeed reviews={data.latestReviews} />
       <AuthedListsSection lists={data.topLists} />
       <AuthedMostReviewedChips products={data.mostReviewed} />
+      <AuthedTopPlacesCarousel places={data.topPlaces} />
       <AuthedLatestPlaces places={data.latestPlaces} />
     </div>
   );

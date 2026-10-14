@@ -55,6 +55,16 @@ export type HomeLatestPlace = {
   created_at: string;
 };
 
+export type HomeTopPlace = {
+  id: string;
+  name: string;
+  slug: string;
+  city: string | null;
+  address: string | null;
+  weighted_rating: number | null;
+  review_count: number;
+};
+
 export type HomePageData = {
   collaboratorCount: number;
   avatarProfiles: HomeAvatarProfile[];
@@ -64,6 +74,7 @@ export type HomePageData = {
   featuredProduct: HomeFeaturedProduct | null;
   topLists: Awaited<ReturnType<typeof getTopPublicLists>>;
   latestPlaces: HomeLatestPlace[];
+  topPlaces: HomeTopPlace[];
 };
 
 export async function getHomePageData(supabase: SupabaseClient): Promise<HomePageData> {
@@ -75,6 +86,8 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     mostReviewed,
     topLists,
     latestPlaces,
+    topPlaces,
+    manualFeatured,
   ] = await Promise.all([
     getCollaboratorCount(supabase),
     getAvatarStripProfiles(supabase),
@@ -83,9 +96,13 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     getMostReviewedWithFeaturedReview(supabase, 10),
     getTopPublicLists(supabase, 3),
     getLatestPlaces(supabase, 3),
+    getTopPlaces(supabase, 10),
+    getManualFeaturedProduct(supabase),
   ]);
 
-  const featuredProduct = await buildFeaturedProduct(supabase, topRated[0] ?? null);
+  const featuredProduct =
+    manualFeatured ??
+    (await buildFeaturedProduct(supabase, topRated[0] ?? null));
 
   return {
     collaboratorCount,
@@ -96,6 +113,38 @@ export async function getHomePageData(supabase: SupabaseClient): Promise<HomePag
     featuredProduct,
     topLists,
     latestPlaces,
+    topPlaces,
+  };
+}
+
+async function getManualFeaturedProduct(
+  supabase: SupabaseClient
+): Promise<HomeFeaturedProduct | null> {
+  const { data: product, error } = await supabase
+    .from("products")
+    .select(
+      `
+      id, slug, name, weighted_rating, review_count, ai_summary,
+      brands (name),
+      product_images (url, sort_order, is_hidden)
+    `
+    )
+    .eq("is_home_featured", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getManualFeaturedProduct:", error.message);
+    return null;
+  }
+  if (!product) return null;
+
+  const enriched = await enrichProductsWithFeaturedReview(supabase, [product]);
+  const base = enriched[0];
+  if (!base) return null;
+  return {
+    ...base,
+    ai_summary: product.ai_summary ?? null,
   };
 }
 
@@ -115,6 +164,29 @@ async function buildFeaturedProduct(
     ...top,
     ai_summary: product?.ai_summary ?? null,
   };
+}
+
+async function getTopPlaces(
+  supabase: SupabaseClient,
+  limit = 10
+): Promise<HomeTopPlace[]> {
+  const { data, error } = await supabase
+    .from("places")
+    .select(
+      "id, name, slug, city, address, weighted_rating, review_count"
+    )
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .gt("review_count", 0)
+    .order("review_count", { ascending: false })
+    .order("weighted_rating", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getTopPlaces:", error.message);
+    return [];
+  }
+  return (data ?? []) as HomeTopPlace[];
 }
 
 async function getLatestPlaces(
@@ -210,6 +282,16 @@ export async function getMostReviewedWithFeaturedReview(
   return getProductsWithFeaturedReview(supabase, limit, "review_count");
 }
 
+type ProductRowForHome = {
+  id: string;
+  slug: string;
+  name: string;
+  weighted_rating: number | null;
+  review_count: number;
+  brands?: { name: string } | { name: string }[] | null;
+  product_images?: { url: string; sort_order: number; is_hidden?: boolean }[] | null;
+};
+
 async function getProductsWithFeaturedReview(
   supabase: SupabaseClient,
   limit: number,
@@ -224,21 +306,36 @@ async function getProductsWithFeaturedReview(
       product_images (url, sort_order, is_hidden)
     `
     )
-    .is("deleted_at", null)
-    .gt("review_count", 0);
+    .is("deleted_at", null);
 
-  if (orderBy === "review_count") {
+  // Mejor puntuados: mínimo 3 evaluaciones. Más evaluados: al menos 1.
+  if (orderBy === "weighted_rating") {
     query = query
-      .order("review_count", { ascending: false })
+      .gt("review_count", 2)
       .order("weighted_rating", { ascending: false, nullsFirst: false });
   } else {
-    query = query.order("weighted_rating", { ascending: false, nullsFirst: false });
+    query = query
+      .gt("review_count", 0)
+      .order("review_count", { ascending: false })
+      .order("weighted_rating", { ascending: false, nullsFirst: false });
   }
 
   const { data: products, error } = await query.limit(limit);
 
   if (error) throw error;
   if (!products?.length) return [];
+
+  return enrichProductsWithFeaturedReview(
+    supabase,
+    products as ProductRowForHome[]
+  );
+}
+
+async function enrichProductsWithFeaturedReview(
+  supabase: SupabaseClient,
+  products: ProductRowForHome[]
+): Promise<HomeTopRatedProduct[]> {
+  if (!products.length) return [];
 
   const productIds = products.map((p) => p.id);
   const { data: reviews } = await supabase
@@ -305,9 +402,7 @@ async function getProductsWithFeaturedReview(
       weighted_rating: p.weighted_rating,
       review_count: p.review_count,
       image_url: images[0]?.url ?? null,
-      brand_name:
-        getBrandName((p as { brands?: { name: string } | { name: string }[] }).brands) ??
-        null,
+      brand_name: getBrandName(p.brands) ?? null,
       gluten_certification: bestCertByProduct.get(p.id) ?? featured?.gluten_certification ?? null,
       featured_opinion: featured?.opinion ?? null,
       featured_rating: featured?.rating ?? null,

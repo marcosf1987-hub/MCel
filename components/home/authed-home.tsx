@@ -10,6 +10,7 @@ import {
 } from "@/components/home/mobile/authed-home-greeting";
 import { VeredictoSemanaCard } from "@/components/home/mobile/veredicto-semana-card";
 import { AuthedLatestPlaces } from "@/components/home/mobile/authed-lists-places";
+import { AuthedTopPlacesCarousel } from "@/components/home/mobile/authed-top-places-carousel";
 import type { HomePageData } from "@/lib/home-server";
 
 export function AuthedHome({
@@ -35,7 +36,10 @@ export function AuthedHome({
           </div>
         )}
 
-        <TopRatedSection products={data.topRated} />
+        <TopRatedSection
+          products={data.topRated}
+          description="Con al menos 3 evaluaciones. Las puntuaciones ponderan la reputación de cada colaborador."
+        />
         <LatestReviewsSection reviews={data.latestReviews} />
         <TopListsSection lists={data.topLists} />
         <TopRatedSection
@@ -43,6 +47,9 @@ export function AuthedHome({
           title="Más evaluados"
           description="Los productos con mayor feedback de la comunidad."
         />
+        <div className="mb-10 [&_section]:mb-0 [&_section]:px-0">
+          <AuthedTopPlacesCarousel places={data.topPlaces} />
+        </div>
         <div className="[&_section]:px-0">
           <AuthedLatestPlaces places={data.latestPlaces} />
         </div>

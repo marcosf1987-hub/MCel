@@ -110,6 +110,7 @@ export interface Product {
   ai_summary: string | null;
   weighted_rating: number | null;
   review_count: number;
+  is_home_featured?: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
