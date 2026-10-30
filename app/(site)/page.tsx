@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getHomePageData } from "@/lib/home-server";
+import { getCachedHomePageData } from "@/lib/home-server";
 import { GuestHome } from "@/components/home/guest-home";
 import { AuthedHome } from "@/components/home/authed-home";
 import type { AuthedHomeProfile } from "@/components/home/mobile/authed-home-greeting";
@@ -10,7 +10,7 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const homeData = await getHomePageData(supabase);
+  const homeData = await getCachedHomePageData();
 
   if (!user) {
     return <GuestHome data={homeData} />;

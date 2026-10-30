@@ -1,63 +1,31 @@
+"use client";
+
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { getSupabasePublicEnv } from "@/lib/supabase/env";
-import { getCategoriesNavData } from "@/lib/categories-cache";
-import type { CategoriesNavData } from "@/lib/categories-types";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { NotificationBellLink } from "@/components/lists/notification-bell-link";
-import { countAllUnreadNotifications } from "@/lib/notifications";
 import { canAccessAdminPanel } from "@/lib/auth/roles";
 import { AdminPanelLink } from "@/components/admin/admin-panel-link";
+import { createClient } from "@/lib/supabase/client";
+import type { CategoriesNavData } from "@/lib/categories-types";
 import type { AppRole } from "@/types/database";
 import { Wheat, Heart, User, ListMusic, MapPin } from "lucide-react";
 
-type HeaderProfile = {
-  display_name: string | null;
-  tier: string;
-  app_role: AppRole;
+type HeaderSession = {
+  displayName: string;
+  unread: number;
+  showAdmin: boolean;
 };
 
-export async function Header() {
-  const env = getSupabasePublicEnv();
-  let user = null;
-  let profile: HeaderProfile | null = null;
-  let unreadNotifications = 0;
-  let showAdminPanel = false;
-
-  if (env.ok) {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
-    if (user) {
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("display_name, tier, app_role")
-        .eq("id", user.id)
-        .single();
-      profile = p as HeaderProfile | null;
-      showAdminPanel = p ? canAccessAdminPanel(p.app_role as AppRole) : false;
-      try {
-        unreadNotifications = await countAllUnreadNotifications(supabase, user.id);
-      } catch {
-        unreadNotifications = 0;
-      }
-    }
-  }
-
-  let categoriesData: CategoriesNavData = { categories: [], totalProducts: 0 };
-  try {
-    categoriesData = await getCategoriesNavData();
-  } catch (e) {
-    console.error("Header categories:", e);
-  }
+export function Header({ categories }: { categories: CategoriesNavData }) {
+  const session = useHeaderSession();
 
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/90 backdrop-blur-md shadow-sm">
-        {/* Mobile */}
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2.5 md:hidden">
           <Link
             href="/"
@@ -73,22 +41,9 @@ export async function Header() {
             <SearchBar compact />
           </div>
 
-          {!user && (
-            <Button asChild size="sm" className="shrink-0 text-xs">
-              <Link href="/login">Entrar</Link>
-            </Button>
-          )}
-          {user && (
-            <div className="flex shrink-0 items-center gap-1">
-              {showAdminPanel && (
-                <AdminPanelLink variant="ghost" size="icon" showLabel={false} />
-              )}
-              <NotificationBellLink unreadCount={unreadNotifications} />
-            </div>
-          )}
+          <MobileAuth session={session} />
         </div>
 
-        {/* Desktop */}
         <div className="mx-auto hidden max-w-6xl items-center gap-4 px-4 py-3 md:flex">
           <Link
             href="/"
@@ -100,7 +55,7 @@ export async function Header() {
             <span>CeliApp</span>
           </Link>
 
-          <CategoryMegaMenu data={categoriesData} />
+          <CategoryMegaMenu data={categories} />
 
           <div className="mx-2 max-w-md flex-1">
             <SearchBar />
@@ -113,42 +68,128 @@ export async function Header() {
                 Locales
               </Link>
             </Button>
-            {user ? (
-              <>
-                <NotificationBellLink unreadCount={unreadNotifications} />
-                {showAdminPanel && <AdminPanelLink variant="ghost" size="sm" />}
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/cuenta/listas" className="gap-1.5">
-                    <ListMusic className="h-4 w-4" />
-                    Mis listas
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/cuenta/listas/mis-favoritos" className="gap-1.5">
-                    <Heart className="h-4 w-4" />
-                    Favoritos
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/cuenta/preferencias" className="gap-1.5">
-                    <User className="h-4 w-4" />
-                    {profile?.display_name ?? "Mi cuenta"}
-                  </Link>
-                </Button>
-                <Button asChild variant="accent" size="sm">
-                  <Link href="/productos/nuevo">+ Producto</Link>
-                </Button>
-              </>
-            ) : (
-              <Button asChild size="sm">
-                <Link href="/login">Iniciar sesión</Link>
-              </Button>
-            )}
+            <DesktopAuth session={session} />
           </nav>
         </div>
       </header>
 
       <MobileBottomNav />
+    </>
+  );
+}
+
+function useHeaderSession(): HeaderSession | null | undefined {
+  const [session, setSession] = useState<HeaderSession | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          if (!cancelled) setSession(null);
+          return;
+        }
+
+        const [{ data: profile }, listCount, modCount] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("display_name, app_role")
+            .eq("id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("list_notifications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .is("read_at", null),
+          supabase
+            .from("user_notifications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .is("read_at", null),
+        ]);
+
+        const role = (profile?.app_role ?? "user") as AppRole;
+        if (!cancelled) {
+          setSession({
+            displayName: profile?.display_name?.trim() || "Mi cuenta",
+            unread: (listCount.count ?? 0) + (modCount.count ?? 0),
+            showAdmin: canAccessAdminPanel(role),
+          });
+        }
+      } catch {
+        if (!cancelled) setSession(null);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return session;
+}
+
+function MobileAuth({ session }: { session: HeaderSession | null | undefined }) {
+  if (session === undefined) {
+    return <span className="inline-block h-8 w-16 shrink-0" aria-hidden />;
+  }
+  if (!session) {
+    return (
+      <Button asChild size="sm" className="shrink-0 text-xs">
+        <Link href="/login">Entrar</Link>
+      </Button>
+    );
+  }
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {session.showAdmin && <AdminPanelLink variant="ghost" size="icon" showLabel={false} />}
+      <NotificationBellLink unreadCount={session.unread} />
+    </div>
+  );
+}
+
+function DesktopAuth({ session }: { session: HeaderSession | null | undefined }) {
+  if (session === undefined) {
+    return <span className="inline-block h-9 w-28" aria-hidden />;
+  }
+  if (!session) {
+    return (
+      <Button asChild size="sm">
+        <Link href="/login">Iniciar sesión</Link>
+      </Button>
+    );
+  }
+  return (
+    <>
+      <NotificationBellLink unreadCount={session.unread} />
+      {session.showAdmin && <AdminPanelLink variant="ghost" size="sm" />}
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/cuenta/listas" className="gap-1.5">
+          <ListMusic className="h-4 w-4" />
+          Mis listas
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/cuenta/listas/mis-favoritos" className="gap-1.5">
+          <Heart className="h-4 w-4" />
+          Favoritos
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/cuenta/preferencias" className="gap-1.5">
+          <User className="h-4 w-4" />
+          {session.displayName}
+        </Link>
+      </Button>
+      <Button asChild variant="accent" size="sm">
+        <Link href="/productos/nuevo">+ Producto</Link>
+      </Button>
     </>
   );
 }

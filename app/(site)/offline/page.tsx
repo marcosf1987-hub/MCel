@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { OfflineRetry } from "@/app/offline/offline-retry";
+import { OfflineRetry } from "@/app/(site)/offline/offline-retry";
 import { WifiOff } from "lucide-react";
 
 export const metadata = { title: "Sin conexión" };

@@ -42,7 +42,7 @@ export function ProductCarousel({ images }: { images: { url: string; id: string 
                 <ProductCoverImage
                   src={img.url}
                   alt="Producto"
-                  sizes={IMAGE_SIZE.hero}
+                  sizes={IMAGE_SIZE.gallery}
                   className="p-4"
                 />
               </div>

@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createPublicSupabaseClient } from "@/lib/supabase/public-client";
 import { visibleProductImages } from "@/lib/product-images-display";
 import { getTopPublicLists } from "@/lib/lists-server";
 import { getBrandName } from "@/lib/utils";
@@ -412,3 +414,27 @@ async function enrichProductsWithFeaturedReview(
     };
   });
 }
+
+function emptyHomePageData(): HomePageData {
+  return {
+    collaboratorCount: 0,
+    avatarProfiles: [],
+    latestReviews: [],
+    topRated: [],
+    mostReviewed: [],
+    featuredProduct: null,
+    topLists: [],
+    latestPlaces: [],
+  };
+}
+
+/** Datos públicos del home, 5 minutos. No lee cookies. */
+export const getCachedHomePageData = unstable_cache(
+  async () => {
+    const supabase = createPublicSupabaseClient();
+    if (!supabase) return emptyHomePageData();
+    return getHomePageData(supabase);
+  },
+  ["home-page-public"],
+  { revalidate: 300 }
+);

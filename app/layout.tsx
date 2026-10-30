@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Libre_Caslon_Text } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 const libreCaslon = Libre_Caslon_Text({
@@ -57,17 +53,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/** La app usa Supabase en cada vista; evita prerender en build sin variables de entorno. */
-export const dynamic = "force-dynamic";
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const isAdmin = pathname.startsWith("/admin");
-
   return (
     <html
       lang="es-AR"
@@ -75,18 +65,7 @@ export default async function RootLayout({
     >
       <body className="flex min-h-screen flex-col antialiased font-[family-name:var(--font-body)]">
         <GoogleAnalytics />
-        {isAdmin ? (
-          children
-        ) : (
-          <>
-            <Header />
-            <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
-              {children}
-            </main>
-            <Footer />
-            <InstallPrompt />
-          </>
-        )}
+        {children}
       </body>
     </html>
   );

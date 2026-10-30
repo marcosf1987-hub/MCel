@@ -43,9 +43,13 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   images: {
-    // Menos anchos = menos variantes únicas (transformaciones).
+    // Cupo Pro: 5.000 transformaciones/mes. Con catálogo se agotaba a mitad
+    // de ciclo. Desactivamos el optimizador de Vercel: las fotos ya se
+    // comprimen al subir (≤1200px) y salen desde Supabase / OFF.
+    unoptimized: true,
     deviceSizes: [640, 750, 1080, 1280],
     imageSizes: [64, 96, 128, 256],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "images.openfoodfacts.org" },

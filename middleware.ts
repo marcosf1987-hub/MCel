@@ -5,19 +5,12 @@ import { getSupabasePublicEnv } from "@/lib/supabase/env";
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function middleware(request: NextRequest) {
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
-
   const env = getSupabasePublicEnv();
   if (!env.ok) {
-    return NextResponse.next({
-      request: { headers: requestHeaders },
-    });
+    return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  let supabaseResponse = NextResponse.next();
 
   const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
@@ -29,7 +22,7 @@ export async function middleware(request: NextRequest) {
           request.cookies.set(name, value)
         );
         supabaseResponse = NextResponse.next({
-          request: { headers: requestHeaders },
+          request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)

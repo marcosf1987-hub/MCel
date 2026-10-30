@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { getCategoriesNavData } from "@/lib/categories-cache";
 import { getTopPublicLists } from "@/lib/lists-server";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public-client";
 import { ExploreCategoryAccordion } from "@/components/explore/category-accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Compass, ListMusic, MapPin, ThumbsUp } from "lucide-react";
 
 export const metadata = { title: "Explorar" };
+export const revalidate = 600;
 
 export default async function ExplorePage() {
   const data = await getCategoriesNavData();
-  const supabase = await createClient();
-  const topLists = await getTopPublicLists(supabase, 3);
+  const supabase = createPublicSupabaseClient();
+  const topLists = supabase ? await getTopPublicLists(supabase, 3) : [];
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6 md:max-w-2xl md:py-8">
