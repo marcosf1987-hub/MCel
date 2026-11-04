@@ -425,6 +425,7 @@ function emptyHomePageData(): HomePageData {
     featuredProduct: null,
     topLists: [],
     latestPlaces: [],
+    topPlaces: [],
   };
 }
 
